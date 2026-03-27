@@ -1,0 +1,115 @@
+services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME:-interview_site}
+      POSTGRES_USER: ${DB_USER:-interview}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_db_password}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-interview} -d ${DB_NAME:-interview_site}"]
+      interval: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py makemigrations accounts projects analysis questionnaires distribution responses aggregation design_brief &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-interview}:${DB_PASSWORD:-changeme_db_password}@db:5432/${DB_NAME:-interview_site}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config worker -l info -c 4
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-interview}:${DB_PASSWORD:-changeme_db_password}@db:5432/${DB_NAME:-interview_site}
+    depends_on:
+      - backend
+      - redis
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A config beat -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-interview}:${DB_PASSWORD:-changeme_db_password}@db:5432/${DB_NAME:-interview_site}
+    depends_on:
+      - backend
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+
+  stitch_bridge:
+    build:
+      context: ./stitch-bridge
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "3001:3001"
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - media_data:/media:ro
+
+volumes:
+  postgres_data:
+  media_data:

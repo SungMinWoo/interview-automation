@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# Environment
+.env
+.env.local
+.env.production
+.venv/
+env/
+venv/
+
+# Node
+node_modules/
+.npm
+.pnp.*
+
+# Build
+frontend/dist/
+frontend/build/
+*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+postgres_data/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage/
+*.lcov
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
