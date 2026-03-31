@@ -46,13 +46,13 @@ export function useAggregationStatus(projectId: number | undefined, enabled: boo
 export function useTriggerAggregation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (projectId: number) => {
-      const res = await apiClient.post(API_PATHS.AGGREGATION_TRIGGER(projectId));
+    mutationFn: async ({ projectId, ai_provider }: { projectId: number; ai_provider?: string }) => {
+      const res = await apiClient.post(API_PATHS.AGGREGATION_TRIGGER(projectId), { ai_provider });
       return res.data;
     },
-    onSuccess: (_data, projectId) => {
-      queryClient.invalidateQueries({ queryKey: aggregationKey(projectId) });
-      queryClient.invalidateQueries({ queryKey: aggregationStatusKey(projectId) });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: aggregationKey(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: aggregationStatusKey(variables.projectId) });
     },
   });
 }
@@ -60,13 +60,13 @@ export function useTriggerAggregation() {
 export function useRegenerateAggregation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (projectId: number) => {
-      const res = await apiClient.post(API_PATHS.AGGREGATION_REGENERATE(projectId));
+    mutationFn: async ({ projectId, ai_provider }: { projectId: number; ai_provider?: string }) => {
+      const res = await apiClient.post(API_PATHS.AGGREGATION_REGENERATE(projectId), { ai_provider });
       return res.data;
     },
-    onSuccess: (_data, projectId) => {
-      queryClient.invalidateQueries({ queryKey: aggregationKey(projectId) });
-      queryClient.invalidateQueries({ queryKey: aggregationStatusKey(projectId) });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: aggregationKey(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: aggregationStatusKey(variables.projectId) });
     },
   });
 }
@@ -77,8 +77,9 @@ export function useKeywords(projectId: number | undefined) {
   return useQuery<Keyword[]>({
     queryKey: keywordsKey(projectId!),
     queryFn: async () => {
-      const res = await apiClient.get<Keyword[]>(API_PATHS.KEYWORDS(projectId!));
-      return res.data;
+      const res = await apiClient.get(API_PATHS.KEYWORDS(projectId!));
+      if (Array.isArray(res.data)) return res.data;
+      return res.data.results ?? [];
     },
     enabled: !!projectId,
   });
@@ -152,8 +153,9 @@ export function useSentences(projectId: number | undefined) {
   return useQuery<Sentence[]>({
     queryKey: sentencesKey(projectId!),
     queryFn: async () => {
-      const res = await apiClient.get<Sentence[]>(API_PATHS.SENTENCES(projectId!));
-      return res.data;
+      const res = await apiClient.get(API_PATHS.SENTENCES(projectId!));
+      if (Array.isArray(res.data)) return res.data;
+      return res.data.results ?? [];
     },
     enabled: !!projectId,
   });

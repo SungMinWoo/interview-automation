@@ -7,12 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def run_aggregation(self, aggregation_id: int) -> None:
-    """Aggregate all survey responses using Gemini AI."""
+def run_aggregation(self, aggregation_id: int, ai_provider: str | None = None) -> None:
+    """Aggregate all survey responses using AI."""
     from apps.projects.models import Project
     from apps.responses.models import SurveyResponse, Answer
     from .models import Aggregation, ExtractedKeyword, ExtractedSentence
-    from services.gemini_client import GeminiClient
+    from services.ai_client import get_ai_client
 
     try:
         aggregation = Aggregation.objects.get(pk=aggregation_id)
@@ -59,8 +59,8 @@ def run_aggregation(self, aggregation_id: int) -> None:
             }
 
         # Run AI aggregation
-        gemini = GeminiClient()
-        result = gemini.aggregate_responses(
+        ai_client = get_ai_client(ai_provider)
+        result = ai_client.aggregate_responses(
             questions_with_answers=formatted_data,
             analysis_context=analysis_context,
         )

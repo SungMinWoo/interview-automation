@@ -18,12 +18,23 @@ const invitationsKey = (projectId: number) => ['invitations', projectId];
 
 // --- Employee hooks ---
 
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export function useEmployees(projectId: number | undefined) {
   return useQuery<Employee[]>({
     queryKey: employeesKey(projectId!),
     queryFn: async () => {
-      const res = await apiClient.get<Employee[]>(API_PATHS.EMPLOYEES(projectId!));
-      return res.data;
+      const res = await apiClient.get<Employee[] | PaginatedResponse<Employee>>(API_PATHS.EMPLOYEES(projectId!));
+      // Handle both paginated and flat array responses
+      if (Array.isArray(res.data)) {
+        return res.data;
+      }
+      return res.data.results ?? [];
     },
     enabled: !!projectId,
   });
@@ -91,11 +102,14 @@ export function useDeleteEmployee() {
 // --- Invitation hooks ---
 
 export function useInvitations(projectId: number | undefined) {
-  return useQuery<InvitationListResponse>({
+  return useQuery<Invitation[]>({
     queryKey: invitationsKey(projectId!),
     queryFn: async () => {
-      const res = await apiClient.get<InvitationListResponse>(API_PATHS.INVITATIONS(projectId!));
-      return res.data;
+      const res = await apiClient.get<Invitation[] | PaginatedResponse<Invitation>>(API_PATHS.INVITATIONS(projectId!));
+      if (Array.isArray(res.data)) {
+        return res.data;
+      }
+      return res.data.results ?? [];
     },
     enabled: !!projectId,
   });
@@ -136,6 +150,20 @@ export function useResendInvitation() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: invitationsKey(variables.projectId) });
+    },
+  });
+}
+
+export function useRegenerateInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, employeeId }: { projectId: number; employeeId: number }) => {
+      const res = await apiClient.post(API_PATHS.INVITATION_REGENERATE(projectId, employeeId));
+      return res.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: invitationsKey(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: employeesKey(variables.projectId) });
     },
   });
 }

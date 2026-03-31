@@ -6,13 +6,14 @@ class StitchGenerationSerializer(serializers.ModelSerializer):
     class Meta:
         model = StitchGeneration
         fields = [
-            'id', 'design_brief', 'prompt_text', 'reference_images',
-            'stitch_project_id', 'generated_html_url',
+            'id', 'design_brief', 'prompt_text', 'design_md_snapshot',
+            'reference_images',
+            'stitch_project_id', 'stitch_project_url', 'generated_html_url',
             'generated_screenshot_url', 'generated_html_content',
             'version', 'status', 'error_message', 'created_at',
         ]
         read_only_fields = [
-            'id', 'design_brief', 'stitch_project_id',
+            'id', 'design_brief', 'stitch_project_id', 'stitch_project_url',
             'generated_html_url', 'generated_screenshot_url',
             'generated_html_content', 'version', 'status',
             'error_message', 'created_at',
@@ -28,7 +29,7 @@ class DesignBriefSerializer(serializers.ModelSerializer):
             'id', 'project', 'aggregation', 'title', 'summary',
             'target_audience', 'design_direction', 'key_requirements',
             'selected_keywords', 'selected_sentences', 'tone_and_mood',
-            'color_preferences', 'additional_notes',
+            'color_preferences', 'additional_notes', 'design_md',
             'stitch_generations', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'project', 'aggregation', 'created_at', 'updated_at']

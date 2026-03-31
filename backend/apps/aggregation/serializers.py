@@ -29,13 +29,13 @@ class AggregationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aggregation
         fields = [
-            'id', 'project', 'status', 'version',
+            'id', 'project', 'status', 'version', 'ai_provider',
             'raw_ai_response', 'summary', 'company_direction',
             'desired_changes', 'company_values', 'error_message',
             'keywords', 'sentences', 'created_at',
         ]
         read_only_fields = [
-            'id', 'project', 'status', 'version',
+            'id', 'project', 'status', 'version', 'ai_provider',
             'raw_ai_response', 'error_message', 'created_at',
         ]
 
@@ -43,5 +43,5 @@ class AggregationSerializer(serializers.ModelSerializer):
 class AggregationStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aggregation
-        fields = ['id', 'status', 'version', 'error_message']
+        fields = ['id', 'status', 'version', 'ai_provider', 'error_message']
         read_only_fields = fields

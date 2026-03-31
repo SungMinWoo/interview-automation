@@ -66,9 +66,10 @@ class CloseCollectionView(APIView):
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
 
-        if project.status not in (Project.Status.COLLECTING, Project.Status.DISTRIBUTING):
+        # Allow closing from most active states; only block if already fully completed
+        if project.status in (Project.Status.CLOSED, Project.Status.COMPLETED):
             return Response(
-                {'detail': 'Project is not in a collectible state.'},
+                {'detail': 'Project is already closed or completed.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

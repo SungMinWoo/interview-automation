@@ -1,29 +1,29 @@
 export interface Employee {
   id: number;
-  projectId: number;
+  project: number;
   name: string;
   email: string;
+  phone?: string;
   department?: string;
   position?: string;
-  positionCategoryId?: number;
-  createdAt: string;
-  updatedAt: string;
+  position_category?: number | null;
+  created_at: string;
 }
 
 export interface EmployeeCreateRequest {
   name: string;
   email: string;
+  phone?: string;
   department?: string;
   position?: string;
-  positionCategoryId?: number;
 }
 
 export interface EmployeeUpdateRequest {
   name?: string;
   email?: string;
+  phone?: string;
   department?: string;
   position?: string;
-  positionCategoryId?: number;
 }
 
 export interface EmployeeBulkCreateRequest {
@@ -42,18 +42,20 @@ export type InvitationStatus = 'pending' | 'sent' | 'opened' | 'completed' | 'fa
 
 export interface Invitation {
   id: number;
-  projectId: number;
-  employeeId: number;
-  employeeName: string;
-  employeeEmail: string;
+  employee: number;
+  employee_name: string;
+  employee_email: string;
+  employee_position: string;
   token: string;
+  survey_url: string;
   status: InvitationStatus;
-  sentAt?: string;
-  openedAt?: string;
-  completedAt?: string;
-  expiresAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  expires_at: string;
+  sent_at?: string | null;
+  opened_at?: string | null;
+  completed_at?: string | null;
+  is_manual_entry: boolean;
+  is_expired: boolean;
+  created_at: string;
 }
 
 export interface InvitationGenerateRequest {

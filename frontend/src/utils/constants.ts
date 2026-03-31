@@ -108,12 +108,45 @@ export const SENTIMENT_COLORS: Record<string, string> = {
   neutral: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
+// --- AI Provider ---
+
+export type AiProvider = 'claude' | 'gemini';
+
+export const AI_PROVIDER_LABELS: Record<AiProvider, string> = {
+  claude: 'Claude',
+  gemini: 'Gemini',
+};
+
+export const AI_PROVIDER_OPTIONS: { value: AiProvider; label: string }[] = [
+  { value: 'claude', label: 'Claude' },
+  { value: 'gemini', label: 'Gemini' },
+];
+
+export const DEFAULT_AI_PROVIDER: AiProvider = 'claude';
+
 export const QUESTION_TYPE_LABELS: Record<string, string> = {
+  text: '단답형',
+  textarea: '서술형',
   single_choice: '단일 선택',
   multiple_choice: '복수 선택',
-  scale: '척도',
-  open_ended: '주관식',
+  rating: '평점',
   ranking: '순위',
+};
+
+export const IMPORTANCE_LABELS: Record<number, string> = {
+  1: '낮음',
+  2: '보통이하',
+  3: '보통',
+  4: '중요',
+  5: '매우중요',
+};
+
+export const IMPORTANCE_COLORS: Record<number, string> = {
+  1: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  2: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
+  3: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+  4: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
+  5: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
 };
 
 // --- Project Phase Steps ---
@@ -145,6 +178,8 @@ export const API_PATHS = {
   ANALYSIS_CONFIRM: (projectId: number) => `/projects/${projectId}/analysis/confirm/`,
   QUESTIONNAIRE: (projectId: number) => `/projects/${projectId}/questionnaire/`,
   QUESTIONNAIRE_GENERATE: (projectId: number) => `/projects/${projectId}/questionnaire/generate/`,
+  QUESTIONNAIRE_STATUS: (projectId: number) => `/projects/${projectId}/questionnaire/status/`,
+  QUESTIONNAIRE_CONFIRM: (projectId: number) => `/projects/${projectId}/questionnaire/confirm/`,
   QUESTIONS: (projectId: number) => `/projects/${projectId}/questionnaire/questions/`,
   QUESTION: (projectId: number, qId: number) => `/projects/${projectId}/questionnaire/questions/${qId}/`,
   QUESTIONS_REORDER: (projectId: number) => `/projects/${projectId}/questionnaire/questions/reorder/`,
@@ -157,11 +192,12 @@ export const API_PATHS = {
   INVITATIONS_GENERATE: (projectId: number) => `/projects/${projectId}/invitations/generate/`,
   INVITATIONS_SEND: (projectId: number) => `/projects/${projectId}/invitations/send/`,
   INVITATION_RESEND: (projectId: number, invId: number) => `/projects/${projectId}/invitations/${invId}/resend/`,
+  INVITATION_REGENERATE: (projectId: number, empId: number) => `/projects/${projectId}/invitations/${empId}/regenerate/`,
   RESPONSES: (projectId: number) => `/projects/${projectId}/responses/`,
   RESPONSE: (projectId: number, resId: number) => `/projects/${projectId}/responses/${resId}/`,
   RESPONSES_CLOSE: (projectId: number) => `/projects/${projectId}/responses/close/`,
-  MANUAL_ENTRY_START: (projectId: number, empId: number) => `/projects/${projectId}/responses/manual/${empId}/start/`,
-  MANUAL_ENTRY_SUBMIT: (projectId: number, empId: number) => `/projects/${projectId}/responses/manual/${empId}/submit/`,
+  MANUAL_ENTRY_START: (projectId: number) => `/projects/${projectId}/manual-entry/start/`,
+  MANUAL_ENTRY_SUBMIT: (projectId: number) => `/projects/${projectId}/manual-entry/submit/`,
   AGGREGATION: (projectId: number) => `/projects/${projectId}/aggregation/`,
   AGGREGATION_STATUS: (projectId: number) => `/projects/${projectId}/aggregation/status/`,
   AGGREGATION_TRIGGER: (projectId: number) => `/projects/${projectId}/aggregation/trigger/`,
@@ -171,12 +207,16 @@ export const API_PATHS = {
   KEYWORDS_GENERATE: (projectId: number) => `/projects/${projectId}/aggregation/keywords/generate/`,
   SENTENCES: (projectId: number) => `/projects/${projectId}/aggregation/sentences/`,
   SENTENCE: (projectId: number, sId: number) => `/projects/${projectId}/aggregation/sentences/${sId}/`,
-  BRIEF: (projectId: number) => `/projects/${projectId}/brief/`,
-  BRIEF_COMPILE: (projectId: number) => `/projects/${projectId}/brief/compile/`,
-  STITCH: (projectId: number) => `/projects/${projectId}/brief/stitch/`,
-  STITCH_DETAIL: (projectId: number, sId: number) => `/projects/${projectId}/brief/stitch/${sId}/`,
-  STITCH_REGENERATE: (projectId: number, sId: number) => `/projects/${projectId}/brief/stitch/${sId}/regenerate/`,
-  BRIEF_EXPORT: (projectId: number) => `/projects/${projectId}/brief/export/`,
+  BRIEF: (projectId: number) => `/projects/${projectId}/design-brief/`,
+  BRIEF_COMPILE: (projectId: number) => `/projects/${projectId}/design-brief/compile/`,
+  STITCH_LIST: (projectId: number) => `/projects/${projectId}/design-brief/stitch/`,
+  STITCH_GENERATE: (projectId: number) => `/projects/${projectId}/design-brief/stitch/generate/`,
+  STITCH_DETAIL: (projectId: number, sId: number) => `/projects/${projectId}/design-brief/stitch/${sId}/`,
+  STITCH_REGENERATE: (projectId: number, sId: number) => `/projects/${projectId}/design-brief/stitch/${sId}/regenerate/`,
+  STITCH_FETCH: (projectId: number, sId: number) => `/projects/${projectId}/design-brief/stitch/${sId}/fetch/`,
+  BRIEF_EXPORT: (projectId: number) => `/projects/${projectId}/design-brief/export/`,
+  DESIGN_MD_GENERATE: (projectId: number) => `/projects/${projectId}/design-brief/design-md/generate/`,
+  DESIGN_MD_DOWNLOAD: (projectId: number) => `/projects/${projectId}/design-brief/design-md/download/`,
   SURVEY: (token: string) => `/survey/${token}/`,
   SURVEY_VERIFY: (token: string) => `/survey/${token}/verify/`,
   SURVEY_SUBMIT: (token: string) => `/survey/${token}/submit/`,

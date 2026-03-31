@@ -58,10 +58,9 @@ export type ProjectFormValues = z.infer<typeof projectSchema>;
 export const employeeSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요.'),
   email: z.string().min(1, '이메일을 입력해주세요.').email('올바른 이메일 형식을 입력해주세요.'),
-  phone: z.string().min(1, '전화번호를 입력해주세요.'),
-  position: z.string().min(1, '직급을 입력해주세요.'),
-  department: z.string().optional(),
-  position_category: z.number().optional().nullable(),
+  phone: z.string().optional().default(''),
+  position: z.string().optional().default(''),
+  department: z.string().optional().default(''),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;

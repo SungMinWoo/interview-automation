@@ -10,8 +10,13 @@ class Aggregation(models.Model):
         COMPLETED = 'completed'
         FAILED = 'failed'
 
+    class AiProvider(models.TextChoices):
+        CLAUDE = 'claude', 'Claude'
+        GEMINI = 'gemini', 'Gemini'
+
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='aggregations')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    ai_provider = models.CharField(max_length=20, choices=AiProvider.choices, default=AiProvider.CLAUDE)
     version = models.PositiveIntegerField(default=1)
     raw_ai_response = models.JSONField(default=dict)
     summary = models.TextField(blank=True)

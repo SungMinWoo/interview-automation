@@ -6,12 +6,15 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=30)
+@shared_task(bind=True, max_retries=0)
 def run_stitch_generation(self, generation_id: int) -> None:
-    """Generate a design using the Stitch Bridge service."""
+    """Create Stitch project with design_md and generate screen.
+
+    design_md is passed directly to Stitch as the design system.
+    prompt_text is the text prompt for screen generation.
+    """
     from .models import StitchGeneration
     from services.stitch_client import StitchClient
-    from services.gemini_client import GeminiClient
 
     try:
         generation = StitchGeneration.objects.get(pk=generation_id)
@@ -20,45 +23,53 @@ def run_stitch_generation(self, generation_id: int) -> None:
 
         brief = generation.design_brief
 
-        # If no custom prompt, generate one from the brief
-        prompt_text = generation.prompt_text
-        if not prompt_text:
-            gemini = GeminiClient()
-            brief_data = {
-                'title': brief.title,
-                'summary': brief.summary,
-                'design_direction': brief.design_direction,
-                'target_audience': brief.target_audience,
-                'key_requirements': brief.key_requirements,
-                'selected_keywords': brief.selected_keywords,
-                'tone_and_mood': brief.tone_and_mood,
-                'color_preferences': brief.color_preferences,
-            }
-            prompt_text = gemini.build_stitch_prompt(brief_data)
-            generation.prompt_text = prompt_text
-            generation.save(update_fields=['prompt_text'])
+        # Build prompt: DESIGN.md content + brief summary
+        design_md = generation.design_md_snapshot or ''
+        summary = generation.prompt_text or brief.summary or brief.title or ''
+
+        # Combine: DESIGN.md as the main content, summary as context
+        if design_md:
+            prompt_text = f"{design_md}\n\n---\n\nGenerate a website screen based on the design system above.\nContext: {summary}"
+        else:
+            prompt_text = summary
+
+        # Save the final prompt
+        generation.prompt_text = prompt_text
+        generation.save(update_fields=['prompt_text'])
 
         # Call Stitch Bridge
         stitch = StitchClient()
         result = stitch.generate_design(
             prompt=prompt_text,
-            reference_image_urls=generation.reference_images,
+            design_md=design_md,
+            colors=brief.color_preferences if isinstance(brief.color_preferences, dict) else None,
         )
 
+        # Save results
         generation.stitch_project_id = result.get('project_id', '')
-        generation.generated_html_url = result.get('html_url', '')
-        generation.generated_screenshot_url = result.get('screenshot_url', '')
-        generation.generated_html_content = result.get('html_content', '')
-        generation.status = StitchGeneration.Status.COMPLETED
+        generation.stitch_project_url = result.get('project_url', '')
+        generation.generated_html_url = result.get('html_url', '') or ''
+        generation.generated_screenshot_url = result.get('screenshot_url', '') or ''
+        generation.generated_html_content = result.get('html_content', '') or ''
+
+        stitch_status = result.get('status', 'failed')
+        if stitch_status in ('completed', 'created'):
+            generation.status = StitchGeneration.Status.COMPLETED
+            if result.get('error'):
+                generation.error_message = f"프로젝트 생성됨. 스크린: {result['error']}"
+        else:
+            generation.status = StitchGeneration.Status.FAILED
+            generation.error_message = result.get('error', 'Unknown error')
+
         generation.save()
 
-        # Update project status
-        project = brief.project
-        from apps.projects.models import Project
-        project.status = Project.Status.BRIEF_READY
-        project.save(update_fields=['status', 'updated_at'])
+        if generation.status == StitchGeneration.Status.COMPLETED:
+            from apps.projects.models import Project
+            project = brief.project
+            project.status = Project.Status.BRIEF_READY
+            project.save(update_fields=['status', 'updated_at'])
 
-        logger.info(f"Stitch generation completed: {generation_id}")
+        logger.info(f"Stitch generation {generation_id}: status={generation.status}, project={generation.stitch_project_id}")
 
     except StitchGeneration.DoesNotExist:
         logger.error(f"StitchGeneration not found: {generation_id}")
@@ -71,4 +82,3 @@ def run_stitch_generation(self, generation_id: int) -> None:
             generation.save(update_fields=['status', 'error_message'])
         except StitchGeneration.DoesNotExist:
             pass
-        raise self.retry(exc=exc)

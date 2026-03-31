@@ -1,5 +1,6 @@
 import bcrypt
 import jwt
+import random
 from datetime import timedelta
 
 from django.conf import settings
@@ -23,6 +24,8 @@ from .serializers import (
     SurveySubmitSerializer,
     SurveyDraftSerializer,
 )
+
+import uuid
 
 
 def get_user_project(request, project_id):
@@ -95,8 +98,8 @@ class GenerateInvitationsView(APIView):
 
         with transaction.atomic():
             for employee in employees:
-                # Hash last 4 digits of phone as password
-                last4 = employee.phone[-4:]
+                # Hash last 4 digits of phone as password (or random 4-digit if phone unavailable)
+                last4 = employee.phone[-4:] if len(employee.phone) >= 4 else str(random.randint(1000, 9999))
                 password_hash = bcrypt.hashpw(
                     last4.encode('utf-8'), bcrypt.gensalt(),
                 ).decode('utf-8')
@@ -114,6 +117,38 @@ class GenerateInvitationsView(APIView):
                 'created_count': len(created),
                 'invitations': SurveyInvitationSerializer(created, many=True).data,
             },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class RegenerateInvitationView(APIView):
+    """POST - Regenerate invitation for a specific employee."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, project_id, employee_id):
+        project = get_user_project(request, project_id)
+        employee = get_object_or_404(Employee, pk=employee_id, project=project)
+
+        # Delete old invitation if exists
+        SurveyInvitation.objects.filter(employee=employee).delete()
+
+        expiry_days = getattr(settings, 'SURVEY_URL_EXPIRY_DAYS', 7)
+        expires_at = timezone.now() + timedelta(days=expiry_days)
+
+        last4 = employee.phone[-4:] if len(employee.phone) >= 4 else str(random.randint(1000, 9999))
+        password_hash = bcrypt.hashpw(
+            last4.encode('utf-8'), bcrypt.gensalt(),
+        ).decode('utf-8')
+
+        invitation = SurveyInvitation.objects.create(
+            employee=employee,
+            project=project,
+            password_hash=password_hash,
+            expires_at=expires_at,
+        )
+
+        return Response(
+            SurveyInvitationSerializer(invitation).data,
             status=status.HTTP_201_CREATED,
         )
 

@@ -11,6 +11,7 @@ from .serializers import (
     ProjectAnalysisStatusSerializer,
     ProjectAnalysisUpdateSerializer,
 )
+from services.ai_client import validate_ai_provider
 
 
 def get_user_project(request, project_id):
@@ -25,10 +26,11 @@ class TriggerAnalysisView(APIView):
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
+        ai_provider = validate_ai_provider(request.data.get('ai_provider'))
 
         analysis, created = ProjectAnalysis.objects.get_or_create(
             project=project,
-            defaults={'status': ProjectAnalysis.Status.PENDING},
+            defaults={'status': ProjectAnalysis.Status.PENDING, 'ai_provider': ai_provider},
         )
 
         if not created and analysis.status in (
@@ -41,12 +43,13 @@ class TriggerAnalysisView(APIView):
             )
 
         analysis.status = ProjectAnalysis.Status.PROCESSING
+        analysis.ai_provider = ai_provider
         analysis.error_message = ''
-        analysis.save(update_fields=['status', 'error_message', 'updated_at'])
+        analysis.save(update_fields=['status', 'ai_provider', 'error_message', 'updated_at'])
 
         # Trigger Celery task
         from .tasks import run_project_analysis
-        run_project_analysis.delay(project.id)
+        run_project_analysis.delay(project.id, ai_provider=ai_provider)
 
         return Response(
             ProjectAnalysisStatusSerializer(analysis).data,

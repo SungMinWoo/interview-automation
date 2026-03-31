@@ -27,8 +27,13 @@ class ProjectAnalysis(models.Model):
         CONFIRMED = 'confirmed'
         FAILED = 'failed'
 
+    class AiProvider(models.TextChoices):
+        CLAUDE = 'claude', 'Claude'
+        GEMINI = 'gemini', 'Gemini'
+
     project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='analysis')
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    ai_provider = models.CharField(max_length=20, choices=AiProvider.choices, default=AiProvider.CLAUDE)
     requirements_summary = models.TextField(blank=True)
     existing_site_analysis = models.JSONField(default=dict)
     reference_sites_analysis = models.JSONField(default=dict)

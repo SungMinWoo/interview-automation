@@ -7,28 +7,50 @@ import {
   PenLine,
   Lock,
   X,
+  CheckCircle2,
+  Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import { useResponses, useResponse, useCloseCollection } from '@/hooks/useResponses';
-import { useEmployees } from '@/hooks/useDistribution';
-import { RESPONSE_STATUS_LABELS, RESPONSE_STATUS_COLORS } from '@/utils/constants';
+import { useEmployees, useInvitations } from '@/hooks/useDistribution';
 import { formatDateTime } from '@/utils/formatters';
 import toast from 'react-hot-toast';
+
+const INV_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  pending: { label: '대기', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+  sent: { label: '발송됨', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  opened: { label: '열람', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  completed: { label: '답변완료', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  failed: { label: '실패', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  expired: { label: '만료', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500' },
+};
 
 export default function ResponsesPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = projectId ? Number(projectId) : undefined;
   const { data: project } = useProject(id);
-  const { data: responsesData, isLoading } = useResponses(id);
-  const { data: employees } = useEmployees(id);
+  const { data: responses = [], isLoading: respLoading } = useResponses(id);
+  const { data: employees = [] } = useEmployees(id);
+  const { data: invitations = [] } = useInvitations(id);
   const closeCollection = useCloseCollection();
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
-  const responses = responsesData?.results ?? [];
-  const totalResponses = employees?.length ?? 0;
-  const completedCount = responses.filter((r) => r.status === 'completed').length;
-  const progressPercent = totalResponses > 0 ? (completedCount / totalResponses) * 100 : 0;
+  // Map invitations and responses by employee id
+  const invByEmployee: Record<number, { status: string; completed_at?: string | null }> = {};
+  for (const inv of invitations) {
+    invByEmployee[inv.employee] = inv;
+  }
+
+  const respByEmployee: Record<number, { id: number; completed_at?: string | null; answer_count?: number }> = {};
+  for (const r of responses as any[]) {
+    respByEmployee[r.employee] = r;
+  }
+
+  const totalEmployees = employees.length;
+  const completedCount = invitations.filter((inv) => inv.status === 'completed').length;
+  const progressPercent = totalEmployees > 0 ? (completedCount / totalEmployees) * 100 : 0;
 
   const handleClose = async () => {
     if (!id) return;
@@ -40,6 +62,8 @@ export default function ResponsesPage() {
       toast.error('수집 마감에 실패했습니다.');
     }
   };
+
+  const isLoading = respLoading;
 
   return (
     <div className="space-y-6">
@@ -71,7 +95,7 @@ export default function ResponsesPage() {
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="text-gray-500 dark:text-gray-400">응답 진행률</span>
           <span className="font-medium text-gray-900 dark:text-white">
-            {completedCount} / {totalResponses}명 완료
+            {completedCount} / {totalEmployees}명 완료
           </span>
         </div>
         <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-700">
@@ -83,7 +107,7 @@ export default function ResponsesPage() {
         <p className="mt-1 text-right text-xs text-gray-400">{Math.round(progressPercent)}%</p>
       </div>
 
-      {/* Response List */}
+      {/* Employee Response Grid */}
       {isLoading ? (
         <div className="flex h-40 items-center justify-center text-gray-400">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -91,9 +115,13 @@ export default function ResponsesPage() {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(employees ?? []).map((emp) => {
-            const response = responses.find((r) => r.employeeId === emp.id);
-            const status = response?.status;
+          {employees.map((emp) => {
+            const inv = invByEmployee[emp.id];
+            const resp = respByEmployee[emp.id];
+            const invStatus = inv?.status || 'pending';
+            const isCompleted = invStatus === 'completed';
+            const statusCfg = INV_STATUS_CONFIG[invStatus] || INV_STATUS_CONFIG.pending;
+
             return (
               <div
                 key={emp.id}
@@ -103,34 +131,32 @@ export default function ResponsesPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{emp.name}</p>
                     <p className="text-xs text-gray-400">
-                      {emp.department ?? ''} {emp.position ?? ''}
+                      {[emp.department, emp.position].filter(Boolean).join(' · ') || emp.email}
                     </p>
                   </div>
-                  {status ? (
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        RESPONSE_STATUS_COLORS[status]
-                      }`}
-                    >
-                      {RESPONSE_STATUS_LABELS[status]}
-                    </span>
-                  ) : (
-                    <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                      미응답
-                    </span>
-                  )}
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusCfg.color}`}>
+                    {isCompleted ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                    {statusCfg.label}
+                  </span>
                 </div>
 
-                {response?.completedAt && (
+                {isCompleted && inv?.completed_at && (
                   <p className="mb-2 text-xs text-gray-400">
-                    {formatDateTime(response.completedAt)}
+                    답변 완료: {formatDateTime(inv.completed_at)}
+                  </p>
+                )}
+
+                {resp && (
+                  <p className="mb-2 text-xs text-gray-400">
+                    <MessageSquare className="mr-0.5 inline h-3 w-3" />
+                    답변 {(resp as any).answer_count ?? 0}개
                   </p>
                 )}
 
                 <div className="flex gap-2">
-                  {response?.status === 'completed' && (
+                  {resp && (
                     <button
-                      onClick={() => setSelectedResponseId(response.id)}
+                      onClick={() => setSelectedResponseId(resp.id)}
                       className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       <Eye className="h-3 w-3" />
@@ -201,13 +227,14 @@ function ResponseDetailDrawer({
   onClose: () => void;
 }) {
   const { data: response, isLoading } = useResponse(projectId, responseId);
+  const resp = response as any;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50">
       <div className="w-full max-w-lg overflow-y-auto bg-white p-6 shadow-xl dark:bg-[#1a1a2e]">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            응답 상세 - {response?.employeeName ?? ''}
+            응답 상세 {resp?.employee_name ? `- ${resp.employee_name}` : ''}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X className="h-5 w-5" />
@@ -218,15 +245,15 @@ function ResponseDetailDrawer({
           <div className="flex h-40 items-center justify-center text-gray-400">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           </div>
-        ) : response ? (
+        ) : resp?.answers ? (
           <div className="space-y-4">
-            {response.answers.map((a, i) => (
-              <div key={i} className="rounded-lg border border-gray-100 p-4 dark:border-gray-700/50">
+            {resp.answers.map((a: any, i: number) => (
+              <div key={a.id || i} className="rounded-lg border border-gray-100 p-4 dark:border-gray-700/50">
                 <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Q{i + 1}. {a.questionText}
+                  Q{i + 1}. {a.question_text}
                 </p>
                 <p className="text-sm text-gray-900 dark:text-white">
-                  {Array.isArray(a.answer) ? a.answer.join(', ') : String(a.answer ?? '-')}
+                  {a.text_value || (a.choice_values?.length ? a.choice_values.join(', ') : null) || (a.rating_value != null ? `${a.rating_value}점` : '-')}
                 </p>
               </div>
             ))}

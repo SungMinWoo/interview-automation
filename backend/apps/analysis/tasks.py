@@ -7,11 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def run_project_analysis(self, project_id: int) -> None:
-    """Analyse the project's existing site and reference sites using Gemini AI."""
+def run_project_analysis(self, project_id: int, ai_provider: str | None = None) -> None:
+    """Analyse the project's existing site and reference sites using AI."""
     from apps.projects.models import Project
     from .models import ProjectAnalysis, SiteAnalysis
-    from services.gemini_client import GeminiClient
+    from services.ai_client import get_ai_client
     from services.crawler_service import CrawlerService
 
     try:
@@ -65,8 +65,8 @@ def run_project_analysis(self, project_id: int) -> None:
             })
 
         # Run AI analysis
-        gemini = GeminiClient()
-        result = gemini.analyze_project(
+        ai_client = get_ai_client(ai_provider)
+        result = ai_client.analyze_project(
             requirements_text=project.requirements_text,
             existing_site_data=existing_site_data,
             reference_sites_data=reference_sites_data,

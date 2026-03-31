@@ -35,11 +35,13 @@ export interface BriefUpdateRequest {
 }
 
 export type StitchStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type AiProvider = 'claude' | 'gemini';
 
 export interface StitchGeneration {
   id: number;
   briefId: number;
   status: StitchStatus;
+  ai_provider?: AiProvider;
   generatedContent?: string;
   templateId?: number;
   configuration?: Record<string, unknown>;

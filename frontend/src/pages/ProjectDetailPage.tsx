@@ -5,6 +5,9 @@ import {
   Circle,
   Loader2,
   Trash2,
+  Play,
+  Eye,
+  ChevronRight,
 } from 'lucide-react';
 import { useProject, useDeleteProject } from '@/hooks/useProjects';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_PHASES } from '@/utils/constants';
@@ -13,6 +16,7 @@ import type { ProjectStatus } from '@/types/project';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 
+// Project status progression order
 const STATUS_ORDER: ProjectStatus[] = [
   'created',
   'analyzing',
@@ -28,30 +32,67 @@ const STATUS_ORDER: ProjectStatus[] = [
   'completed',
 ];
 
+// Each phase maps to a range of project statuses
+const PHASE_CONFIG: Record<string, {
+  completedAfter: ProjectStatus[];  // phase is complete if project status is any of these or later
+  activeAt: ProjectStatus[];        // phase is active if project status is any of these
+  nextPhase?: string;
+}> = {
+  analysis: {
+    completedAfter: ['analysis_confirmed', 'questionnaire_ready', 'distributing', 'collecting', 'closed', 'aggregating', 'aggregation_ready', 'brief_ready', 'completed'],
+    activeAt: ['created', 'analyzing', 'analysis_ready'],
+  },
+  questionnaire: {
+    completedAfter: ['distributing', 'collecting', 'closed', 'aggregating', 'aggregation_ready', 'brief_ready', 'completed'],
+    activeAt: ['analysis_confirmed', 'questionnaire_ready'],
+  },
+  distribution: {
+    completedAfter: ['closed', 'aggregating', 'aggregation_ready', 'brief_ready', 'completed'],
+    activeAt: ['questionnaire_ready', 'distributing', 'collecting'],
+  },
+  collection: {
+    completedAfter: ['closed', 'aggregating', 'aggregation_ready', 'brief_ready', 'completed'],
+    activeAt: ['distributing', 'collecting'],
+  },
+  aggregation: {
+    completedAfter: ['aggregation_ready', 'brief_ready', 'completed'],
+    activeAt: ['closed', 'aggregating'],
+  },
+  brief: {
+    completedAfter: ['completed'],
+    activeAt: ['aggregation_ready', 'brief_ready'],
+  },
+};
+
 function getPhaseState(
   projectStatus: ProjectStatus,
   phaseKey: string,
 ): 'completed' | 'active' | 'upcoming' {
-  // Map each phase key to the first status in that phase's range.
-  // A phase is "completed" once the project status index is past the phase's last status.
-  const phaseStatusMap: Record<string, { start: ProjectStatus; end: ProjectStatus }> = {
-    analysis: { start: 'analyzing', end: 'analysis_confirmed' },
-    questionnaire: { start: 'questionnaire_ready', end: 'questionnaire_ready' },
-    distribution: { start: 'distributing', end: 'distributing' },
-    collection: { start: 'collecting', end: 'closed' },
-    aggregation: { start: 'aggregating', end: 'aggregation_ready' },
-    brief: { start: 'brief_ready', end: 'brief_ready' },
-  };
-  const phaseRange = phaseStatusMap[phaseKey];
-  if (!phaseRange) return 'upcoming';
+  const cfg = PHASE_CONFIG[phaseKey];
+  if (!cfg) return 'upcoming';
 
-  const projectIdx = STATUS_ORDER.indexOf(projectStatus);
-  const phaseStartIdx = STATUS_ORDER.indexOf(phaseRange.start);
-  const phaseEndIdx = STATUS_ORDER.indexOf(phaseRange.end);
-
-  if (projectIdx > phaseEndIdx) return 'completed';
-  if (projectIdx >= phaseStartIdx && projectIdx <= phaseEndIdx) return 'active';
+  if (cfg.completedAfter.includes(projectStatus)) return 'completed';
+  if (cfg.activeAt.includes(projectStatus)) return 'active';
   return 'upcoming';
+}
+
+// Determine which phase should show "진행하기" (the next actionable phase)
+function getNextActionablePhase(projectStatus: ProjectStatus): string | null {
+  const phaseByStatus: Record<string, string> = {
+    created: 'analysis',
+    analyzing: 'analysis',
+    analysis_ready: 'analysis',
+    analysis_confirmed: 'questionnaire',
+    questionnaire_ready: 'distribution',
+    distributing: 'collection',
+    collecting: 'collection',
+    closed: 'aggregation',
+    aggregating: 'aggregation',
+    aggregation_ready: 'brief',
+    brief_ready: 'brief',
+    completed: '',
+  };
+  return phaseByStatus[projectStatus] || null;
 }
 
 export default function ProjectDetailPage() {
@@ -92,6 +133,8 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
+
+  const nextActionable = getNextActionablePhase(project.status);
 
   return (
     <div className="space-y-6">
@@ -149,6 +192,31 @@ export default function ProjectDetailPage() {
           <div className="space-y-6">
             {PROJECT_PHASES.map((phase, index) => {
               const state = getPhaseState(project.status, phase.key);
+              const isNextAction = phase.key === nextActionable;
+
+              // Button style and label
+              let btnLabel: string;
+              let btnClass: string;
+              let BtnIcon = ChevronRight;
+
+              if (isNextAction) {
+                btnLabel = '진행하기';
+                btnClass = 'bg-indigo-600 text-white hover:bg-indigo-700';
+                BtnIcon = Play;
+              } else if (state === 'completed') {
+                btnLabel = '보기';
+                btnClass = 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700';
+                BtnIcon = Eye;
+              } else if (state === 'active') {
+                btnLabel = '진행하기';
+                btnClass = 'bg-indigo-600 text-white hover:bg-indigo-700';
+                BtnIcon = Play;
+              } else {
+                btnLabel = '대기';
+                btnClass = 'bg-gray-50 text-gray-400 cursor-default dark:bg-gray-800/50 dark:text-gray-500';
+                BtnIcon = Circle;
+              }
+
               return (
                 <div key={phase.key} className="relative flex items-start gap-4">
                   {/* Icon */}
@@ -157,7 +225,7 @@ export default function ProjectDetailPage() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                         <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                       </div>
-                    ) : state === 'active' ? (
+                    ) : state === 'active' || isNextAction ? (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 ring-4 ring-indigo-50 dark:bg-indigo-900/30 dark:ring-indigo-900/10">
                         <div className="h-3 w-3 rounded-full bg-indigo-600 dark:bg-indigo-400" />
                       </div>
@@ -174,7 +242,7 @@ export default function ProjectDetailPage() {
                       <div>
                         <p
                           className={`text-sm font-medium ${
-                            state === 'active'
+                            state === 'active' || isNextAction
                               ? 'text-indigo-600 dark:text-indigo-400'
                               : state === 'completed'
                                 ? 'text-gray-900 dark:text-white'
@@ -186,23 +254,24 @@ export default function ProjectDetailPage() {
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                           {state === 'completed'
                             ? '완료'
-                            : state === 'active'
+                            : state === 'active' || isNextAction
                               ? '진행 중'
                               : '대기'}
                         </p>
                       </div>
-                      <Link
-                        to={`/projects/${project.id}/${phase.path}`}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                          state === 'active'
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            : state === 'completed'
-                              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                              : 'bg-gray-50 text-gray-400 dark:bg-gray-800/50 dark:text-gray-500'
-                        }`}
-                      >
-                        {state === 'active' ? '진행하기' : '보기'}
-                      </Link>
+                      {state !== 'upcoming' || isNextAction ? (
+                        <Link
+                          to={`/projects/${project.id}/${phase.path}`}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${btnClass}`}
+                        >
+                          <BtnIcon className="h-3.5 w-3.5" />
+                          {btnLabel}
+                        </Link>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${btnClass}`}>
+                          {btnLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

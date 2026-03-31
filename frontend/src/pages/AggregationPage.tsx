@@ -24,40 +24,52 @@ import {
   useCreateSentence,
   useDeleteSentence,
 } from '@/hooks/useAggregation';
-import { SENTIMENT_COLORS } from '@/utils/constants';
+import { AiProviderSelect } from '@/components/common';
+import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
 import toast from 'react-hot-toast';
 
 export default function AggregationPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = projectId ? Number(projectId) : undefined;
   const { data: project } = useProject(id);
-  const { data: aggregation } = useAggregation(id);
+  const { data: aggregation, refetch: refetchAggregation } = useAggregation(id);
   const [isPolling, setIsPolling] = useState(false);
   const { data: statusData } = useAggregationStatus(id, isPolling);
   const triggerAggregation = useTriggerAggregation();
   const regenerateAggregation = useRegenerateAggregation();
-  const { data: keywords } = useKeywords(id);
+  const { data: keywords, refetch: refetchKeywords } = useKeywords(id);
   const createKeyword = useCreateKeyword();
   const deleteKeyword = useDeleteKeyword();
   const generateKeywords = useGenerateKeywords();
-  const { data: sentences } = useSentences(id);
+  const { data: sentences, refetch: refetchSentences } = useSentences(id);
   const createSentence = useCreateSentence();
   const deleteSentence = useDeleteSentence();
 
+  const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [newKeyword, setNewKeyword] = useState('');
   const [newSentence, setNewSentence] = useState('');
 
   useEffect(() => {
-    if (aggregation?.status === 'processing') setIsPolling(true);
-    if (statusData?.status === 'completed' || statusData?.status === 'failed') setIsPolling(false);
-  }, [aggregation?.status, statusData?.status]);
+    if (aggregation?.status === 'processing') {
+      setIsPolling(true);
+    }
+  }, [aggregation?.status]);
+
+  useEffect(() => {
+    if (statusData?.status === 'completed' || statusData?.status === 'failed') {
+      setIsPolling(false);
+      refetchAggregation();
+      refetchKeywords();
+      refetchSentences();
+    }
+  }, [statusData?.status, refetchAggregation, refetchKeywords, refetchSentences]);
 
   const handleTrigger = async () => {
     if (!id) return;
     try {
-      await triggerAggregation.mutateAsync(id);
+      await triggerAggregation.mutateAsync({ projectId: id, ai_provider: aiProvider });
       setIsPolling(true);
-      toast.success('AI 취합을 시작합니다.');
+      toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 취합을 시작합니다.`);
     } catch {
       toast.error('취합 시작에 실패했습니다.');
     }
@@ -66,9 +78,9 @@ export default function AggregationPage() {
   const handleRegenerate = async () => {
     if (!id) return;
     try {
-      await regenerateAggregation.mutateAsync(id);
+      await regenerateAggregation.mutateAsync({ projectId: id, ai_provider: aiProvider });
       setIsPolling(true);
-      toast.success('재생성을 시작합니다.');
+      toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 재생성을 시작합니다.`);
     } catch {
       toast.error('재생성에 실패했습니다.');
     }
@@ -127,8 +139,6 @@ export default function AggregationPage() {
   const isProcessing = aggregation?.status === 'processing' || isPolling;
   const isCompleted = aggregation?.status === 'completed';
 
-  const sentimentColor = (s?: string) => SENTIMENT_COLORS[s ?? 'neutral'] ?? SENTIMENT_COLORS.neutral;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,20 +155,30 @@ export default function AggregationPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">{project?.title}</p>
           </div>
         </div>
-        {isCompleted && (
-          <button
-            onClick={handleRegenerate}
-            disabled={regenerateAggregation.isPending}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5 disabled:opacity-50"
-          >
-            {regenerateAggregation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            재생성
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {aggregation?.ai_provider && (
+            <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+              {AI_PROVIDER_LABELS[aggregation.ai_provider as AiProvider] || aggregation.ai_provider}
+            </span>
+          )}
+          {isCompleted && (
+            <>
+              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              <button
+                onClick={handleRegenerate}
+                disabled={regenerateAggregation.isPending}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5 disabled:opacity-50"
+              >
+                {regenerateAggregation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                재생성
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Trigger */}
@@ -171,14 +191,17 @@ export default function AggregationPage() {
           <p className="mb-6 max-w-md text-center text-sm text-gray-500 dark:text-gray-400">
             수집된 응답을 AI가 분석하여 키워드, 핵심 문장, 인사이트를 추출합니다.
           </p>
-          <button
-            onClick={handleTrigger}
-            disabled={triggerAggregation.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
-          >
-            {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            AI 취합 시작
-          </button>
+          <div className="flex items-center gap-3">
+            <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+            <button
+              onClick={handleTrigger}
+              disabled={triggerAggregation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+            >
+              {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              AI 취합 시작
+            </button>
+          </div>
         </div>
       )}
 
@@ -206,17 +229,43 @@ export default function AggregationPage() {
       {/* Results */}
       {isCompleted && aggregation && (
         <div className="space-y-6">
-          {/* Summary Sections */}
-          {aggregation.insights && aggregation.insights.length > 0 && (
+          {/* Summary */}
+          {aggregation.summary && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-              <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">종합 요약</h3>
-              <ul className="space-y-2">
-                {aggregation.insights.map((insight, i) => (
-                  <li key={i} className="text-sm text-gray-600 dark:text-gray-300">
-                    - {insight}
-                  </li>
-                ))}
-              </ul>
+              <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">종합 요약</h3>
+              <p className="whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{aggregation.summary}</p>
+            </div>
+          )}
+
+          {/* Company Direction & Values */}
+          {(aggregation.company_direction || aggregation.company_values?.length > 0 || aggregation.desired_changes?.length > 0) && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+              {aggregation.company_direction && (
+                <div className="mb-4">
+                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">회사 방향성</h4>
+                  <p className="whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{aggregation.company_direction}</p>
+                </div>
+              )}
+              {aggregation.company_values?.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">추구하는 가치</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {aggregation.company_values.map((v, i) => (
+                      <span key={i} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400">{v}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {aggregation.desired_changes?.length > 0 && (
+                <div>
+                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">변화하고 싶은 것들</h4>
+                  <ul className="space-y-1">
+                    {aggregation.desired_changes.map((c, i) => (
+                      <li key={i} className="text-sm text-gray-600 dark:text-gray-300">- {c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -239,14 +288,17 @@ export default function AggregationPage() {
             </div>
 
             <div className="mb-3 flex flex-wrap gap-2">
-              {(keywords ?? aggregation.overallKeywords).map((kw) => (
+              {(keywords ?? aggregation.keywords ?? []).map((kw) => (
                 <span
                   key={kw.id}
-                  className={`group inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${sentimentColor(kw.sentiment)}`}
+                  className="group inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                 >
                   {kw.text}
                   {kw.category && (
                     <span className="opacity-60">({kw.category})</span>
+                  )}
+                  {kw.weight && kw.weight !== 1 && (
+                    <span className="opacity-40">{kw.weight.toFixed(1)}</span>
                   )}
                   <button
                     onClick={() => handleDeleteKeyword(kw.id)}
@@ -282,7 +334,7 @@ export default function AggregationPage() {
             <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">핵심 문장</h3>
 
             <div className="mb-4 space-y-2">
-              {(sentences ?? aggregation.overallSentences).map((s) => (
+              {(sentences ?? aggregation.sentences ?? []).map((s) => (
                 <div
                   key={s.id}
                   className="group flex items-start justify-between rounded-lg border border-gray-100 p-3 dark:border-gray-700/50"

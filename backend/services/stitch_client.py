@@ -11,24 +11,25 @@ class StitchClient:
     def __init__(self):
         self.base_url = settings.STITCH_BRIDGE_URL
 
-    def generate_design(self, prompt: str, reference_image_urls: list[str] | None = None) -> dict:
-        """Request design generation from Stitch Bridge.
+    def generate_design(self, prompt: str, design_md: str = '', colors: dict | None = None) -> dict:
+        """Create Stitch project with design system and generate screen.
 
         Args:
-            prompt: Design prompt text
-            reference_image_urls: Optional list of reference image URLs
-
-        Returns:
-            {project_id, html_url, screenshot_url, html_content, status}
+            prompt: Text prompt for screen generation
+            design_md: DESIGN.md content for the design system
+            colors: {primary, secondary, accent} hex color dict
         """
         try:
+            payload: dict = {'prompt': prompt}
+            if design_md:
+                payload['design_md'] = design_md
+            if colors:
+                payload['colors'] = colors
+
             response = httpx.post(
                 f"{self.base_url}/generate",
-                json={
-                    'prompt': prompt,
-                    'reference_images': reference_image_urls or [],
-                },
-                timeout=120,
+                json=payload,
+                timeout=300,
             )
             response.raise_for_status()
             return response.json()
@@ -36,19 +37,15 @@ class StitchClient:
             logger.error(f"Stitch generation failed: {e}")
             raise
 
-    def get_status(self, project_id: str) -> dict:
-        """Check the status of a Stitch generation.
-
-        Returns:
-            {status, html_url, screenshot_url, error}
-        """
+    def fetch_screens(self, project_id: str) -> dict:
+        """Fetch screens from an existing Stitch project."""
         try:
             response = httpx.get(
-                f"{self.base_url}/status/{project_id}",
-                timeout=30,
+                f"{self.base_url}/project/{project_id}/screens",
+                timeout=60,
             )
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            logger.error(f"Stitch status check failed: {e}")
+            logger.error(f"Stitch fetch screens failed: {e}")
             raise

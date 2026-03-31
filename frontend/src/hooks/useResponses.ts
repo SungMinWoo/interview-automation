@@ -11,11 +11,13 @@ import type {
 const responsesKey = (projectId: number) => ['responses', projectId];
 
 export function useResponses(projectId: number | undefined) {
-  return useQuery<ResponseListResponse>({
+  return useQuery<SurveyResponse[]>({
     queryKey: responsesKey(projectId!),
     queryFn: async () => {
-      const res = await apiClient.get<ResponseListResponse>(API_PATHS.RESPONSES(projectId!));
-      return res.data;
+      const res = await apiClient.get(API_PATHS.RESPONSES(projectId!));
+      // Handle both paginated and flat array responses
+      if (Array.isArray(res.data)) return res.data;
+      return res.data.results ?? [];
     },
     enabled: !!projectId,
   });
@@ -50,15 +52,13 @@ export function useStartManualEntry() {
     mutationFn: async ({
       projectId,
       employeeId,
-      data,
     }: {
       projectId: number;
       employeeId: number;
-      data: ManualEntryStartRequest;
     }) => {
-      const res = await apiClient.post<SurveyResponse>(
-        API_PATHS.MANUAL_ENTRY_START(projectId, employeeId),
-        data,
+      const res = await apiClient.post(
+        API_PATHS.MANUAL_ENTRY_START(projectId),
+        { employee_id: employeeId },
       );
       return res.data;
     },
@@ -70,15 +70,13 @@ export function useSubmitManualEntry() {
   return useMutation({
     mutationFn: async ({
       projectId,
-      employeeId,
       data,
     }: {
       projectId: number;
-      employeeId: number;
-      data: ManualEntrySubmitRequest;
+      data: { response_id: number; answers: { question_id: number; text_value?: string; choice_values?: string[]; rating_value?: number | null }[] };
     }) => {
-      const res = await apiClient.post<SurveyResponse>(
-        API_PATHS.MANUAL_ENTRY_SUBMIT(projectId, employeeId),
+      const res = await apiClient.post(
+        API_PATHS.MANUAL_ENTRY_SUBMIT(projectId),
         data,
       );
       return res.data;

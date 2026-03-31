@@ -9,6 +9,8 @@ import {
   useConfirmAnalysis,
 } from '@/hooks/useAnalysis';
 import { useProject } from '@/hooks/useProjects';
+import { AiProviderSelect } from '@/components/common';
+import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
 import toast from 'react-hot-toast';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -37,6 +39,7 @@ export default function AnalysisPage() {
   const triggerAnalysis = useTriggerAnalysis();
   const updateAnalysis = useUpdateAnalysis();
   const confirmAnalysis = useConfirmAnalysis();
+  const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({
     requirements_summary: '',
@@ -70,9 +73,9 @@ export default function AnalysisPage() {
   const handleTrigger = async () => {
     if (!id) return;
     try {
-      await triggerAnalysis.mutateAsync(id);
+      await triggerAnalysis.mutateAsync({ projectId: id, ai_provider: aiProvider });
       setIsPolling(true);
-      toast.success('AI 분석을 시작합니다.');
+      toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 분석을 시작합니다.`);
     } catch {
       toast.error('분석 시작에 실패했습니다.');
     }
@@ -81,9 +84,9 @@ export default function AnalysisPage() {
   const handleRetry = async () => {
     if (!id) return;
     try {
-      await triggerAnalysis.mutateAsync(id);
+      await triggerAnalysis.mutateAsync({ projectId: id, ai_provider: aiProvider });
       setIsPolling(true);
-      toast.success('AI 분석을 다시 시작합니다.');
+      toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 분석을 다시 시작합니다.`);
     } catch {
       toast.error('분석 재시작에 실패했습니다.');
     }
@@ -133,14 +136,21 @@ export default function AnalysisPage() {
           </div>
         </div>
         {analysis && (
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[analysis.status] || STATUS_COLORS.pending}`}
-          >
-            {analysis.status === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
-            {(isCompleted || isConfirmed) && <CheckCircle2 className="h-3 w-3" />}
-            {isFailed && <XCircle className="h-3 w-3" />}
-            {STATUS_LABELS[analysis.status] || analysis.status}
-          </span>
+          <div className="flex items-center gap-2">
+            {analysis.ai_provider && (
+              <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                {AI_PROVIDER_LABELS[analysis.ai_provider as AiProvider] || analysis.ai_provider}
+              </span>
+            )}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[analysis.status] || STATUS_COLORS.pending}`}
+            >
+              {analysis.status === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
+              {(isCompleted || isConfirmed) && <CheckCircle2 className="h-3 w-3" />}
+              {isFailed && <XCircle className="h-3 w-3" />}
+              {STATUS_LABELS[analysis.status] || analysis.status}
+            </span>
+          </div>
         )}
       </div>
 
@@ -167,18 +177,21 @@ export default function AnalysisPage() {
                 </pre>
               </details>
             )}
-            <button
-              onClick={handleRetry}
-              disabled={triggerAnalysis.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-            >
-              {triggerAnalysis.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              다시 시도
-            </button>
+            <div className="flex items-center gap-3">
+              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              <button
+                onClick={handleRetry}
+                disabled={triggerAnalysis.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
+                {triggerAnalysis.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                다시 시도
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -195,18 +208,21 @@ export default function AnalysisPage() {
           <p className="mb-6 max-w-md text-center text-sm text-gray-500 dark:text-gray-400">
             프로젝트 정보와 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행합니다.
           </p>
-          <button
-            onClick={handleTrigger}
-            disabled={triggerAnalysis.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {triggerAnalysis.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-            AI 분석 시작
-          </button>
+          <div className="flex items-center gap-3">
+            <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+            <button
+              onClick={handleTrigger}
+              disabled={triggerAnalysis.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {triggerAnalysis.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              AI 분석 시작
+            </button>
+          </div>
         </div>
       )}
 
@@ -247,6 +263,7 @@ export default function AnalysisPage() {
               </>
             ) : (
               <>
+                <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
                 <button
                   onClick={handleRetry}
                   disabled={triggerAnalysis.isPending}

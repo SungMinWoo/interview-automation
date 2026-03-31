@@ -10,5 +10,8 @@ urlpatterns = [
     path('stitch/', views.StitchListView.as_view(), name='stitch-list'),
     path('stitch/<int:generation_id>/', views.StitchDetailView.as_view(), name='stitch-detail'),
     path('stitch/<int:generation_id>/regenerate/', views.StitchRegenerateView.as_view(), name='stitch-regenerate'),
+    path('stitch/<int:generation_id>/fetch/', views.StitchFetchScreensView.as_view(), name='stitch-fetch'),
     path('export/', views.ExportBriefView.as_view(), name='export'),
+    path('design-md/generate/', views.GenerateDesignMdView.as_view(), name='design-md-generate'),
+    path('design-md/download/', views.DownloadDesignMdView.as_view(), name='design-md-download'),
 ]

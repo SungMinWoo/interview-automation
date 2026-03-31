@@ -16,6 +16,7 @@ class DesignBrief(models.Model):
     tone_and_mood = models.JSONField(default=dict)
     color_preferences = models.JSONField(default=dict, blank=True)
     additional_notes = models.TextField(blank=True)
+    design_md = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -33,12 +34,18 @@ class StitchGeneration(models.Model):
         COMPLETED = 'completed'
         FAILED = 'failed'
 
+    class AiProvider(models.TextChoices):
+        CLAUDE = 'claude', 'Claude'
+        GEMINI = 'gemini', 'Gemini'
+
     design_brief = models.ForeignKey(DesignBrief, on_delete=models.CASCADE, related_name='stitch_generations')
-    prompt_text = models.TextField()
+    prompt_text = models.TextField(blank=True)
+    design_md_snapshot = models.TextField(blank=True)
     reference_images = models.JSONField(default=list)
     stitch_project_id = models.CharField(max_length=255, blank=True)
-    generated_html_url = models.URLField(blank=True)
-    generated_screenshot_url = models.URLField(blank=True)
+    stitch_project_url = models.URLField(max_length=500, blank=True)
+    generated_html_url = models.TextField(blank=True)
+    generated_screenshot_url = models.TextField(blank=True)
     generated_html_content = models.TextField(blank=True)
     version = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)

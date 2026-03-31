@@ -3,6 +3,7 @@ import apiClient from '@/api/client';
 import { API_PATHS } from '@/utils/constants';
 import type {
   Questionnaire,
+  QuestionnaireStatusResponse,
   Question,
   QuestionCreateRequest,
   QuestionUpdateRequest,
@@ -13,6 +14,7 @@ import type {
 } from '@/types/questionnaire';
 
 const questionnaireKey = (projectId: number) => ['questionnaire', projectId];
+const questionnaireStatusKey = (projectId: number) => ['questionnaire', projectId, 'status'];
 const categoriesKey = (projectId: number) => ['questionnaire', projectId, 'categories'];
 
 export function useQuestionnaire(projectId: number | undefined) {
@@ -26,11 +28,42 @@ export function useQuestionnaire(projectId: number | undefined) {
   });
 }
 
+export function useQuestionnaireStatus(projectId: number | undefined, enabled: boolean = false) {
+  return useQuery<QuestionnaireStatusResponse>({
+    queryKey: questionnaireStatusKey(projectId!),
+    queryFn: async () => {
+      const res = await apiClient.get<QuestionnaireStatusResponse>(API_PATHS.QUESTIONNAIRE_STATUS(projectId!));
+      return res.data;
+    },
+    enabled: !!projectId && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === 'processing' ? 3000 : false;
+    },
+  });
+}
+
 export function useGenerateQuestionnaire() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationFn: async ({ projectId, ai_provider }: { projectId: number; ai_provider?: string }) => {
+      const res = await apiClient.post<Questionnaire>(API_PATHS.QUESTIONNAIRE_GENERATE(projectId), {
+        ai_provider,
+      });
+      return res.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: questionnaireStatusKey(variables.projectId) });
+    },
+  });
+}
+
+export function useConfirmQuestionnaire() {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: async (projectId: number) => {
-      const res = await apiClient.post<Questionnaire>(API_PATHS.QUESTIONNAIRE_GENERATE(projectId));
+      const res = await apiClient.post<Questionnaire>(API_PATHS.QUESTIONNAIRE_CONFIRM(projectId));
       return res.data;
     },
     onSuccess: (_data, projectId) => {
@@ -88,7 +121,7 @@ export function useDeleteQuestion() {
 export function useReorderQuestions() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, data }: { projectId: number; data: QuestionReorderRequest }) => {
+    mutationFn: async ({ projectId, data }: { projectId: number; data: { id: number; order: number }[] }) => {
       await apiClient.post(API_PATHS.QUESTIONS_REORDER(projectId), data);
     },
     onSuccess: (_data, variables) => {

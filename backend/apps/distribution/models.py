@@ -9,7 +9,7 @@ class Employee(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='employees')
     name = models.CharField(max_length=255)
     email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20, blank=True)
     position = models.CharField(max_length=255)
     position_category = models.ForeignKey(PositionCategory, on_delete=models.SET_NULL, null=True, blank=True)
     department = models.CharField(max_length=255, blank=True)

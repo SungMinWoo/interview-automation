@@ -35,13 +35,15 @@ export function useAnalysisStatus(projectId: number | undefined, enabled: boolea
 export function useTriggerAnalysis() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (projectId: number) => {
-      const res = await apiClient.post<AnalysisResult>(API_PATHS.ANALYSIS_TRIGGER(projectId));
+    mutationFn: async ({ projectId, ai_provider }: { projectId: number; ai_provider?: string }) => {
+      const res = await apiClient.post<AnalysisResult>(API_PATHS.ANALYSIS_TRIGGER(projectId), {
+        ai_provider,
+      });
       return res.data;
     },
-    onSuccess: (_data, projectId) => {
-      queryClient.invalidateQueries({ queryKey: analysisKey(projectId) });
-      queryClient.invalidateQueries({ queryKey: analysisStatusKey(projectId) });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: analysisKey(variables.projectId) });
+      queryClient.invalidateQueries({ queryKey: analysisStatusKey(variables.projectId) });
     },
   });
 }

@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 from .models import Employee, SurveyInvitation
 
@@ -26,6 +27,7 @@ class SurveyInvitationSerializer(serializers.ModelSerializer):
     employee_email = serializers.CharField(source='employee.email', read_only=True)
     employee_position = serializers.CharField(source='employee.position', read_only=True)
     is_expired = serializers.BooleanField(read_only=True)
+    survey_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SurveyInvitation
@@ -33,13 +35,11 @@ class SurveyInvitationSerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'employee_email',
             'employee_position', 'token', 'status', 'expires_at',
             'sent_at', 'opened_at', 'completed_at', 'is_manual_entry',
-            'is_expired', 'created_at',
+            'is_expired', 'survey_url', 'created_at',
         ]
-        read_only_fields = [
-            'id', 'employee', 'token', 'status', 'expires_at',
-            'sent_at', 'opened_at', 'completed_at', 'is_manual_entry',
-            'is_expired', 'created_at',
-        ]
+
+    def get_survey_url(self, obj):
+        return f"{settings.FRONTEND_URL}/survey/{obj.token}"
 
 
 # --- Public survey serializers (no auth) ---
@@ -68,8 +68,7 @@ class SurveySubmitSerializer(serializers.Serializer):
     answers = SurveyAnswerItemSerializer(many=True)
 
     def validate_answers(self, value):
-        if not value:
-            raise serializers.ValidationError("At least one answer is required.")
+        # Allow empty answers for partial submission
         return value
 
 

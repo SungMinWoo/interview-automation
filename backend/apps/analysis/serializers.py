@@ -19,14 +19,14 @@ class ProjectAnalysisSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectAnalysis
         fields = [
-            'id', 'project', 'status', 'requirements_summary',
+            'id', 'project', 'status', 'ai_provider', 'requirements_summary',
             'existing_site_analysis', 'reference_sites_analysis',
             'combined_insights', 'user_edits', 'confirmed_at',
             'raw_ai_response', 'error_message',
             'created_at', 'updated_at', 'site_analyses',
         ]
         read_only_fields = [
-            'id', 'project', 'status', 'requirements_summary',
+            'id', 'project', 'status', 'ai_provider', 'requirements_summary',
             'existing_site_analysis', 'reference_sites_analysis',
             'combined_insights', 'confirmed_at', 'raw_ai_response',
             'error_message', 'created_at', 'updated_at',
@@ -44,5 +44,5 @@ class ProjectAnalysisUpdateSerializer(serializers.ModelSerializer):
 class ProjectAnalysisStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectAnalysis
-        fields = ['id', 'project', 'status', 'error_message', 'updated_at']
+        fields = ['id', 'project', 'status', 'ai_provider', 'error_message', 'updated_at']
         read_only_fields = fields

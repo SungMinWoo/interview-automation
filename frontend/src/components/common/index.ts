@@ -8,3 +8,4 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { DataTable } from './DataTable';
 export type { Column } from './DataTable';
 export { EmptyState } from './EmptyState';
+export { default as AiProviderSelect } from './AiProviderSelect';

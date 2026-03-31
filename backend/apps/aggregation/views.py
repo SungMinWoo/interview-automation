@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from services.ai_client import validate_ai_provider
 from .models import Aggregation, ExtractedKeyword, ExtractedSentence
 from .serializers import (
     AggregationSerializer,
@@ -32,6 +33,7 @@ class TriggerAggregationView(APIView):
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
+        ai_provider = validate_ai_provider(request.data.get('ai_provider'))
 
         latest_version = (
             project.aggregations.order_by('-version').values_list('version', flat=True).first() or 0
@@ -41,10 +43,11 @@ class TriggerAggregationView(APIView):
             project=project,
             version=latest_version + 1,
             status=Aggregation.Status.PENDING,
+            ai_provider=ai_provider,
         )
 
         from .tasks import run_aggregation
-        run_aggregation.delay(aggregation.id)
+        run_aggregation.delay(aggregation.id, ai_provider=ai_provider)
 
         return Response(
             AggregationSerializer(aggregation).data,
@@ -91,6 +94,7 @@ class RegenerateAggregationView(APIView):
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
+        ai_provider = validate_ai_provider(request.data.get('ai_provider'))
 
         latest_version = (
             project.aggregations.order_by('-version').values_list('version', flat=True).first() or 0
@@ -100,10 +104,11 @@ class RegenerateAggregationView(APIView):
             project=project,
             version=latest_version + 1,
             status=Aggregation.Status.PENDING,
+            ai_provider=ai_provider,
         )
 
         from .tasks import run_aggregation
-        run_aggregation.delay(aggregation.id)
+        run_aggregation.delay(aggregation.id, ai_provider=ai_provider)
 
         return Response(
             AggregationSerializer(aggregation).data,

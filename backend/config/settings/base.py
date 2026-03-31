@@ -156,6 +156,8 @@ CELERY_TIMEZONE = 'Asia/Seoul'
 
 # AI
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='')
+DEFAULT_AI_PROVIDER = env('DEFAULT_AI_PROVIDER', default='claude')
 
 # Stitch Bridge
 STITCH_BRIDGE_URL = env('STITCH_BRIDGE_URL', default='http://stitch_bridge:3001')
