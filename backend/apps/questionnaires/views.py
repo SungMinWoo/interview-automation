@@ -88,6 +88,11 @@ class QuestionnaireConfirmView(APIView):
         questionnaire.status = Questionnaire.Status.CONFIRMED
         questionnaire.save(update_fields=['status', 'updated_at'])
 
+        # Advance project status to distributing
+        project = questionnaire.project
+        project.status = Project.Status.DISTRIBUTING
+        project.save(update_fields=['status', 'updated_at'])
+
         return Response(QuestionnaireSerializer(questionnaire).data)
 
 

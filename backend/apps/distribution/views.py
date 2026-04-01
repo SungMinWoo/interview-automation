@@ -112,6 +112,11 @@ class GenerateInvitationsView(APIView):
                 )
                 created.append(invitation)
 
+        # Ensure project is in distributing status
+        if project.status == Project.Status.QUESTIONNAIRE_READY:
+            project.status = Project.Status.DISTRIBUTING
+            project.save(update_fields=['status', 'updated_at'])
+
         return Response(
             {
                 'created_count': len(created),
@@ -174,6 +179,11 @@ class SendInvitationsView(APIView):
         from .tasks import send_invitation_emails
         invitation_ids = list(pending.values_list('id', flat=True))
         send_invitation_emails.delay(invitation_ids)
+
+        # Advance project status to collecting
+        if project.status in (Project.Status.DISTRIBUTING, Project.Status.QUESTIONNAIRE_READY):
+            project.status = Project.Status.COLLECTING
+            project.save(update_fields=['status', 'updated_at'])
 
         return Response(
             {'detail': f'Sending {count} invitation(s).', 'count': count},

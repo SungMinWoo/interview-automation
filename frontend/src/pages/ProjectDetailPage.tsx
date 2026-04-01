@@ -194,6 +194,12 @@ export default function ProjectDetailPage() {
               const state = getPhaseState(project.status, phase.key);
               const isNextAction = phase.key === nextActionable;
 
+              // Allow access to a phase if any previous phase is already active or completed
+              const prevPhases = PROJECT_PHASES.slice(0, index);
+              const isAccessible = state === 'upcoming' && prevPhases.some(
+                (p) => getPhaseState(project.status, p.key) === 'active' || getPhaseState(project.status, p.key) === 'completed',
+              );
+
               // Button style and label
               let btnLabel: string;
               let btnClass: string;
@@ -266,6 +272,14 @@ export default function ProjectDetailPage() {
                         >
                           <BtnIcon className="h-3.5 w-3.5" />
                           {btnLabel}
+                        </Link>
+                      ) : isAccessible ? (
+                        <Link
+                          to={`/projects/${project.id}/${phase.path}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          보기
                         </Link>
                       ) : (
                         <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${btnClass}`}>
