@@ -8,9 +8,9 @@ interface ThemeState {
 
 const applyTheme = (isDark: boolean) => {
   if (isDark) {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
   } else {
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
   }
 };
 
@@ -19,7 +19,7 @@ const getInitialTheme = (): boolean => {
   if (stored !== null) {
     return stored === 'dark';
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return true; // default dark
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => ({

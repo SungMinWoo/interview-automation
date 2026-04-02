@@ -22,11 +22,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  confirmed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  pending: 'bg-surface-hover text-content-secondary',
+  processing: 'bg-surface-hover text-content-primary',
+  completed: 'bg-success-bg text-success',
+  confirmed: 'bg-success-bg text-success',
+  failed: 'bg-danger-bg text-danger',
 };
 
 export default function AnalysisPage() {
@@ -126,19 +126,19 @@ export default function AnalysisPage() {
         <div className="flex items-center gap-3">
           <Link
             to={`/projects/${projectId}`}
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI 분석</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{project?.title}</p>
+            <h1 className="text-2xl font-bold text-content-primary">AI 분석</h1>
+            <p className="text-sm text-content-tertiary">{project?.title}</p>
           </div>
         </div>
         {analysis && (
           <div className="flex items-center gap-2">
             {analysis.ai_provider && (
-              <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+              <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-medium text-accent">
                 {AI_PROVIDER_LABELS[analysis.ai_provider as AiProvider] || analysis.ai_provider}
               </span>
             )}
@@ -156,23 +156,23 @@ export default function AnalysisPage() {
 
       {/* Failed State */}
       {isFailed && analysis && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/10">
+        <div className="border border-danger bg-danger-bg p-6">
           <div className="flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-900/30">
-              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center bg-danger-bg">
+              <AlertCircle className="h-8 w-8 text-danger" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-red-800 dark:text-red-300">
+            <h3 className="mb-2 text-lg font-semibold text-danger">
               분석에 실패했습니다
             </h3>
-            <p className="mb-2 max-w-lg text-sm text-red-600 dark:text-red-400">
+            <p className="mb-2 max-w-lg text-sm text-danger">
               AI 분석 중 오류가 발생했습니다. 다시 시도해주세요.
             </p>
             {analysis.error_message && (
               <details className="mb-4 w-full max-w-lg text-left">
-                <summary className="cursor-pointer text-xs text-red-500 hover:text-red-600 dark:text-red-400">
+                <summary className="cursor-pointer text-xs text-danger hover:text-danger">
                   상세 에러 보기
                 </summary>
-                <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-red-100 p-3 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                <pre className="mt-2 max-h-32 overflow-auto bg-danger-bg p-3 text-xs text-danger">
                   {analysis.error_message}
                 </pre>
               </details>
@@ -182,7 +182,7 @@ export default function AnalysisPage() {
               <button
                 onClick={handleRetry}
                 disabled={triggerAnalysis.isPending}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-danger px-6 py-2.5 text-sm font-medium text-accent-text transition-colors hover:opacity-85 disabled:opacity-50"
               >
                 {triggerAnalysis.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -198,14 +198,14 @@ export default function AnalysisPage() {
 
       {/* Trigger Button (no analysis yet or pending) */}
       {(!analysis || analysis.status === 'pending') && !isPolling && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16 dark:border-gray-700">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-900/20">
-            <Play className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+        <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
+            <Play className="h-8 w-8 text-accent" />
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="mb-2 text-lg font-semibold text-content-primary">
             AI 분석 시작
           </h3>
-          <p className="mb-6 max-w-md text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
             프로젝트 정보와 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행합니다.
           </p>
           <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ export default function AnalysisPage() {
             <button
               onClick={handleTrigger}
               disabled={triggerAnalysis.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               {triggerAnalysis.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -228,12 +228,12 @@ export default function AnalysisPage() {
 
       {/* Processing State */}
       {isProcessing && !isFailed && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-blue-200 bg-blue-50 py-16 dark:border-blue-800 dark:bg-blue-900/10">
-          <Loader2 className="mb-4 h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-16">
+          <Loader2 className="mb-4 h-12 w-12 animate-spin text-accent" />
+          <h3 className="mb-2 text-lg font-semibold text-content-primary">
             분석 진행 중...
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-content-tertiary">
             AI가 프로젝트를 분석하고 있습니다. 잠시만 기다려주세요.
           </p>
         </div>
@@ -248,14 +248,14 @@ export default function AnalysisPage() {
               <>
                 <button
                   onClick={() => setEditMode(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                  className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
                 >
                   취소
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   disabled={updateAnalysis.isPending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
                 >
                   {updateAnalysis.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   저장
@@ -267,14 +267,14 @@ export default function AnalysisPage() {
                 <button
                   onClick={handleRetry}
                   disabled={triggerAnalysis.isPending}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
                 >
                   <RefreshCw className="h-4 w-4" />
                   재분석
                 </button>
                 <button
                   onClick={() => setEditMode(true)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
                 >
                   <Pencil className="h-4 w-4" />
                   수정
@@ -283,7 +283,7 @@ export default function AnalysisPage() {
                   <button
                     onClick={handleConfirm}
                     disabled={confirmAnalysis.isPending}
-                    className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
                   >
                     {confirmAnalysis.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                     <Check className="h-4 w-4" />
@@ -319,7 +319,7 @@ export default function AnalysisPage() {
 
           {/* Confirmed badge */}
           {analysis.confirmed_at && (
-            <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+            <div className="flex items-center gap-2 bg-success-bg p-3 text-sm text-success">
               <CheckCircle2 className="h-4 w-4" />
               분석이 확인되었습니다.
             </div>
@@ -342,17 +342,17 @@ function Section({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-      <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+    <div className="border border-line bg-surface-secondary p-6">
+      <h3 className="mb-3 text-base font-semibold text-content-primary">{title}</h3>
       {editMode ? (
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
-          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          className="w-full border border-line bg-surface-secondary px-4 py-3 text-sm text-content-primary"
         />
       ) : (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-content-secondary">
           {value || '아직 데이터가 없습니다.'}
         </p>
       )}
@@ -362,28 +362,28 @@ function Section({
 
 function JsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-      <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+    <div className="border border-line bg-surface-secondary p-6">
+      <h3 className="mb-3 text-base font-semibold text-content-primary">{title}</h3>
       <div className="space-y-3">
         {Object.entries(data).map(([key, value]) => (
           <div key={key}>
-            <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <p className="mb-1 text-xs font-medium text-content-tertiary">
               {key.replace(/_/g, ' ')}
             </p>
             {Array.isArray(value) ? (
               <ul className="space-y-1">
                 {value.map((item, i) => (
-                  <li key={i} className="text-sm text-gray-600 dark:text-gray-300">
+                  <li key={i} className="text-sm text-content-secondary">
                     {typeof item === 'string' ? `- ${item}` : JSON.stringify(item)}
                   </li>
                 ))}
               </ul>
             ) : typeof value === 'object' && value !== null ? (
-              <pre className="rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+              <pre className="bg-surface-primary p-3 text-xs text-content-secondary">
                 {JSON.stringify(value, null, 2)}
               </pre>
             ) : (
-              <p className="text-sm text-gray-600 dark:text-gray-300">{String(value)}</p>
+              <p className="text-sm text-content-secondary">{String(value)}</p>
             )}
           </div>
         ))}

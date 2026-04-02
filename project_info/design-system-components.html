@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SI Interview Tool - Design System Components</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  /* =============================== */
+  /* RAW PALETTE                      */
+  /* =============================== */
+  :root {
+    --black: #000;
+    --white: #fff;
+    --colors-gray-900: #161616;
+    --colors-gray-800: #242424;
+    --colors-gray-bg-glass: rgba(15, 15, 15, .7);
+    --colors-black-op-8: rgba(0, 0, 0, .08);
+    --colors-black-op-12: rgba(0, 0, 0, .15);
+    --colors-black-op-20: rgba(0, 0, 0, .2);
+    --colors-black-op-40: rgba(0, 0, 0, .4);
+    --colors-black-op-60: rgba(0, 0, 0, .6);
+    --colors-black-op-80-dim: rgba(0, 0, 0, .8);
+    --colors-white-op-8: rgba(255, 255, 255, .08);
+    --colors-white-op-20: rgba(255, 255, 255, .2);
+    --colors-white-op-30: rgba(255, 255, 255, .3);
+    --colors-white-op-40: rgba(255, 255, 255, .4);
+    --colors-white-op-50: rgba(255, 255, 255, .5);
+    --colors-white-op-70: rgba(255, 255, 255, .7);
+    --red: #ff463c;
+    --green: #32d25a;
+  }
+
+  /* =============================== */
+  /* DARK THEME (default)             */
+  /* =============================== */
+  [data-theme="dark"] {
+    --bg-primary: var(--colors-gray-900);
+    --bg-secondary: var(--colors-gray-800);
+    --bg-glass: var(--colors-gray-bg-glass);
+    --bg-hover: var(--colors-white-op-8);
+    --bg-active: var(--colors-white-op-20);
+    --bg-input: var(--colors-white-op-8);
+
+    --text-primary: var(--white);
+    --text-secondary: var(--colors-white-op-70);
+    --text-tertiary: var(--colors-white-op-50);
+    --text-muted: var(--colors-white-op-40);
+    --text-disabled: var(--colors-white-op-30);
+
+    --border-default: var(--colors-white-op-8);
+    --border-hover: var(--colors-white-op-20);
+    --border-focus: var(--colors-white-op-40);
+
+    --accent-bg: var(--white);
+    --accent-text: var(--black);
+    --accent-hover: var(--colors-white-op-70);
+
+    --danger: var(--red);
+    --success: var(--green);
+    --danger-bg: rgba(255, 70, 60, 0.15);
+    --success-bg: rgba(50, 210, 90, 0.15);
+    --warning-color: #ffb400;
+    --warning-bg: rgba(255, 180, 0, 0.15);
+
+    --toggle-active-bg: var(--white);
+    --toggle-active-text: var(--black);
+
+    --badge-processing-dot: var(--white);
+    --spinner-track: var(--colors-white-op-8);
+    --spinner-head: var(--white);
+  }
+
+  /* =============================== */
+  /* LIGHT THEME                      */
+  /* =============================== */
+  [data-theme="light"] {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: var(--white);
+    --bg-glass: rgba(255, 255, 255, .7);
+    --bg-hover: var(--colors-black-op-8);
+    --bg-active: var(--colors-black-op-12);
+    --bg-input: var(--white);
+
+    --text-primary: var(--colors-gray-900);
+    --text-secondary: var(--colors-black-op-60);
+    --text-tertiary: var(--colors-black-op-40);
+    --text-muted: var(--colors-black-op-40);
+    --text-disabled: var(--colors-black-op-20);
+
+    --border-default: var(--colors-black-op-8);
+    --border-hover: var(--colors-black-op-12);
+    --border-focus: var(--colors-black-op-40);
+
+    --accent-bg: var(--colors-gray-900);
+    --accent-text: var(--white);
+    --accent-hover: var(--colors-gray-800);
+
+    --danger: #e8362d;
+    --success: #22a847;
+    --danger-bg: rgba(232, 54, 45, 0.08);
+    --success-bg: rgba(34, 168, 71, 0.08);
+    --warning-color: #c08800;
+    --warning-bg: rgba(192, 136, 0, 0.08);
+
+    --toggle-active-bg: var(--colors-gray-900);
+    --toggle-active-text: var(--white);
+
+    --badge-processing-dot: var(--colors-gray-900);
+    --spinner-track: var(--colors-black-op-8);
+    --spinner-head: var(--colors-gray-900);
+  }
+
+  /* =============================== */
+  /* RESET & BASE                     */
+  /* =============================== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary); color: var(--text-primary);
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+    transition: background 200ms, color 200ms;
+  }
+
+  .page { max-width: 1200px; margin: 0 auto; padding: 48px 24px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 48px; }
+  .page-title { font-size: 32px; font-weight: 700; }
+  .page-desc { font-size: 14px; color: var(--text-tertiary); margin-top: 4px; }
+
+  .section { margin-bottom: 56px; }
+  .section-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 24px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border-default);
+  }
+
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .flex { display: flex; align-items: center; gap: 12px; }
+  .flex-wrap { flex-wrap: wrap; }
+  .flex-col { flex-direction: column; align-items: stretch; }
+  .gap-8 { gap: 8px; }
+  .gap-16 { gap: 16px; }
+  .gap-24 { gap: 24px; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+
+  /* =============================== */
+  /* THEME TOGGLE (top-right)         */
+  /* =============================== */
+  .theme-switch {
+    display: inline-flex; background: var(--bg-hover);
+    border: 1px solid var(--border-default); overflow: hidden;
+  }
+  .theme-switch button {
+    padding: 8px 16px; font-size: 12px; font-weight: 500; font-family: inherit;
+    border: none; cursor: pointer; transition: all 150ms;
+    background: transparent; color: var(--text-muted);
+  }
+  .theme-switch button:hover { color: var(--text-secondary); }
+  .theme-switch button.active { background: var(--toggle-active-bg); color: var(--toggle-active-text); }
+
+  /* =============================== */
+  /* BUTTONS                          */
+  /* =============================== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: inherit; font-weight: 500; cursor: pointer;
+    border: 1px solid transparent; transition: all 150ms; white-space: nowrap;
+  }
+  .btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-md { padding: 8px 16px; font-size: 13px; }
+  .btn-lg { padding: 12px 24px; font-size: 14px; }
+
+  .btn-primary { background: var(--accent-bg); color: var(--accent-text); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+  .btn-secondary { background: transparent; color: var(--text-primary); border-color: var(--border-default); }
+  .btn-secondary:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-hover); }
+
+  .btn-danger { background: var(--danger); color: var(--white); }
+  .btn-danger:hover:not(:disabled) { opacity: 0.85; }
+
+  .btn-ghost { background: transparent; color: var(--text-secondary); }
+  .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
+
+  .btn-success { background: var(--success); color: var(--black); }
+  .btn-success:hover:not(:disabled) { opacity: 0.85; }
+  [data-theme="light"] .btn-success { color: var(--white); }
+
+  /* =============================== */
+  /* INPUTS                           */
+  /* =============================== */
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .input-helper { font-size: 11px; color: var(--text-muted); }
+  .input-error { font-size: 11px; color: var(--danger); }
+
+  .input {
+    width: 100%; padding: 10px 14px; font-size: 13px; font-family: inherit;
+    color: var(--text-primary); background: var(--bg-input);
+    border: 1px solid var(--border-default); transition: all 150ms; outline: none;
+  }
+  .input::placeholder { color: var(--text-muted); }
+  .input:hover { border-color: var(--border-hover); }
+  .input:focus { border-color: var(--border-focus); }
+  .input-error-state { border-color: var(--danger); }
+  textarea.input { min-height: 80px; resize: vertical; }
+
+  .select {
+    width: 100%; padding: 10px 14px; font-size: 13px; font-family: inherit;
+    color: var(--text-primary); background: var(--bg-input);
+    border: 1px solid var(--border-default); outline: none; cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='rgba(0,0,0,0.3)' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 6l3.5 4 3.5-4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  [data-theme="dark"] .select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='rgba(255,255,255,0.4)' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 6l3.5 4 3.5-4z'/%3E%3C/svg%3E");
+  }
+  .select:hover { border-color: var(--border-hover); }
+  .select:focus { border-color: var(--border-focus); }
+
+  /* =============================== */
+  /* BADGES                           */
+  /* =============================== */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; font-size: 11px; font-weight: 500; white-space: nowrap;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .badge-default { background: var(--bg-hover); color: var(--text-secondary); }
+  .badge-default .badge-dot { background: var(--text-muted); }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-success .badge-dot { background: var(--success); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+  .badge-danger .badge-dot { background: var(--danger); }
+  .badge-processing { background: var(--bg-hover); color: var(--text-primary); }
+  .badge-processing .badge-dot { background: var(--badge-processing-dot); animation: pulse 1.5s infinite; }
+  .badge-warning { background: var(--warning-bg); color: var(--warning-color); }
+  .badge-warning .badge-dot { background: var(--warning-color); }
+  .badge-ai { background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border-default); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* =============================== */
+  /* CARDS                            */
+  /* =============================== */
+  .card {
+    background: var(--bg-secondary); border: 1px solid var(--border-default);
+    padding: 20px; transition: border-color 150ms;
+  }
+  .card:hover { border-color: var(--border-hover); }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .card-glass {
+    background: var(--bg-glass); backdrop-filter: blur(12px);
+    border: 1px solid var(--border-default); padding: 20px;
+  }
+
+  /* =============================== */
+  /* SIDEBAR                          */
+  /* =============================== */
+  .sidebar-demo {
+    width: 240px; height: 400px; background: var(--bg-secondary);
+    border: 1px solid var(--border-default); display: flex; flex-direction: column;
+  }
+  .sidebar-brand {
+    padding: 16px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border-default);
+  }
+  .sidebar-logo {
+    width: 32px; height: 32px; background: var(--accent-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--accent-text);
+  }
+  .sidebar-brand-text { font-size: 14px; font-weight: 600; }
+  .sidebar-nav { padding: 8px; flex: 1; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; font-size: 13px; color: var(--text-secondary);
+    cursor: pointer; transition: all 150ms;
+  }
+  .sidebar-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .sidebar-item.active { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* =============================== */
+  /* HEADER                           */
+  /* =============================== */
+  .header-demo {
+    height: 56px; background: var(--bg-secondary); border: 1px solid var(--border-default);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+  }
+  .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .breadcrumb-sep { color: var(--text-muted); }
+  .breadcrumb-current { color: var(--text-primary); font-weight: 500; }
+  .breadcrumb-link { color: var(--text-tertiary); cursor: pointer; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; color: var(--text-secondary); cursor: pointer; transition: all 150ms;
+  }
+  .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .avatar {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-hover); color: var(--text-secondary); font-size: 12px; font-weight: 600;
+  }
+
+  /* =============================== */
+  /* MODAL                            */
+  /* =============================== */
+  .modal-demo {
+    background: var(--bg-secondary); border: 1px solid var(--border-default);
+    padding: 24px; max-width: 400px; width: 100%; position: relative;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .modal-desc { font-size: 13px; color: var(--text-tertiary); margin-bottom: 20px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px; background: transparent; border: none;
+    color: var(--text-muted); cursor: pointer; padding: 4px;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  /* =============================== */
+  /* TABLE                            */
+  /* =============================== */
+  .table-wrapper { overflow-x: auto; border: 1px solid var(--border-default); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    padding: 10px 16px; text-align: left; font-weight: 500; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-muted); background: var(--bg-hover); border-bottom: 1px solid var(--border-default);
+  }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border-default); color: var(--text-secondary); }
+  tr:hover td { background: var(--bg-hover); }
+  td:first-child { color: var(--text-primary); font-weight: 500; }
+
+  /* =============================== */
+  /* STEPPER                          */
+  /* =============================== */
+  .stepper { display: flex; flex-direction: column; position: relative; padding-left: 20px; }
+  .stepper::before { content:''; position:absolute; left:9px; top:12px; bottom:12px; width:1px; background:var(--border-default); }
+  .step { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; position: relative; }
+  .step-dot {
+    width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-secondary); border: 1px solid var(--border-default); position: relative; z-index: 1;
+  }
+  .step-dot-inner { width: 8px; height: 8px; background: var(--text-muted); }
+  .step.completed .step-dot { background: var(--accent-bg); border-color: var(--accent-bg); }
+  .step.completed .step-dot-inner { background: var(--accent-text); }
+  .step.active .step-dot { border-color: var(--text-primary); }
+  .step.active .step-dot-inner { background: var(--text-primary); }
+  .step-content { flex: 1; }
+  .step-label { font-size: 13px; font-weight: 500; }
+  .step.completed .step-label { color: var(--text-secondary); }
+  .step.upcoming .step-label { color: var(--text-muted); }
+  .step-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* =============================== */
+  /* TAGS                             */
+  /* =============================== */
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; font-size: 12px; font-weight: 500;
+    background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border-default);
+  }
+  .tag-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1; padding:0; }
+  .tag-close:hover { color: var(--danger); }
+
+  /* =============================== */
+  /* TABS & TOGGLE                    */
+  /* =============================== */
+  .tabs { display: flex; border-bottom: 1px solid var(--border-default); }
+  .tab {
+    padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 150ms;
+    background: transparent; border-top:none; border-left:none; border-right:none;
+  }
+  .tab:hover { color: var(--text-secondary); }
+  .tab.active { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+
+  .toggle-group { display: inline-flex; background: var(--bg-hover); border: 1px solid var(--border-default); }
+  .toggle-item {
+    padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--text-muted);
+    cursor: pointer; transition: all 150ms; border: none; background: transparent;
+  }
+  .toggle-item:hover { color: var(--text-secondary); }
+  .toggle-item.active { background: var(--toggle-active-bg); color: var(--toggle-active-text); }
+
+  /* =============================== */
+  /* COLOR PICKER                     */
+  /* =============================== */
+  .color-input-group { display: flex; align-items: center; gap: 8px; }
+  .color-swatch { width: 36px; height: 36px; border: 1px solid var(--border-default); cursor: pointer; flex-shrink: 0; }
+  .color-hex {
+    flex: 1; padding: 8px 12px; font-size: 13px; font-family: 'SF Mono', monospace;
+    background: var(--bg-input); border: 1px solid var(--border-default); color: var(--text-primary); outline: none;
+  }
+
+  /* =============================== */
+  /* QUESTION CARD                    */
+  /* =============================== */
+  .question-card { background: var(--bg-secondary); border: 1px solid var(--border-default); padding: 16px; display: flex; gap: 12px; }
+  .question-grip { color: var(--text-muted); cursor: grab; padding-top: 2px; font-size: 16px; }
+  .question-content { flex: 1; }
+  .question-text { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .question-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+  .question-purpose { font-size: 11px; color: var(--text-muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-default); }
+
+  /* =============================== */
+  /* EMPLOYEE CARD                    */
+  /* =============================== */
+  .employee-card { background: var(--bg-secondary); border: 1px solid var(--border-default); padding: 16px; }
+  .employee-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .employee-name { font-size: 13px; font-weight: 600; }
+  .employee-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .invite-link-box { background: var(--bg-hover); border: 1px solid var(--border-default); padding: 10px; margin-top: 12px; }
+  .invite-url { font-size: 11px; font-family: monospace; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .invite-meta { font-size: 10px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 12px; }
+
+  /* =============================== */
+  /* STITCH CARD                      */
+  /* =============================== */
+  .stitch-card { background: var(--bg-secondary); border: 1px solid var(--border-default); overflow: hidden; }
+  .stitch-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; flex-wrap: wrap; gap: 8px; }
+  .stitch-preview {
+    border-top: 1px solid var(--border-default); background: #fafafa; height: 200px;
+    display: flex; align-items: center; justify-content: center; color: var(--colors-black-op-40); font-size: 13px;
+  }
+
+  /* =============================== */
+  /* EMPTY STATE                      */
+  /* =============================== */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 48px 24px; text-align: center; border: 1px dashed var(--border-default);
+  }
+  .empty-icon {
+    width: 48px; height: 48px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-hover); color: var(--text-muted); font-size: 20px;
+  }
+  .empty-title { font-size: 14px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px; }
+  .empty-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+  /* =============================== */
+  /* LOADING                          */
+  /* =============================== */
+  .spinner { border: 2px solid var(--spinner-track); border-top-color: var(--spinner-head); animation: spin .6s linear infinite; }
+  .spinner-sm { width: 16px; height: 16px; border-radius: 50%; }
+  .spinner-md { width: 32px; height: 32px; border-radius: 50%; }
+  .spinner-lg { width: 48px; height: 48px; border-radius: 50%; border-width: 3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* =============================== */
+  /* COLORS DISPLAY                   */
+  /* =============================== */
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .color-item { display: flex; align-items: center; gap: 10px; }
+  .color-box { width: 40px; height: 40px; flex-shrink: 0; border: 1px solid var(--border-default); }
+  .color-name { font-size: 12px; font-weight: 500; }
+  .color-value { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Design System</h1>
+      <p class="page-desc">SI Interview Tool — All Components</p>
+    </div>
+    <div class="theme-switch">
+      <button class="active" onclick="setTheme('dark')">Dark</button>
+      <button onclick="setTheme('light')">Light</button>
+    </div>
+  </div>
+
+  <!-- COLORS -->
+  <div class="section">
+    <h2 class="section-title">Colors</h2>
+    <div class="color-grid">
+      <div class="color-item"><div class="color-box" style="background:#161616"></div><div><div class="color-name">Gray 900</div><div class="color-value">#161616</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:#242424"></div><div><div class="color-name">Gray 800</div><div class="color-value">#242424</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:#fff"></div><div><div class="color-name">White</div><div class="color-value">#ffffff</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:#000"></div><div><div class="color-name">Black</div><div class="color-value">#000000</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:#ff463c"></div><div><div class="color-name">Red</div><div class="color-value">#ff463c</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:#32d25a"></div><div><div class="color-name">Green</div><div class="color-value">#32d25a</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:rgba(255,255,255,.08)"></div><div><div class="color-name">White 8%</div><div class="color-value">rgba(255,255,255,.08)</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:rgba(255,255,255,.4)"></div><div><div class="color-name">White 40%</div><div class="color-value">rgba(255,255,255,.4)</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:rgba(255,255,255,.7)"></div><div><div class="color-name">White 70%</div><div class="color-value">rgba(255,255,255,.7)</div></div></div>
+      <div class="color-item"><div class="color-box" style="background:rgba(0,0,0,.08)"></div><div><div class="color-name">Black 8%</div><div class="color-value">rgba(0,0,0,.08)</div></div></div>
+    </div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="section">
+    <h2 class="section-title">Buttons</h2>
+    <div class="mb-16"><p class="input-label mb-8">Variants</p>
+      <div class="flex flex-wrap gap-8">
+        <button class="btn btn-md btn-primary">Primary</button>
+        <button class="btn btn-md btn-secondary">Secondary</button>
+        <button class="btn btn-md btn-danger">Danger</button>
+        <button class="btn btn-md btn-ghost">Ghost</button>
+        <button class="btn btn-md btn-success">Success</button>
+      </div>
+    </div>
+    <div class="mb-16"><p class="input-label mb-8">Sizes</p>
+      <div class="flex flex-wrap gap-8" style="align-items:flex-end">
+        <button class="btn btn-sm btn-primary">Small</button>
+        <button class="btn btn-md btn-primary">Medium</button>
+        <button class="btn btn-lg btn-primary">Large</button>
+      </div>
+    </div>
+    <div><p class="input-label mb-8">States</p>
+      <div class="flex flex-wrap gap-8">
+        <button class="btn btn-md btn-primary" disabled>Disabled</button>
+        <button class="btn btn-md btn-primary"><span class="spinner spinner-sm" style="border-top-color:var(--accent-text)"></span> Loading</button>
+        <button class="btn btn-md btn-secondary">＋ With Icon</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUTS -->
+  <div class="section">
+    <h2 class="section-title">Inputs</h2>
+    <div class="grid grid-2 gap-16">
+      <div class="input-group"><label class="input-label">Default Input</label><input class="input" type="text" placeholder="입력해주세요..."><span class="input-helper">Helper text</span></div>
+      <div class="input-group"><label class="input-label">Error State</label><input class="input input-error-state" type="text" value="잘못된 값"><span class="input-error">이메일 형식이 올바르지 않습니다.</span></div>
+      <div class="input-group"><label class="input-label">Textarea</label><textarea class="input" placeholder="장문 입력..."></textarea></div>
+      <div class="input-group"><label class="input-label">Select</label><select class="select"><option>Claude</option><option>Gemini</option></select></div>
+    </div>
+  </div>
+
+  <!-- BADGES -->
+  <div class="section">
+    <h2 class="section-title">Badges</h2>
+    <div class="flex flex-wrap gap-8">
+      <span class="badge badge-default"><span class="badge-dot"></span>대기</span>
+      <span class="badge badge-processing"><span class="badge-dot"></span>진행 중</span>
+      <span class="badge badge-success"><span class="badge-dot"></span>완료</span>
+      <span class="badge badge-danger"><span class="badge-dot"></span>실패</span>
+      <span class="badge badge-warning"><span class="badge-dot"></span>만료</span>
+      <span class="badge badge-ai">Claude</span>
+      <span class="badge badge-ai">Gemini</span>
+    </div>
+  </div>
+
+  <!-- TAGS -->
+  <div class="section">
+    <h2 class="section-title">Tags / Keywords</h2>
+    <div class="flex flex-wrap gap-8">
+      <span class="tag">혁신 <button class="tag-close">×</button></span>
+      <span class="tag">신뢰 <button class="tag-close">×</button></span>
+      <span class="tag">디지털 <button class="tag-close">×</button></span>
+      <span class="tag">전문성 <button class="tag-close">×</button></span>
+    </div>
+  </div>
+
+  <!-- TABS & TOGGLE -->
+  <div class="section">
+    <h2 class="section-title">Tabs &amp; Toggle</h2>
+    <div class="mb-24">
+      <div class="tabs">
+        <button class="tab active">직원 관리</button><button class="tab">배포 현황</button><button class="tab">응답 관리</button>
+      </div>
+    </div>
+    <div><div class="toggle-group"><button class="toggle-item active">Option A</button><button class="toggle-item">Option B</button></div></div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="section">
+    <h2 class="section-title">Cards</h2>
+    <div class="grid grid-2 gap-16">
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">프로젝트 분석</div><div class="card-desc">AI 분석 결과를 확인하세요</div></div><span class="badge badge-success"><span class="badge-dot"></span>완료</span></div>
+        <p style="font-size:13px;color:var(--text-tertiary)">클라이언트 요구사항과 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행했습니다.</p>
+      </div>
+      <div class="card-glass">
+        <div class="card-header"><div class="card-title">Glass Card</div></div>
+        <p style="font-size:13px;color:var(--text-tertiary)">backdrop-filter: blur가 적용된 반투명 카드입니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION CARD -->
+  <div class="section">
+    <h2 class="section-title">Question Card</h2>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="question-card"><div class="question-grip">⠿</div><div class="question-content"><div class="question-text">현재 회사의 디지털 전환 방향에 대해 어떻게 생각하시나요?</div><div class="question-meta"><span class="badge badge-default">서술형</span><span class="badge badge-warning"><span class="badge-dot"></span>중요</span><span class="badge badge-danger" style="background:var(--danger-bg)">필수</span></div><div class="question-purpose">의도: 임직원의 디지털 전환에 대한 인식과 기대를 파악하여 디자인 방향성 수립에 활용</div></div></div>
+      <div class="question-card"><div class="question-grip">⠿</div><div class="question-content"><div class="question-text">현재 사이트에서 가장 불편한 점은 무엇인가요?</div><div class="question-meta"><span class="badge badge-default">서술형</span><span class="badge badge-default"><span class="badge-dot"></span>보통</span></div></div></div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE CARD -->
+  <div class="section">
+    <h2 class="section-title">Employee Card</h2>
+    <div class="grid grid-2 gap-16">
+      <div class="employee-card"><div class="employee-header"><div><div class="employee-name">김민수</div><div class="employee-meta">kim@company.com</div><div class="employee-meta">경영기획팀 · 과장</div></div><span class="badge badge-success"><span class="badge-dot"></span>답변완료</span></div><div class="invite-link-box"><div class="invite-url">https://site.com/survey/a1b2c3d4-e5f6...</div><div class="invite-meta"><span>만료: 2026-04-10</span><span>답변: 2026-04-01</span></div></div></div>
+      <div class="employee-card"><div class="employee-header"><div><div class="employee-name">이지은</div><div class="employee-meta">lee@company.com</div><div class="employee-meta">디자인팀 · 대리</div></div><span class="badge badge-default"><span class="badge-dot"></span>대기</span></div><div style="margin-top:12px"><button class="btn btn-sm btn-secondary">초대 링크 생성</button></div></div>
+    </div>
+  </div>
+
+  <!-- STEPPER -->
+  <div class="section">
+    <h2 class="section-title">Progress Stepper</h2>
+    <div class="stepper">
+      <div class="step completed"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">1. 분석</div><div class="step-meta">완료</div></div><button class="btn btn-sm btn-ghost">보기</button></div>
+      <div class="step completed"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">2. 질문지</div><div class="step-meta">완료</div></div><button class="btn btn-sm btn-ghost">보기</button></div>
+      <div class="step active"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">3. 배포</div><div class="step-meta">진행 중</div></div><button class="btn btn-sm btn-primary">진행하기</button></div>
+      <div class="step upcoming"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">4. 수집</div><div class="step-meta">대기</div></div></div>
+      <div class="step upcoming"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">5. 취합</div><div class="step-meta">대기</div></div></div>
+      <div class="step upcoming"><div class="step-dot"><div class="step-dot-inner"></div></div><div class="step-content"><div class="step-label">6. 디자인 브리프</div><div class="step-meta">대기</div></div></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR + HEADER -->
+  <div class="section">
+    <h2 class="section-title">Layout - Sidebar &amp; Header</h2>
+    <div class="flex gap-16" style="align-items:flex-start">
+      <div class="sidebar-demo">
+        <div class="sidebar-brand"><div class="sidebar-logo">IS</div><div class="sidebar-brand-text">Interview Site</div></div>
+        <div class="sidebar-nav"><div class="sidebar-item">▦ 대시보드</div><div class="sidebar-item active">▤ 프로젝트</div></div>
+      </div>
+      <div style="flex:1">
+        <div class="header-demo"><div class="breadcrumb"><span class="breadcrumb-link">프로젝트</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-current">산더미 자산운용</span></div><div class="header-actions"><button class="icon-btn">☾</button><button class="icon-btn">🔔</button><div class="avatar">U</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="section">
+    <h2 class="section-title">Modal / Dialog</h2>
+    <div class="grid grid-2 gap-16">
+      <div class="modal-demo"><button class="modal-close">✕</button><div class="modal-title">프로젝트 삭제</div><div class="modal-desc">정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</div><div class="modal-actions"><button class="btn btn-sm btn-secondary">취소</button><button class="btn btn-sm btn-danger">삭제</button></div></div>
+      <div class="modal-demo"><button class="modal-close">✕</button><div class="modal-title">질문지 확정</div><div class="modal-desc">확정하면 질문 수정이 불가합니다. 계속하시겠습니까?</div><div class="modal-actions"><button class="btn btn-sm btn-secondary">취소</button><button class="btn btn-sm btn-primary">확정</button></div></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="section">
+    <h2 class="section-title">Data Table</h2>
+    <div class="table-wrapper"><table><thead><tr><th>이름</th><th>이메일</th><th>부서</th><th>상태</th></tr></thead><tbody>
+      <tr><td>김민수</td><td>kim@company.com</td><td>경영기획팀</td><td><span class="badge badge-success"><span class="badge-dot"></span>완료</span></td></tr>
+      <tr><td>이지은</td><td>lee@company.com</td><td>디자인팀</td><td><span class="badge badge-processing"><span class="badge-dot"></span>진행 중</span></td></tr>
+      <tr><td>박준호</td><td>park@company.com</td><td>개발팀</td><td><span class="badge badge-default"><span class="badge-dot"></span>대기</span></td></tr>
+    </tbody></table></div>
+  </div>
+
+  <!-- STITCH CARD -->
+  <div class="section">
+    <h2 class="section-title">Stitch Generation Card</h2>
+    <div class="stitch-card">
+      <div class="stitch-header">
+        <div class="flex gap-8"><span style="font-size:13px;font-weight:600">v1</span><span class="badge badge-success"><span class="badge-dot"></span>완료</span><span style="font-size:11px;color:var(--text-muted)">2026-04-01</span></div>
+        <div class="flex gap-8"><button class="btn btn-sm btn-secondary">Stitch에서 보기</button><button class="btn btn-sm btn-success">결과 가져오기</button><button class="btn btn-sm btn-ghost">미리보기</button><button class="btn btn-sm btn-ghost">DESIGN.md</button></div>
+      </div>
+      <div class="stitch-preview">iframe preview area</div>
+    </div>
+  </div>
+
+  <!-- COLOR PICKER -->
+  <div class="section">
+    <h2 class="section-title">Color Picker</h2>
+    <div class="grid grid-3 gap-16">
+      <div class="input-group"><label class="input-label">메인 컬러</label><div class="color-input-group"><input type="color" class="color-swatch" value="#ffbb00"><input class="color-hex" value="#ffbb00"></div></div>
+      <div class="input-group"><label class="input-label">보조 컬러</label><div class="color-input-group"><input type="color" class="color-swatch" value="#161616"><input class="color-hex" value="#161616"></div></div>
+      <div class="input-group"><label class="input-label">강조 컬러</label><div class="color-input-group"><input type="color" class="color-swatch" value="#ff463c"><input class="color-hex" value="#ff463c"></div></div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="section">
+    <h2 class="section-title">Loading States</h2>
+    <div class="flex gap-24">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="spinner spinner-sm"></div><span style="font-size:11px;color:var(--text-muted)">SM</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="spinner spinner-md"></div><span style="font-size:11px;color:var(--text-muted)">MD</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="spinner spinner-lg"></div><span style="font-size:11px;color:var(--text-muted)">LG</span></div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div class="section">
+    <h2 class="section-title">Empty State</h2>
+    <div class="empty-state"><div class="empty-icon">☐</div><div class="empty-title">질문이 없습니다</div><div class="empty-desc">AI 생성 또는 직접 추가해주세요.</div><button class="btn btn-sm btn-primary">질문 추가</button></div>
+  </div>
+
+  <!-- TYPOGRAPHY -->
+  <div class="section">
+    <h2 class="section-title">Typography</h2>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div><span style="font-size:11px;color:var(--text-muted)">Page Title — 32px / 700</span><div style="font-size:32px;font-weight:700">프로젝트 상세</div></div>
+      <div><span style="font-size:11px;color:var(--text-muted)">Section Title — 16px / 600</span><div style="font-size:16px;font-weight:600">디자인 브리프</div></div>
+      <div><span style="font-size:11px;color:var(--text-muted)">Card Title — 14px / 600</span><div style="font-size:14px;font-weight:600">AI 분석 결과</div></div>
+      <div><span style="font-size:11px;color:var(--text-muted)">Body — 13px / 400</span><div style="font-size:13px;color:var(--text-secondary)">클라이언트 요구사항과 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행합니다.</div></div>
+      <div><span style="font-size:11px;color:var(--text-muted)">Caption — 11px / 400</span><div style="font-size:11px;color:var(--text-muted)">2026-04-01 09:30 · Claude · 완료</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.theme-switch button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === theme);
+  });
+}
+</script>
+</body>
+</html>

@@ -22,7 +22,7 @@ function Breadcrumbs() {
     <nav className="flex items-center gap-1 text-sm">
       <Link
         to="/"
-        className="text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        className="text-content-tertiary transition-colors hover:text-content-secondary"
       >
         홈
       </Link>
@@ -33,13 +33,13 @@ function Breadcrumbs() {
 
         return (
           <Fragment key={path}>
-            <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <ChevronRight className="h-4 w-4 text-content-tertiary" />
             {isLast ? (
-              <span className="font-medium text-gray-900 dark:text-white">{label}</span>
+              <span className="font-medium text-content-primary">{label}</span>
             ) : (
               <Link
                 to={path}
-                className="text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-content-tertiary transition-colors hover:text-content-secondary"
               >
                 {label}
               </Link>
@@ -54,7 +54,7 @@ function Breadcrumbs() {
 export function Header({ className = '' }: HeaderProps) {
   return (
     <header
-      className={`flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-gray-700 dark:bg-gray-900 ${className}`}
+      className={`flex h-16 items-center justify-between border-b border-line bg-surface-secondary px-6 ${className}`}
     >
       {/* Left: Breadcrumbs */}
       <Breadcrumbs />
@@ -65,7 +65,7 @@ export function Header({ className = '' }: HeaderProps) {
 
         {/* Notifications */}
         <button
-          className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+          className="relative p-2 text-content-tertiary transition-colors hover:bg-surface-hover hover:text-content-secondary"
           aria-label="알림"
         >
           <Bell className="h-5 w-5" />
@@ -73,8 +73,8 @@ export function Header({ className = '' }: HeaderProps) {
 
         {/* User Menu */}
         <Menu as="div" className="relative">
-          <MenuButton className="flex items-center gap-2 rounded-lg p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">
+          <MenuButton className="flex items-center gap-2 p-2 text-content-secondary transition-colors hover:bg-surface-hover">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-sm font-medium text-accent">
               U
             </div>
           </MenuButton>
@@ -88,14 +88,14 @@ export function Header({ className = '' }: HeaderProps) {
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <MenuItems className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-800">
+            <MenuItems className="absolute right-0 mt-2 w-48 origin-top-right border border-line bg-surface-secondary py-1 focus:outline-none">
               <MenuItem>
                 {({ active }) => (
                   <button
                     className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
                       active
-                        ? 'bg-gray-100 text-gray-900 dark:bg-white/5 dark:text-white'
-                        : 'text-gray-700 dark:text-gray-300'
+                        ? 'bg-surface-hover text-content-primary'
+                        : 'text-content-secondary'
                     }`}
                   >
                     <User className="h-4 w-4" />
@@ -108,8 +108,8 @@ export function Header({ className = '' }: HeaderProps) {
                   <button
                     className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
                       active
-                        ? 'bg-gray-100 text-gray-900 dark:bg-white/5 dark:text-white'
-                        : 'text-gray-700 dark:text-gray-300'
+                        ? 'bg-surface-hover text-content-primary'
+                        : 'text-content-secondary'
                     }`}
                   >
                     <Settings className="h-4 w-4" />
@@ -117,14 +117,14 @@ export function Header({ className = '' }: HeaderProps) {
                   </button>
                 )}
               </MenuItem>
-              <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
+              <div className="my-1 border-t border-line" />
               <MenuItem>
                 {({ active }) => (
                   <button
                     className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
                       active
-                        ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'
-                        : 'text-red-600 dark:text-red-400'
+                        ? 'bg-red-50 text-danger'
+                        : 'text-danger'
                     }`}
                   >
                     <LogOut className="h-4 w-4" />

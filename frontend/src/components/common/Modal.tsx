@@ -32,7 +32,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/50 dark:bg-black/70" />
+          <div className="fixed inset-0 bg-black/50" />
         </TransitionChild>
 
         {/* Panel */}
@@ -48,16 +48,16 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
               leaveTo="opacity-0 scale-95"
             >
               <DialogPanel
-                className={`w-full ${sizeStyles[size]} rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800 ${className}`}
+                className={`w-full ${sizeStyles[size]} bg-surface-secondary p-6 border border-line ${className}`}
               >
                 {title && (
                   <div className="mb-4 flex items-center justify-between">
-                    <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <DialogTitle className="text-lg font-semibold text-content-primary">
                       {title}
                     </DialogTitle>
                     <button
                       onClick={onClose}
-                      className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-300"
+                      className="p-1 text-content-tertiary transition-colors hover:bg-surface-hover hover:text-content-secondary"
                       aria-label="닫기"
                     >
                       <X className="h-5 w-5" />

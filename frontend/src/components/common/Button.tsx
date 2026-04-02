@@ -3,13 +3,13 @@ import { LoadingSpinner } from './LoadingSpinner';
 
 const variantStyles = {
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-600',
+    'bg-accent text-accent-text hover:bg-accent-hover focus-visible:ring-line-focus',
   secondary:
-    'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus-visible:ring-indigo-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700',
+    'bg-surface-secondary text-content-secondary border border-line hover:bg-surface-hover focus-visible:ring-line-focus',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600',
+    'bg-danger text-accent-text hover:bg-danger/80 focus-visible:ring-line-focus',
   ghost:
-    'text-gray-700 hover:bg-gray-100 focus-visible:ring-indigo-500 dark:text-gray-300 dark:hover:bg-white/10',
+    'text-content-secondary hover:bg-surface-hover focus-visible:ring-line-focus',
 } as const;
 
 const sizeStyles = {
@@ -45,10 +45,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={`
-          inline-flex items-center justify-center gap-2 rounded-lg font-medium
+          inline-flex items-center justify-center gap-2 font-medium
           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
           disabled:cursor-not-allowed disabled:opacity-50
-          dark:focus-visible:ring-offset-gray-900
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${className}

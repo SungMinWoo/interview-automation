@@ -114,14 +114,14 @@ function SortableQuestion({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#1e1e38]"
+      className="border border-line bg-surface-secondary p-4"
     >
       <div className="flex items-start gap-3">
         {!locked && (
           <button
             {...attributes}
             {...listeners}
-            className="mt-1 cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="mt-1 cursor-grab text-content-tertiary hover:text-content-primary"
           >
             <GripVertical className="h-5 w-5" />
           </button>
@@ -135,27 +135,27 @@ function SortableQuestion({
                 onChange={(e) => setEditText(e.target.value)}
                 rows={2}
                 placeholder="질문 내용"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full border border-line bg-surface-secondary px-3 py-2 text-sm"
               />
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={1}
                 placeholder="보조 설명 (선택)"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full border border-line bg-surface-secondary px-3 py-2 text-xs"
               />
               <textarea
                 value={editPurpose}
                 onChange={(e) => setEditPurpose(e.target.value)}
                 rows={2}
                 placeholder="이 질문의 의도 - 무엇을 확인하고자 하는지 (취합/브리프에 활용)"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full border border-line bg-surface-secondary px-3 py-2 text-xs"
               />
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={editType}
                   onChange={(e) => setEditType(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="border border-line bg-surface-secondary px-3 py-1.5 text-xs"
                 >
                   {Object.entries(QUESTION_TYPE_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -164,18 +164,18 @@ function SortableQuestion({
                 <select
                   value={editImportance}
                   onChange={(e) => setEditImportance(Number(e.target.value))}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="border border-line bg-surface-secondary px-3 py-1.5 text-xs"
                 >
                   {Object.entries(IMPORTANCE_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>중요도: {label}</option>
                   ))}
                 </select>
-                <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <label className="flex items-center gap-1.5 text-xs text-content-secondary">
                   <input
                     type="checkbox"
                     checked={editRequired}
                     onChange={(e) => setEditRequired(e.target.checked)}
-                    className="rounded border-gray-300 text-indigo-600 dark:border-gray-600"
+                    className="border-line text-accent"
                   />
                   필수
                 </label>
@@ -184,13 +184,13 @@ function SortableQuestion({
                 <button
                   onClick={handleSave}
                   disabled={updateQuestion.isPending}
-                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                  className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
                 >
                   저장
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                  className="border border-line px-3 py-1.5 text-xs text-content-secondary hover:bg-surface-hover"
                 >
                   취소
                 </button>
@@ -200,7 +200,7 @@ function SortableQuestion({
             <div>
               <div className="flex items-start justify-between">
                 <p
-                  className={`text-sm font-medium text-gray-900 dark:text-white ${!locked ? 'cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                  className={`text-sm font-medium text-content-primary ${!locked ? 'cursor-pointer hover:text-accent' : ''}`}
                   onClick={() => !locked && setIsEditing(true)}
                 >
                   {question.text}
@@ -208,7 +208,7 @@ function SortableQuestion({
                 <div className="ml-2 flex flex-shrink-0 items-center gap-1">
                   <button
                     onClick={() => setExpanded(!expanded)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-content-tertiary hover:text-content-primary"
                     title="상세 보기"
                   >
                     {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -216,7 +216,7 @@ function SortableQuestion({
                   {!locked && (
                     <button
                       onClick={() => onDelete(question.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-content-tertiary hover:text-danger"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -224,29 +224,29 @@ function SortableQuestion({
                 </div>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                <span className="bg-surface-hover px-2 py-0.5 text-xs text-content-secondary">
                   {QUESTION_TYPE_LABELS[qType] || qType}
                 </span>
-                <span className={`rounded-md px-2 py-0.5 text-xs ${IMPORTANCE_COLORS[importance] || IMPORTANCE_COLORS[3]}`}>
+                <span className={`px-2 py-0.5 text-xs ${IMPORTANCE_COLORS[importance] || IMPORTANCE_COLORS[3]}`}>
                   {IMPORTANCE_LABELS[importance] || '보통'}
                 </span>
                 {qRequired && (
-                  <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                  <span className="bg-danger-bg px-2 py-0.5 text-xs text-danger">
                     필수
                   </span>
                 )}
               </div>
               {expanded && (
-                <div className="mt-3 space-y-2 border-t border-gray-100 pt-3 dark:border-gray-700">
+                <div className="mt-3 space-y-2 border-t border-line pt-3">
                   {question.description && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-content-tertiary">
                       <span className="font-medium">설명:</span> {question.description}
                     </p>
                   )}
                   {question.purpose && (
                     <div className="flex items-start gap-1.5">
-                      <Info className="mt-0.5 h-3 w-3 flex-shrink-0 text-indigo-500" />
-                      <p className="text-xs text-indigo-600 dark:text-indigo-400">
+                      <Info className="mt-0.5 h-3 w-3 flex-shrink-0 text-accent" />
+                      <p className="text-xs text-accent">
                         <span className="font-medium">의도:</span> {question.purpose}
                       </p>
                     </div>
@@ -381,7 +381,7 @@ export default function QuestionnairePage() {
   };
 
   const inputClass =
-    'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white';
+    'w-full border border-line bg-surface-secondary px-3 py-2 text-sm text-content-primary';
 
   return (
     <div className="space-y-6">
@@ -390,24 +390,24 @@ export default function QuestionnairePage() {
         <div className="flex items-center gap-3">
           <Link
             to={`/projects/${projectId}`}
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">질문지 관리</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{project?.title}</p>
+            <h1 className="text-2xl font-bold text-content-primary">질문지 관리</h1>
+            <p className="text-sm text-content-tertiary">{project?.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {isConfirmed && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success-bg px-2.5 py-0.5 text-xs font-medium text-success">
               <CheckCircle2 className="h-3 w-3" />
               확정됨
             </span>
           )}
           {questionnaire?.ai_provider && (
-            <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+            <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-medium text-accent">
               {AI_PROVIDER_LABELS[questionnaire.ai_provider as AiProvider] || questionnaire.ai_provider}
             </span>
           )}
@@ -417,7 +417,7 @@ export default function QuestionnairePage() {
               <button
                 onClick={handleGenerate}
                 disabled={generateQuestionnaire.isPending || isProcessing}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
               >
                 {generateQuestionnaire.isPending || isProcessing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,7 +430,7 @@ export default function QuestionnairePage() {
                 <button
                   onClick={handleConfirm}
                   disabled={confirmQuestionnaire.isPending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
                 >
                   {confirmQuestionnaire.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   질문지 확정
@@ -443,23 +443,23 @@ export default function QuestionnairePage() {
 
       {/* Processing State */}
       {isProcessing && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 py-12 dark:border-indigo-800 dark:bg-indigo-900/10">
-          <Loader2 className="mb-4 h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">질문지 생성 중...</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">AI가 질문지를 생성하고 있습니다.</p>
+        <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-12">
+          <Loader2 className="mb-4 h-12 w-12 animate-spin text-accent" />
+          <h3 className="mb-2 text-lg font-semibold text-content-primary">질문지 생성 중...</h3>
+          <p className="text-sm text-content-tertiary">AI가 질문지를 생성하고 있습니다.</p>
         </div>
       )}
 
       {/* Failed State */}
       {isFailed && questionnaire && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/10">
+        <div className="border border-danger bg-danger-bg p-6">
           <div className="flex flex-col items-center text-center">
-            <AlertCircle className="mb-3 h-10 w-10 text-red-500" />
-            <h3 className="mb-1 text-base font-semibold text-red-800 dark:text-red-300">질문지 생성에 실패했습니다</h3>
+            <AlertCircle className="mb-3 h-10 w-10 text-danger" />
+            <h3 className="mb-1 text-base font-semibold text-danger">질문지 생성에 실패했습니다</h3>
             {questionnaire.error_message && (
               <details className="mb-3 w-full max-w-lg text-left">
-                <summary className="cursor-pointer text-xs text-red-500">상세 에러 보기</summary>
-                <pre className="mt-1 max-h-24 overflow-auto rounded bg-red-100 p-2 text-xs text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                <summary className="cursor-pointer text-xs text-danger">상세 에러 보기</summary>
+                <pre className="mt-1 max-h-24 overflow-auto bg-danger-bg p-2 text-xs text-danger">
                   {questionnaire.error_message}
                 </pre>
               </details>
@@ -467,7 +467,7 @@ export default function QuestionnairePage() {
             <button
               onClick={handleGenerate}
               disabled={generateQuestionnaire.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-danger px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
             >
               <RefreshCw className="h-4 w-4" />
               다시 시도
@@ -481,10 +481,10 @@ export default function QuestionnairePage() {
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               categoryFilter === 'all'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                ? 'bg-accent text-accent-text'
+                : 'bg-surface-hover text-content-secondary hover:bg-surface-hover'
             }`}
           >
             전체
@@ -493,10 +493,10 @@ export default function QuestionnairePage() {
             <button
               key={cat.id}
               onClick={() => setCategoryFilter(cat.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                 categoryFilter === cat.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                  ? 'bg-accent text-accent-text'
+                  : 'bg-surface-hover text-content-secondary hover:bg-surface-hover'
               }`}
             >
               {cat.name}
@@ -507,7 +507,7 @@ export default function QuestionnairePage() {
 
       {/* Confirmed Lock Banner */}
       {isConfirmed && (
-        <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+        <div className="flex items-center gap-2 border border-success bg-success-bg px-4 py-3 text-sm text-success">
           <Lock className="h-4 w-4" />
           질문지가 확정되었습니다. 질문 수정, 추가, 삭제가 잠겨 있습니다.
         </div>
@@ -517,14 +517,14 @@ export default function QuestionnairePage() {
       {!isConfirmed && !showAddForm ? (
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-4 text-sm font-medium text-gray-500 transition-colors hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          className="flex w-full items-center justify-center gap-2 border-2 border-dashed border-line py-4 text-sm font-medium text-content-tertiary transition-colors hover:border-line-hover hover:text-accent"
         >
           <Plus className="h-4 w-4" />
           질문 직접 추가
         </button>
       ) : (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-800 dark:bg-indigo-900/10">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">새 질문 추가</h3>
+        <div className="border border-line bg-surface-hover p-5">
+          <h3 className="mb-3 text-sm font-semibold text-content-primary">새 질문 추가</h3>
           <div className="space-y-3">
             <textarea
               value={newQuestion.text}
@@ -550,7 +550,7 @@ export default function QuestionnairePage() {
               <select
                 value={newQuestion.question_type}
                 onChange={(e) => setNewQuestion((q) => ({ ...q, question_type: e.target.value }))}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="border border-line bg-surface-secondary px-3 py-1.5 text-xs"
               >
                 {Object.entries(QUESTION_TYPE_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -559,18 +559,18 @@ export default function QuestionnairePage() {
               <select
                 value={newQuestion.importance}
                 onChange={(e) => setNewQuestion((q) => ({ ...q, importance: Number(e.target.value) }))}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="border border-line bg-surface-secondary px-3 py-1.5 text-xs"
               >
                 {Object.entries(IMPORTANCE_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>중요도: {label}</option>
                 ))}
               </select>
-              <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+              <label className="flex items-center gap-1.5 text-xs text-content-secondary">
                 <input
                   type="checkbox"
                   checked={newQuestion.is_required}
                   onChange={(e) => setNewQuestion((q) => ({ ...q, is_required: e.target.checked }))}
-                  className="rounded border-gray-300 text-indigo-600 dark:border-gray-600"
+                  className="border-line text-accent"
                 />
                 필수
               </label>
@@ -579,14 +579,14 @@ export default function QuestionnairePage() {
               <button
                 onClick={handleAddQuestion}
                 disabled={createQuestion.isPending || !newQuestion.text.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
               >
                 {createQuestion.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
                 추가
               </button>
               <button
                 onClick={() => setShowAddForm(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                className="border border-line px-4 py-2 text-xs text-content-secondary hover:bg-surface-hover"
               >
                 취소
               </button>
@@ -597,19 +597,19 @@ export default function QuestionnairePage() {
 
       {/* Questions List */}
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center text-gray-400">
+        <div className="flex h-40 items-center justify-center text-content-tertiary">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           로딩 중...
         </div>
       ) : !isProcessing && filteredQuestions.length === 0 && !showAddForm ? (
-        <div className="flex h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+        <div className="flex h-32 flex-col items-center justify-center border-2 border-dashed border-line">
+          <p className="text-sm text-content-tertiary">
             질문이 없습니다. AI 생성 또는 직접 추가해주세요.
           </p>
         </div>
       ) : filteredQuestions.length > 0 ? (
         <>
-          <p className="text-xs text-gray-400">총 {filteredQuestions.length}개 질문</p>
+          <p className="text-xs text-content-tertiary">총 {filteredQuestions.length}개 질문</p>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext
               items={filteredQuestions.map((q) => q.id)}
@@ -633,20 +633,20 @@ export default function QuestionnairePage() {
 
       {/* Delete Confirmation Modal */}
       {confirmDeleteId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-[#1a1a2e]">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">질문 삭제</h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">이 질문을 삭제하시겠습니까?</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
+          <div className="w-full max-w-sm bg-surface-secondary p-6">
+            <h3 className="text-lg font-semibold text-content-primary">질문 삭제</h3>
+            <p className="mt-2 text-sm text-content-tertiary">이 질문을 삭제하시겠습니까?</p>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
               >
                 취소
               </button>
               <button
                 onClick={() => handleDelete(confirmDeleteId)}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="bg-danger px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85"
               >
                 삭제
               </button>

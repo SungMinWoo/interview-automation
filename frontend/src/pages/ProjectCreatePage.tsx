@@ -58,7 +58,7 @@ export default function ProjectCreatePage() {
   };
 
   const inputClass =
-    'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-indigo-400';
+    'w-full border border-line bg-surface-secondary px-4 py-2.5 text-sm text-content-primary placeholder-content-tertiary transition-colors focus:border-line-focus focus:outline-none focus:ring-2 focus:ring-line-focus/20';
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -66,24 +66,24 @@ export default function ProjectCreatePage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+          className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">새 프로젝트</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">프로젝트 정보를 입력해주세요.</p>
+          <h1 className="text-2xl font-bold text-content-primary">새 프로젝트</h1>
+          <p className="text-sm text-content-tertiary">프로젝트 정보를 입력해주세요.</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Info */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">기본 정보</h2>
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">기본 정보</h2>
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                프로젝트명 <span className="text-red-500">*</span>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">
+                프로젝트명 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -91,12 +91,12 @@ export default function ProjectCreatePage() {
                 className={inputClass}
                 {...register('title')}
               />
-              {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
+              {errors.title && <p className="mt-1 text-xs text-danger">{errors.title.message}</p>}
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                클라이언트 회사명 <span className="text-red-500">*</span>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">
+                클라이언트 회사명 <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -105,13 +105,13 @@ export default function ProjectCreatePage() {
                 {...register('client_name')}
               />
               {errors.client_name && (
-                <p className="mt-1 text-xs text-red-500">{errors.client_name.message}</p>
+                <p className="mt-1 text-xs text-danger">{errors.client_name.message}</p>
               )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-content-secondary">
                   담당자 이메일
                 </label>
                 <input
@@ -121,11 +121,11 @@ export default function ProjectCreatePage() {
                   {...register('client_contact_email')}
                 />
                 {errors.client_contact_email && (
-                  <p className="mt-1 text-xs text-red-500">{errors.client_contact_email.message}</p>
+                  <p className="mt-1 text-xs text-danger">{errors.client_contact_email.message}</p>
                 )}
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-content-secondary">
                   담당자 전화번호
                 </label>
                 <input
@@ -140,12 +140,12 @@ export default function ProjectCreatePage() {
         </div>
 
         {/* Requirements */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">요구사항</h2>
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">요구사항</h2>
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                요구사항 설명 <span className="text-red-500">*</span>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">
+                요구사항 설명 <span className="text-danger">*</span>
               </label>
               <textarea
                 rows={6}
@@ -154,11 +154,11 @@ export default function ProjectCreatePage() {
                 {...register('requirements_text')}
               />
               {errors.requirements_text && (
-                <p className="mt-1 text-xs text-red-500">{errors.requirements_text.message}</p>
+                <p className="mt-1 text-xs text-danger">{errors.requirements_text.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">
                 기존 사이트 URL
               </label>
               <input
@@ -168,20 +168,20 @@ export default function ProjectCreatePage() {
                 {...register('existing_site_url')}
               />
               {errors.existing_site_url && (
-                <p className="mt-1 text-xs text-red-500">{errors.existing_site_url.message}</p>
+                <p className="mt-1 text-xs text-danger">{errors.existing_site_url.message}</p>
               )}
             </div>
           </div>
         </div>
 
         {/* Reference Sites */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+        <div className="border border-line bg-surface-secondary p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">레퍼런스 사이트</h2>
+            <h2 className="text-lg font-semibold text-content-primary">레퍼런스 사이트</h2>
             <button
               type="button"
               onClick={() => append({ url: '', title: '', description: '' })}
-              className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+              className="inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent"
             >
               <Plus className="h-4 w-4" />
               추가
@@ -189,7 +189,7 @@ export default function ProjectCreatePage() {
           </div>
 
           {fields.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
+            <p className="py-4 text-center text-sm text-content-tertiary">
               레퍼런스 사이트를 추가해주세요.
             </p>
           ) : (
@@ -197,16 +197,16 @@ export default function ProjectCreatePage() {
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="rounded-lg border border-gray-100 p-4 dark:border-gray-700/50"
+                  className="border border-line p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium text-content-secondary">
                       사이트 {index + 1}
                     </span>
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="text-red-400 hover:text-red-500"
+                      className="text-danger hover:text-danger"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -232,7 +232,7 @@ export default function ProjectCreatePage() {
                     />
                   </div>
                   {errors.reference_sites?.[index]?.url && (
-                    <p className="mt-1 text-xs text-red-500">
+                    <p className="mt-1 text-xs text-danger">
                       {errors.reference_sites[index]?.url?.message}
                     </p>
                   )}
@@ -247,14 +247,14 @@ export default function ProjectCreatePage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+            className="border border-line px-5 py-2.5 text-sm font-medium text-content-secondary transition-colors hover:bg-surface-hover"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={createProject.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             프로젝트 생성

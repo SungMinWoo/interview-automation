@@ -40,30 +40,30 @@ export function DataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className={`overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead className="bg-gray-50 dark:bg-gray-800/50">
+    <div className={`overflow-x-auto border border-line ${className}`}>
+      <table className="min-w-full divide-y divide-line">
+        <thead className="bg-surface-hover">
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-content-tertiary"
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+        <tbody className="divide-y divide-line bg-surface-secondary">
           {data.map((row, index) => (
             <tr
               key={keyExtractor(row, index)}
-              className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+              className="transition-colors hover:bg-surface-hover"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300"
+                  className="whitespace-nowrap px-4 py-3 text-sm text-content-secondary"
                 >
                   {col.render
                     ? col.render(row, index)

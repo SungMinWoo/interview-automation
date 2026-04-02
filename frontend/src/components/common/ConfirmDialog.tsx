@@ -19,20 +19,20 @@ interface ConfirmDialogProps {
 const variantConfig = {
   danger: {
     icon: AlertCircle,
-    iconBg: 'bg-red-100 dark:bg-red-500/10',
-    iconColor: 'text-red-600 dark:text-red-400',
+    iconBg: 'bg-red-100',
+    iconColor: 'text-danger',
     buttonVariant: 'danger' as const,
   },
   warning: {
     icon: AlertTriangle,
-    iconBg: 'bg-yellow-100 dark:bg-yellow-500/10',
-    iconColor: 'text-yellow-600 dark:text-yellow-400',
+    iconBg: 'bg-yellow-100',
+    iconColor: 'text-yellow-600',
     buttonVariant: 'primary' as const,
   },
   info: {
     icon: Info,
-    iconBg: 'bg-blue-100 dark:bg-blue-500/10',
-    iconColor: 'text-blue-600 dark:text-blue-400',
+    iconBg: 'bg-surface-hover',
+    iconColor: 'text-accent',
     buttonVariant: 'primary' as const,
   },
 };
@@ -77,8 +77,8 @@ export function ConfirmDialog({
           <Icon className={`h-5 w-5 ${config.iconColor}`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{message}</p>
+          <h3 className="text-base font-semibold text-content-primary">{title}</h3>
+          <p className="mt-1 text-sm text-content-secondary">{message}</p>
         </div>
       </div>
 

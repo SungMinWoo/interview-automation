@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 function QuestionInput({ question, value, onChange }: { question: Question; value: string | string[] | number | undefined; onChange: (v: string | string[] | number) => void }) {
   const qType = question.question_type || question.type || 'textarea';
-  const inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500';
+  const inputClass = 'w-full border border-line bg-surface-secondary px-4 py-2.5 text-sm text-content-primary placeholder-content-tertiary focus:border-line-focus focus:outline-none focus:ring-2 focus:ring-line-focus/20';
   const options = Array.isArray(question.options) ? question.options : [];
 
   if (qType === 'text') {
@@ -28,9 +28,9 @@ function QuestionInput({ question, value, onChange }: { question: Question; valu
         {options.map((opt, i) => {
           const optText = typeof opt === 'string' ? opt : opt.text;
           return (
-            <label key={i} className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
-              <input type="radio" name={`q-${question.id}`} value={optText} checked={value === optText} onChange={() => onChange(optText)} className="text-indigo-600" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{optText}</span>
+            <label key={i} className="flex cursor-pointer items-center gap-2.5 border border-line p-3 transition-colors hover:bg-surface-hover">
+              <input type="radio" name={`q-${question.id}`} value={optText} checked={value === optText} onChange={() => onChange(optText)} className="text-accent" />
+              <span className="text-sm text-content-secondary">{optText}</span>
             </label>
           );
         })}
@@ -46,9 +46,9 @@ function QuestionInput({ question, value, onChange }: { question: Question; valu
           const optText = typeof opt === 'string' ? opt : opt.text;
           const isChecked = selected.includes(optText);
           return (
-            <label key={i} className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5">
-              <input type="checkbox" checked={isChecked} onChange={() => onChange(isChecked ? selected.filter((s) => s !== optText) : [...selected, optText])} className="rounded border-gray-300 text-indigo-600 dark:border-gray-600" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{optText}</span>
+            <label key={i} className="flex cursor-pointer items-center gap-2.5 border border-line p-3 transition-colors hover:bg-surface-hover">
+              <input type="checkbox" checked={isChecked} onChange={() => onChange(isChecked ? selected.filter((s) => s !== optText) : [...selected, optText])} className="border-line text-accent" />
+              <span className="text-sm text-content-secondary">{optText}</span>
             </label>
           );
         })}
@@ -60,7 +60,7 @@ function QuestionInput({ question, value, onChange }: { question: Question; valu
     return (
       <div className="flex items-center gap-2">
         {[1, 2, 3, 4, 5].map((v) => (
-          <button key={v} type="button" onClick={() => onChange(v)} className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition-colors ${value === v ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300'}`}>
+          <button key={v} type="button" onClick={() => onChange(v)} className={`flex h-10 w-10 items-center justify-center border text-sm font-medium transition-colors ${value === v ? 'border-accent bg-accent text-accent-text' : 'border-line text-content-secondary hover:bg-surface-hover'}`}>
             {v}
           </button>
         ))}
@@ -142,25 +142,25 @@ export default function ManualEntryPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link to={`/projects/${projectId}/responses`} className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10">
+        <Link to={`/projects/${projectId}/responses`} className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">수동 입력</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{project?.title}</p>
+          <h1 className="text-2xl font-bold text-content-primary">수동 입력</h1>
+          <p className="text-sm text-content-tertiary">{project?.title}</p>
         </div>
       </div>
 
       {/* Employee Info */}
       {employee && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#1a1a2e]">
+        <div className="border border-line bg-surface-secondary p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-hover text-sm font-medium text-accent">
               {employee.name.charAt(0)}
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{employee.name}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm font-medium text-content-primary">{employee.name}</p>
+              <p className="text-xs text-content-tertiary">
                 {[employee.department, employee.position].filter(Boolean).join(' / ') || employee.email}
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function ManualEntryPage() {
 
       {/* Questions */}
       {questLoading ? (
-        <div className="flex h-40 items-center justify-center text-gray-400">
+        <div className="flex h-40 items-center justify-center text-content-tertiary">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           로딩 중...
         </div>
@@ -181,19 +181,19 @@ export default function ManualEntryPage() {
             const importance = q.importance ?? 3;
             const isRequired = q.is_required ?? q.isRequired ?? false;
             return (
-              <div key={q.id} className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-[#1a1a2e]">
+              <div key={q.id} className="border border-line bg-surface-secondary p-5">
                 <div className="mb-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Q{index + 1}.</span>
+                    <span className="text-sm font-semibold text-accent">Q{index + 1}.</span>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{q.text}</p>
-                      {q.description && <p className="mt-1 text-xs text-gray-400">{q.description}</p>}
+                      <p className="text-sm font-medium text-content-primary">{q.text}</p>
+                      {q.description && <p className="mt-1 text-xs text-content-tertiary">{q.description}</p>}
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="text-xs text-gray-400">{QUESTION_TYPE_LABELS[qType] || qType}</span>
-                        <span className={`rounded-md px-1.5 py-0.5 text-[10px] ${IMPORTANCE_COLORS[importance] || ''}`}>
+                        <span className="text-xs text-content-tertiary">{QUESTION_TYPE_LABELS[qType] || qType}</span>
+                        <span className={`px-1.5 py-0.5 text-[10px] ${IMPORTANCE_COLORS[importance] || ''}`}>
                           {IMPORTANCE_LABELS[importance] || ''}
                         </span>
-                        {isRequired && <span className="text-xs text-red-500">필수</span>}
+                        {isRequired && <span className="text-xs text-danger">필수</span>}
                       </div>
                     </div>
                   </div>
@@ -207,13 +207,13 @@ export default function ManualEntryPage() {
 
       {/* Submit */}
       <div className="flex justify-end gap-3 pb-8">
-        <Link to={`/projects/${projectId}/responses`} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5">
+        <Link to={`/projects/${projectId}/responses`} className="border border-line px-5 py-2.5 text-sm font-medium text-content-secondary hover:bg-surface-hover">
           취소
         </Link>
         <button
           onClick={handleSubmit}
           disabled={submitManualEntry.isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {submitManualEntry.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           제출

@@ -14,12 +14,12 @@ export function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpi
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
       <div
-        className={`animate-spin rounded-full border-gray-300 border-t-indigo-600 dark:border-gray-600 dark:border-t-indigo-400 ${sizeStyles[size]}`}
+        className={`animate-spin rounded-full border-line border-t-accent ${sizeStyles[size]}`}
         role="status"
         aria-label="로딩 중"
       />
       {text && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{text}</p>
+        <p className="text-sm text-content-tertiary">{text}</p>
       )}
     </div>
   );

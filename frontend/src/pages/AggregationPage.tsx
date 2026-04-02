@@ -146,18 +146,18 @@ export default function AggregationPage() {
         <div className="flex items-center gap-3">
           <Link
             to={`/projects/${projectId}`}
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI 취합</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{project?.title}</p>
+            <h1 className="text-2xl font-bold text-content-primary">AI 취합</h1>
+            <p className="text-sm text-content-tertiary">{project?.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {aggregation?.ai_provider && (
-            <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+            <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-medium text-accent">
               {AI_PROVIDER_LABELS[aggregation.ai_provider as AiProvider] || aggregation.ai_provider}
             </span>
           )}
@@ -167,7 +167,7 @@ export default function AggregationPage() {
               <button
                 onClick={handleRegenerate}
                 disabled={regenerateAggregation.isPending}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5 disabled:opacity-50"
+                className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
               >
                 {regenerateAggregation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -183,12 +183,12 @@ export default function AggregationPage() {
 
       {/* Trigger */}
       {(!aggregation || aggregation.status === 'pending' || aggregation.status === 'failed') && !isProcessing && (
-        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-16 dark:border-gray-700">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50 dark:bg-cyan-900/20">
-            <Play className="h-8 w-8 text-cyan-600 dark:text-cyan-400" />
+        <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
+            <Play className="h-8 w-8 text-accent" />
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">AI 취합 시작</h3>
-          <p className="mb-6 max-w-md text-center text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="mb-2 text-lg font-semibold text-content-primary">AI 취합 시작</h3>
+          <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
             수집된 응답을 AI가 분석하여 키워드, 핵심 문장, 인사이트를 추출합니다.
           </p>
           <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export default function AggregationPage() {
             <button
               onClick={handleTrigger}
               disabled={triggerAggregation.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
             >
               {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               AI 취합 시작
@@ -207,17 +207,17 @@ export default function AggregationPage() {
 
       {/* Processing */}
       {isProcessing && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 py-16 dark:border-cyan-800 dark:bg-cyan-900/10">
-          <Loader2 className="mb-4 h-12 w-12 animate-spin text-cyan-600 dark:text-cyan-400" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">취합 진행 중...</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-16">
+          <Loader2 className="mb-4 h-12 w-12 animate-spin text-accent" />
+          <h3 className="mb-2 text-lg font-semibold text-content-primary">취합 진행 중...</h3>
+          <p className="text-sm text-content-tertiary">
             {statusData?.message ?? 'AI가 응답을 분석하고 있습니다.'}
           </p>
           {statusData?.progress != null && (
             <div className="mt-4 w-64">
-              <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-2 rounded-full bg-surface-hover">
                 <div
-                  className="h-2 rounded-full bg-cyan-600 transition-all"
+                  className="h-2 rounded-full bg-accent transition-all"
                   style={{ width: `${statusData.progress}%` }}
                 />
               </div>
@@ -231,37 +231,37 @@ export default function AggregationPage() {
         <div className="space-y-6">
           {/* Summary */}
           {aggregation.summary && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-              <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-white">종합 요약</h3>
-              <p className="whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{aggregation.summary}</p>
+            <div className="border border-line bg-surface-secondary p-6">
+              <h3 className="mb-3 text-base font-semibold text-content-primary">종합 요약</h3>
+              <p className="whitespace-pre-wrap text-sm text-content-secondary">{aggregation.summary}</p>
             </div>
           )}
 
           {/* Company Direction & Values */}
           {(aggregation.company_direction || aggregation.company_values?.length > 0 || aggregation.desired_changes?.length > 0) && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+            <div className="border border-line bg-surface-secondary p-6">
               {aggregation.company_direction && (
                 <div className="mb-4">
-                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">회사 방향성</h4>
-                  <p className="whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{aggregation.company_direction}</p>
+                  <h4 className="mb-1 text-sm font-semibold text-content-primary">회사 방향성</h4>
+                  <p className="whitespace-pre-wrap text-sm text-content-secondary">{aggregation.company_direction}</p>
                 </div>
               )}
               {aggregation.company_values?.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">추구하는 가치</h4>
+                  <h4 className="mb-1 text-sm font-semibold text-content-primary">추구하는 가치</h4>
                   <div className="flex flex-wrap gap-2">
                     {aggregation.company_values.map((v, i) => (
-                      <span key={i} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400">{v}</span>
+                      <span key={i} className="rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-accent">{v}</span>
                     ))}
                   </div>
                 </div>
               )}
               {aggregation.desired_changes?.length > 0 && (
                 <div>
-                  <h4 className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">변화하고 싶은 것들</h4>
+                  <h4 className="mb-1 text-sm font-semibold text-content-primary">변화하고 싶은 것들</h4>
                   <ul className="space-y-1">
                     {aggregation.desired_changes.map((c, i) => (
-                      <li key={i} className="text-sm text-gray-600 dark:text-gray-300">- {c}</li>
+                      <li key={i} className="text-sm text-content-secondary">- {c}</li>
                     ))}
                   </ul>
                 </div>
@@ -270,13 +270,13 @@ export default function AggregationPage() {
           )}
 
           {/* Keywords */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+          <div className="border border-line bg-surface-secondary p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">키워드</h3>
+              <h3 className="text-base font-semibold text-content-primary">키워드</h3>
               <button
                 onClick={handleGenerateKeywords}
                 disabled={generateKeywords.isPending}
-                className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-xs text-accent hover:text-accent disabled:opacity-50"
               >
                 {generateKeywords.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -291,7 +291,7 @@ export default function AggregationPage() {
               {(keywords ?? aggregation.keywords ?? []).map((kw) => (
                 <span
                   key={kw.id}
-                  className="group inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                  className="group inline-flex items-center gap-1 rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-content-secondary"
                 >
                   {kw.text}
                   {kw.category && (
@@ -316,13 +316,13 @@ export default function AggregationPage() {
                 value={newKeyword}
                 onChange={(e) => setNewKeyword(e.target.value)}
                 placeholder="새 키워드..."
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
               />
               <button
                 onClick={handleAddKeyword}
                 disabled={createKeyword.isPending || !newKeyword.trim()}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -330,26 +330,26 @@ export default function AggregationPage() {
           </div>
 
           {/* Sentences */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-            <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">핵심 문장</h3>
+          <div className="border border-line bg-surface-secondary p-6">
+            <h3 className="mb-4 text-base font-semibold text-content-primary">핵심 문장</h3>
 
             <div className="mb-4 space-y-2">
               {(sentences ?? aggregation.sentences ?? []).map((s) => (
                 <div
                   key={s.id}
-                  className="group flex items-start justify-between rounded-lg border border-gray-100 p-3 dark:border-gray-700/50"
+                  className="group flex items-start justify-between border border-line p-3"
                 >
                   <div className="flex-1">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{s.text}</p>
+                    <p className="text-sm text-content-secondary">{s.text}</p>
                     {s.category && (
-                      <span className="mt-1 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      <span className="mt-1 inline-block bg-surface-hover px-2 py-0.5 text-xs text-content-tertiary">
                         {s.category}
                       </span>
                     )}
                   </div>
                   <button
                     onClick={() => handleDeleteSentence(s.id)}
-                    className="ml-2 hidden flex-shrink-0 text-red-400 hover:text-red-500 group-hover:block"
+                    className="ml-2 hidden flex-shrink-0 text-danger hover:text-danger group-hover:block"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -363,13 +363,13 @@ export default function AggregationPage() {
                 value={newSentence}
                 onChange={(e) => setNewSentence(e.target.value)}
                 placeholder="새 핵심 문장..."
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSentence()}
               />
               <button
                 onClick={handleAddSentence}
                 disabled={createSentence.isPending || !newSentence.trim()}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />
               </button>

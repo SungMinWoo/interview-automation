@@ -3,7 +3,72 @@
 @tailwind utilities;
 
 @layer base {
+  /* ========== DARK (default) ========== */
+  :root {
+    --bg-primary: #161616;
+    --bg-secondary: #242424;
+    --bg-glass: rgba(15, 15, 15, .7);
+    --bg-hover: rgba(255, 255, 255, .08);
+    --bg-active: rgba(255, 255, 255, .2);
+    --bg-input: rgba(255, 255, 255, .08);
+
+    --text-primary: #fff;
+    --text-secondary: rgba(255, 255, 255, .7);
+    --text-tertiary: rgba(255, 255, 255, .5);
+    --text-muted: rgba(255, 255, 255, .4);
+    --text-disabled: rgba(255, 255, 255, .3);
+
+    --border-default: rgba(255, 255, 255, .08);
+    --border-hover: rgba(255, 255, 255, .2);
+    --border-focus: rgba(255, 255, 255, .4);
+
+    --accent-bg: #fff;
+    --accent-text: #000;
+    --accent-hover: rgba(255, 255, 255, .7);
+
+    --danger: #ff463c;
+    --danger-bg: rgba(255, 70, 60, .15);
+    --success: #32d25a;
+    --success-bg: rgba(50, 210, 90, .15);
+    --warning-color: #ffb400;
+    --warning-bg: rgba(255, 180, 0, .15);
+  }
+
+  /* ========== LIGHT ========== */
+  .light {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #fff;
+    --bg-glass: rgba(255, 255, 255, .7);
+    --bg-hover: rgba(0, 0, 0, .05);
+    --bg-active: rgba(0, 0, 0, .1);
+    --bg-input: #fff;
+
+    --text-primary: #161616;
+    --text-secondary: rgba(0, 0, 0, .6);
+    --text-tertiary: rgba(0, 0, 0, .4);
+    --text-muted: rgba(0, 0, 0, .35);
+    --text-disabled: rgba(0, 0, 0, .2);
+
+    --border-default: rgba(0, 0, 0, .08);
+    --border-hover: rgba(0, 0, 0, .15);
+    --border-focus: rgba(0, 0, 0, .4);
+
+    --accent-bg: #161616;
+    --accent-text: #fff;
+    --accent-hover: #242424;
+
+    --danger: #e8362d;
+    --danger-bg: rgba(232, 54, 45, .06);
+    --success: #22a847;
+    --success-bg: rgba(34, 168, 71, .06);
+    --warning-color: #c08800;
+    --warning-bg: rgba(192, 136, 0, .06);
+  }
+
   body {
     @apply antialiased;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background 150ms, color 150ms;
   }
 }

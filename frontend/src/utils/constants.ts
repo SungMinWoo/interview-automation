@@ -23,18 +23,18 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 };
 
 export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
-  created: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  analyzing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  analysis_ready: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  analysis_confirmed: 'bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  questionnaire_ready: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  distributing: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  collecting: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  closed: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300',
-  aggregating: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
-  aggregation_ready: 'bg-cyan-200 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300',
-  brief_ready: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  created: 'bg-surface-hover text-content-secondary',
+  analyzing: 'bg-surface-hover text-content-primary',
+  analysis_ready: 'bg-surface-hover text-content-primary',
+  analysis_confirmed: 'bg-success-bg text-success',
+  questionnaire_ready: 'bg-surface-hover text-content-primary',
+  distributing: 'bg-warning-bg text-warning',
+  collecting: 'bg-warning-bg text-warning',
+  closed: 'bg-surface-hover text-content-secondary',
+  aggregating: 'bg-surface-hover text-content-primary',
+  aggregation_ready: 'bg-surface-hover text-content-primary',
+  brief_ready: 'bg-surface-hover text-content-primary',
+  completed: 'bg-success-bg text-success',
 };
 
 export const ANALYSIS_STATUS_LABELS: Record<AnalysisStatus, string> = {
@@ -55,12 +55,12 @@ export const INVITATION_STATUS_LABELS: Record<InvitationStatus, string> = {
 };
 
 export const INVITATION_STATUS_COLORS: Record<InvitationStatus, string> = {
-  pending: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  sent: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  opened: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  failed: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  expired: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+  pending: 'bg-surface-hover text-content-secondary',
+  sent: 'bg-surface-hover text-content-primary',
+  opened: 'bg-warning-bg text-warning',
+  completed: 'bg-success-bg text-success',
+  failed: 'bg-danger-bg text-danger',
+  expired: 'bg-surface-hover text-content-tertiary',
 };
 
 export const RESPONSE_STATUS_LABELS: Record<ResponseStatus, string> = {
@@ -70,9 +70,9 @@ export const RESPONSE_STATUS_LABELS: Record<ResponseStatus, string> = {
 };
 
 export const RESPONSE_STATUS_COLORS: Record<ResponseStatus, string> = {
-  in_progress: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  abandoned: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  in_progress: 'bg-warning-bg text-warning',
+  completed: 'bg-success-bg text-success',
+  abandoned: 'bg-danger-bg text-danger',
 };
 
 export const AGGREGATION_STATUS_LABELS: Record<AggregationStatus, string> = {
@@ -103,9 +103,9 @@ export const SENTIMENT_LABELS: Record<string, string> = {
 };
 
 export const SENTIMENT_COLORS: Record<string, string> = {
-  positive: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  negative: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  neutral: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  positive: 'bg-success-bg text-success',
+  negative: 'bg-danger-bg text-danger',
+  neutral: 'bg-surface-hover text-content-secondary',
 };
 
 // --- AI Provider ---
@@ -142,11 +142,11 @@ export const IMPORTANCE_LABELS: Record<number, string> = {
 };
 
 export const IMPORTANCE_COLORS: Record<number, string> = {
-  1: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  2: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
-  3: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
-  4: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
-  5: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
+  1: 'bg-surface-hover text-content-tertiary',
+  2: 'bg-surface-hover text-content-secondary',
+  3: 'bg-warning-bg text-warning',
+  4: 'bg-warning-bg text-warning',
+  5: 'bg-danger-bg text-danger',
 };
 
 // --- Project Phase Steps ---

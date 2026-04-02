@@ -139,48 +139,48 @@ export default function SurveyPage() {
     }
   };
 
-  const inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500';
+  const inputClass = 'w-full border border-line bg-surface-secondary px-4 py-2.5 text-sm text-content-primary placeholder-content-tertiary focus:border-line-focus focus:outline-none focus:ring-2 focus:ring-line-focus/20';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f23]">
+    <div className="min-h-screen bg-surface-primary">
       <div className="mx-auto max-w-2xl px-4 py-8">
         {step === 'loading' && (
           <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
           </div>
         )}
 
         {step === 'error' && (
           <div className="flex h-64 flex-col items-center justify-center text-center">
-            <AlertCircle className="mb-4 h-12 w-12 text-red-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">오류가 발생했습니다</h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{error}</p>
+            <AlertCircle className="mb-4 h-12 w-12 text-danger" />
+            <h2 className="text-xl font-bold text-content-primary">오류가 발생했습니다</h2>
+            <p className="mt-2 text-sm text-content-tertiary">{error}</p>
           </div>
         )}
 
         {step === 'expired' && (
           <div className="flex h-64 flex-col items-center justify-center text-center">
-            <Clock className="mb-4 h-12 w-12 text-orange-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">설문이 만료되었습니다</h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">관리자에게 문의해주세요.</p>
+            <Clock className="mb-4 h-12 w-12 text-warning" />
+            <h2 className="text-xl font-bold text-content-primary">설문이 만료되었습니다</h2>
+            <p className="mt-2 text-sm text-content-tertiary">관리자에게 문의해주세요.</p>
           </div>
         )}
 
         {step === 'password' && surveyInfo && (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-[#1a1a2e]">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 dark:bg-indigo-900/30">
-                <Send className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+            <div className="border border-line bg-surface-secondary p-8 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center bg-surface-hover">
+                <Send className="h-7 w-7 text-accent" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{surveyInfo.project_title}</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              <h1 className="text-xl font-bold text-content-primary">{surveyInfo.project_title}</h1>
+              <p className="mt-1 text-sm text-content-secondary">
                 안녕하세요, <span className="font-medium">{surveyInfo.employee_name}</span>님
               </p>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-700 dark:bg-[#1a1a2e]">
-              <h2 className="mb-4 text-center text-base font-semibold text-gray-900 dark:text-white">비밀번호 인증</h2>
-              <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">전화번호 뒷 4자리를 입력해주세요.</p>
+            <div className="border border-line bg-surface-secondary p-8">
+              <h2 className="mb-4 text-center text-base font-semibold text-content-primary">비밀번호 인증</h2>
+              <p className="mb-6 text-center text-sm text-content-tertiary">전화번호 뒷 4자리를 입력해주세요.</p>
               <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
                 <input
                   type="text"
@@ -191,9 +191,9 @@ export default function SurveyPage() {
                   {...passwordForm.register('password')}
                 />
                 {passwordForm.formState.errors.password && (
-                  <p className="text-center text-xs text-red-500">{passwordForm.formState.errors.password.message}</p>
+                  <p className="text-center text-xs text-danger">{passwordForm.formState.errors.password.message}</p>
                 )}
-                <button type="submit" className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700">
+                <button type="submit" className="w-full bg-accent py-2.5 text-sm font-medium text-accent-text transition-colors hover:bg-accent-hover">
                   확인
                 </button>
               </form>
@@ -203,22 +203,22 @@ export default function SurveyPage() {
 
         {(step === 'questions' || step === 'submitting') && (
           <div className="space-y-5">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{surveyInfo?.project_title}</h1>
-              <p className="mt-3 text-xs text-gray-400">총 {questions.length}개 질문 &middot; 응답은 자동 저장됩니다</p>
+            <div className="border border-line bg-surface-secondary p-6">
+              <h1 className="text-xl font-bold text-content-primary">{surveyInfo?.project_title}</h1>
+              <p className="mt-3 text-xs text-content-tertiary">총 {questions.length}개 질문 &middot; 응답은 자동 저장됩니다</p>
             </div>
 
-            {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>}
+            {error && <div className="bg-danger-bg p-3 text-sm text-danger">{error}</div>}
 
             {questions.map((q, index) => (
-              <div key={q.id} className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+              <div key={q.id} className="border border-line bg-surface-secondary p-6">
                 <div className="mb-4">
                   <div className="flex items-start gap-2">
-                    <span className="flex-shrink-0 text-sm font-semibold text-indigo-600 dark:text-indigo-400">{index + 1}.</span>
+                    <span className="flex-shrink-0 text-sm font-semibold text-accent">{index + 1}.</span>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{q.text}</p>
-                      {q.description && <p className="mt-1 text-xs text-gray-400">{q.description}</p>}
-                      {q.is_required && <span className="mt-1 inline-block text-xs text-red-500">* 필수</span>}
+                      <p className="text-sm font-medium text-content-primary">{q.text}</p>
+                      {q.description && <p className="mt-1 text-xs text-content-tertiary">{q.description}</p>}
+                      {q.is_required && <span className="mt-1 inline-block text-xs text-danger">* 필수</span>}
                     </div>
                   </div>
                 </div>
@@ -236,9 +236,9 @@ export default function SurveyPage() {
                 {q.question_type === 'single_choice' && (
                   <div className="space-y-2">
                     {q.options.map((opt, i) => (
-                      <label key={i} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition-colors ${answers[q.id] === opt ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-600 dark:bg-indigo-900/20' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5'}`}>
-                        <input type="radio" name={`survey-q-${q.id}`} value={opt} checked={answers[q.id] === opt} onChange={() => updateAnswer(q.id, opt)} className="text-indigo-600" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                      <label key={i} className={`flex cursor-pointer items-center gap-3 border p-3.5 transition-colors ${answers[q.id] === opt ? 'border-line-hover bg-surface-hover' : 'border-line hover:bg-surface-hover'}`}>
+                        <input type="radio" name={`survey-q-${q.id}`} value={opt} checked={answers[q.id] === opt} onChange={() => updateAnswer(q.id, opt)} className="text-accent" />
+                        <span className="text-sm text-content-secondary">{opt}</span>
                       </label>
                     ))}
                   </div>
@@ -250,9 +250,9 @@ export default function SurveyPage() {
                       const selected = (answers[q.id] as string[]) ?? [];
                       const isChecked = selected.includes(opt);
                       return (
-                        <label key={i} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition-colors ${isChecked ? 'border-indigo-300 bg-indigo-50 dark:border-indigo-600 dark:bg-indigo-900/20' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5'}`}>
-                          <input type="checkbox" checked={isChecked} onChange={() => updateAnswer(q.id, isChecked ? selected.filter((s) => s !== opt) : [...selected, opt])} className="rounded border-gray-300 text-indigo-600 dark:border-gray-600" />
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{opt}</span>
+                        <label key={i} className={`flex cursor-pointer items-center gap-3 border p-3.5 transition-colors ${isChecked ? 'border-line-hover bg-surface-hover' : 'border-line hover:bg-surface-hover'}`}>
+                          <input type="checkbox" checked={isChecked} onChange={() => updateAnswer(q.id, isChecked ? selected.filter((s) => s !== opt) : [...selected, opt])} className="border-line text-accent" />
+                          <span className="text-sm text-content-secondary">{opt}</span>
                         </label>
                       );
                     })}
@@ -262,7 +262,7 @@ export default function SurveyPage() {
                 {q.question_type === 'rating' && (
                   <div className="flex items-center justify-center gap-3">
                     {[1, 2, 3, 4, 5].map((v) => (
-                      <button key={v} type="button" onClick={() => updateAnswer(q.id, v)} className={`flex h-12 w-12 items-center justify-center rounded-xl border text-base font-medium transition-all ${answers[q.id] === v ? 'border-indigo-600 bg-indigo-600 text-white shadow-md' : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300'}`}>
+                      <button key={v} type="button" onClick={() => updateAnswer(q.id, v)} className={`flex h-12 w-12 items-center justify-center border text-base font-medium transition-all ${answers[q.id] === v ? 'border-accent bg-accent text-accent-text' : 'border-line text-content-secondary hover:bg-surface-hover'}`}>
                         {v}
                       </button>
                     ))}
@@ -276,19 +276,19 @@ export default function SurveyPage() {
             ))}
 
             <div className="pb-8">
-              <button onClick={() => setShowConfirm(true)} disabled={step === 'submitting'} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-50">
+              <button onClick={() => setShowConfirm(true)} disabled={step === 'submitting'} className="w-full bg-accent py-3 text-sm font-medium text-accent-text transition-colors hover:bg-accent-hover disabled:opacity-50">
                 {step === 'submitting' ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />제출 중...</span> : '제출'}
               </button>
             </div>
 
             {showConfirm && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div className="w-full max-w-sm rounded-2xl bg-white p-6 dark:bg-[#1a1a2e]">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">응답 제출</h3>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">제출하시겠습니까? 모든 질문에 답하지 않아도 됩니다.</p>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
+                <div className="w-full max-w-sm bg-surface-secondary p-6">
+                  <h3 className="text-lg font-semibold text-content-primary">응답 제출</h3>
+                  <p className="mt-2 text-sm text-content-tertiary">제출하시겠습니까? 모든 질문에 답하지 않아도 됩니다.</p>
                   <div className="mt-5 flex justify-end gap-3">
-                    <button onClick={() => setShowConfirm(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300">취소</button>
-                    <button onClick={() => { setShowConfirm(false); handleSubmit(); }} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">제출</button>
+                    <button onClick={() => setShowConfirm(false)} className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover">취소</button>
+                    <button onClick={() => { setShowConfirm(false); handleSubmit(); }} className="bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover">제출</button>
                   </div>
                 </div>
               </div>
@@ -298,11 +298,11 @@ export default function SurveyPage() {
 
         {step === 'done' && (
           <div className="flex h-64 flex-col items-center justify-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-bg">
+              <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">감사합니다!</h2>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">응답이 성공적으로 제출되었습니다.</p>
+            <h2 className="text-xl font-bold text-content-primary">감사합니다!</h2>
+            <p className="mt-2 text-sm text-content-tertiary">응답이 성공적으로 제출되었습니다.</p>
           </div>
         )}
       </div>

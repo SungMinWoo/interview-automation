@@ -17,21 +17,20 @@ export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {
     <aside
       className={`
         fixed left-0 top-0 z-30 flex h-screen flex-col
-        border-r border-gray-200 bg-white
+        border-r border-line bg-surface-secondary
         transition-all duration-300 ease-in-out
-        dark:border-gray-700 dark:bg-[#1a1a2e]
         ${collapsed ? 'w-16' : 'w-64'}
         ${className}
       `}
     >
       {/* Brand */}
-      <div className="flex h-16 items-center border-b border-gray-200 px-4 dark:border-gray-700">
+      <div className="flex h-16 items-center border-b border-line px-4">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center bg-accent text-sm font-bold text-accent-text">
             IS
           </div>
           {!collapsed && (
-            <span className="whitespace-nowrap text-lg font-semibold text-gray-900 dark:text-white">
+            <span className="whitespace-nowrap text-lg font-semibold text-content-primary">
               Interview Site
             </span>
           )}
@@ -45,11 +44,11 @@ export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
+              `flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors
               ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-content-secondary hover:bg-surface-hover hover:text-content-primary'
               }
               ${collapsed ? 'justify-center' : ''}
               `
@@ -63,10 +62,10 @@ export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {
       </nav>
 
       {/* Collapse Toggle */}
-      <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+      <div className="border-t border-line p-3">
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-center rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+          className="flex w-full items-center justify-center p-2 text-content-tertiary transition-colors hover:bg-surface-hover hover:text-content-secondary"
           aria-label={collapsed ? '사이드바 열기' : '사이드바 접기'}
         >
           {collapsed ? (

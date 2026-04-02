@@ -116,7 +116,7 @@ export default function ProjectDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center text-gray-400">
+      <div className="flex h-64 items-center justify-center text-content-tertiary">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
         로딩 중...
       </div>
@@ -125,9 +125,9 @@ export default function ProjectDetailPage() {
 
   if (error || !project) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center text-gray-400">
+      <div className="flex h-64 flex-col items-center justify-center text-content-tertiary">
         <p>프로젝트를 찾을 수 없습니다.</p>
-        <Link to="/projects" className="mt-2 text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+        <Link to="/projects" className="mt-2 text-sm text-accent hover:text-accent">
           프로젝트 목록으로
         </Link>
       </div>
@@ -143,13 +143,13 @@ export default function ProjectDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/projects')}
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{project.title}</h1>
+              <h1 className="text-2xl font-bold text-content-primary">{project.title}</h1>
               <span
                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   PROJECT_STATUS_COLORS[project.status]
@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
                 {PROJECT_STATUS_LABELS[project.status]}
               </span>
             </div>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-content-tertiary">
               {project.client_name} &middot; {formatDate(project.created_at)}
             </p>
           </div>
@@ -166,7 +166,7 @@ export default function ProjectDetailPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+            className="p-2 text-danger transition-colors hover:bg-danger-bg hover:text-danger"
             title="프로젝트 삭제"
           >
             <Trash2 className="h-5 w-5" />
@@ -176,18 +176,18 @@ export default function ProjectDetailPage() {
 
       {/* Description */}
       {project.requirements_text && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-[#1a1a2e]">
-          <p className="text-sm text-gray-600 dark:text-gray-300">{project.requirements_text}</p>
+        <div className="border border-line bg-surface-secondary p-5">
+          <p className="text-sm text-content-secondary">{project.requirements_text}</p>
         </div>
       )}
 
       {/* Progress Stepper */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-        <h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">프로젝트 진행 현황</h2>
+      <div className="border border-line bg-surface-secondary p-6">
+        <h2 className="mb-6 text-lg font-semibold text-content-primary">프로젝트 진행 현황</h2>
 
         <div className="relative">
           {/* Connector line */}
-          <div className="absolute left-5 top-5 h-[calc(100%-2.5rem)] w-0.5 bg-gray-200 dark:bg-gray-700" />
+          <div className="absolute left-5 top-5 h-[calc(100%-2.5rem)] w-0.5 bg-line" />
 
           <div className="space-y-6">
             {PROJECT_PHASES.map((phase, index) => {
@@ -207,19 +207,19 @@ export default function ProjectDetailPage() {
 
               if (isNextAction) {
                 btnLabel = '진행하기';
-                btnClass = 'bg-indigo-600 text-white hover:bg-indigo-700';
+                btnClass = 'bg-accent text-accent-text hover:bg-accent-hover';
                 BtnIcon = Play;
               } else if (state === 'completed') {
                 btnLabel = '보기';
-                btnClass = 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700';
+                btnClass = 'bg-surface-hover text-content-secondary hover:bg-surface-hover';
                 BtnIcon = Eye;
               } else if (state === 'active') {
                 btnLabel = '진행하기';
-                btnClass = 'bg-indigo-600 text-white hover:bg-indigo-700';
+                btnClass = 'bg-accent text-accent-text hover:bg-accent-hover';
                 BtnIcon = Play;
               } else {
                 btnLabel = '대기';
-                btnClass = 'bg-gray-50 text-gray-400 cursor-default dark:bg-gray-800/50 dark:text-gray-500';
+                btnClass = 'bg-surface-primary text-content-tertiary cursor-default';
                 BtnIcon = Circle;
               }
 
@@ -228,16 +228,16 @@ export default function ProjectDetailPage() {
                   {/* Icon */}
                   <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center">
                     {state === 'completed' ? (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-bg">
+                        <CheckCircle2 className="h-5 w-5 text-success" />
                       </div>
                     ) : state === 'active' || isNextAction ? (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 ring-4 ring-indigo-50 dark:bg-indigo-900/30 dark:ring-indigo-900/10">
-                        <div className="h-3 w-3 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-hover ring-4">
+                        <div className="h-3 w-3 rounded-full bg-accent" />
                       </div>
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                        <Circle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-hover">
+                        <Circle className="h-4 w-4 text-content-tertiary" />
                       </div>
                     )}
                   </div>
@@ -249,15 +249,15 @@ export default function ProjectDetailPage() {
                         <p
                           className={`text-sm font-medium ${
                             state === 'active' || isNextAction
-                              ? 'text-indigo-600 dark:text-indigo-400'
+                              ? 'text-accent'
                               : state === 'completed'
-                                ? 'text-gray-900 dark:text-white'
-                                : 'text-gray-400 dark:text-gray-500'
+                                ? 'text-content-primary'
+                                : 'text-content-tertiary'
                           }`}
                         >
                           {index + 1}. {phase.label}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <p className="text-xs text-content-tertiary">
                           {state === 'completed'
                             ? '완료'
                             : state === 'active' || isNextAction
@@ -268,7 +268,7 @@ export default function ProjectDetailPage() {
                       {state !== 'upcoming' || isNextAction ? (
                         <Link
                           to={`/projects/${project.id}/${phase.path}`}
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${btnClass}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${btnClass}`}
                         >
                           <BtnIcon className="h-3.5 w-3.5" />
                           {btnLabel}
@@ -282,7 +282,7 @@ export default function ProjectDetailPage() {
                           보기
                         </Link>
                       ) : (
-                        <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${btnClass}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium ${btnClass}`}>
                           {btnLabel}
                         </span>
                       )}
@@ -297,21 +297,21 @@ export default function ProjectDetailPage() {
 
       {/* Reference Sites */}
       {project.reference_sites && project.reference_sites.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">레퍼런스 사이트</h2>
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">레퍼런스 사이트</h2>
           <div className="space-y-2">
             {project.reference_sites.map((site) => (
               <div
                 key={site.id}
-                className="flex items-center justify-between rounded-lg border border-gray-100 p-3 dark:border-gray-700/50"
+                className="flex items-center justify-between border border-line p-3"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{site.title}</p>
+                  <p className="text-sm font-medium text-content-primary">{site.title}</p>
                   <a
                     href={site.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+                    className="text-xs text-accent hover:underline"
                   >
                     {site.url}
                   </a>
@@ -324,23 +324,23 @@ export default function ProjectDetailPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-[#1a1a2e]">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">프로젝트 삭제</h3>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
+          <div className="w-full max-w-sm bg-surface-secondary p-6">
+            <h3 className="text-lg font-semibold text-content-primary">프로젝트 삭제</h3>
+            <p className="mt-2 text-sm text-content-tertiary">
               정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/5"
+                className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
               >
                 취소
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteProject.isPending}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-danger px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
               >
                 {deleteProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 삭제

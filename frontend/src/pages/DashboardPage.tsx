@@ -19,20 +19,20 @@ export default function DashboardPage() {
   const recentProjects = projects.slice(0, 5);
 
   const stats = [
-    { label: '전체 프로젝트', value: totalProjects, icon: FolderOpen, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { label: '진행 중', value: activeProjects, icon: BarChart3, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-    { label: '설문 진행', value: pendingSurveys, icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-    { label: '완료', value: completedProjects, icon: CheckCircle2, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+    { label: '전체 프로젝트', value: totalProjects, icon: FolderOpen, color: 'text-content-primary', bg: 'bg-surface-hover' },
+    { label: '진행 중', value: activeProjects, icon: BarChart3, color: 'text-warning', bg: 'bg-warning-bg' },
+    { label: '설문 진행', value: pendingSurveys, icon: Users, color: 'text-accent', bg: 'bg-surface-hover' },
+    { label: '완료', value: completedProjects, icon: CheckCircle2, color: 'text-success', bg: 'bg-success-bg' },
   ];
 
   return (
     <div className="space-y-8">
       {/* Welcome */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-content-primary">
           안녕하세요, {user?.username ?? '사용자'}님
         </h1>
-        <p className="mt-1 text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-content-tertiary">
           프로젝트 현황을 한눈에 확인하세요.
         </p>
       </div>
@@ -42,15 +42,15 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-[#1a1a2e]"
+            className="border border-line bg-surface-secondary p-5"
           >
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bg}`}>
+              <div className={`flex h-10 w-10 items-center justify-center ${stat.bg}`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-sm text-content-tertiary">{stat.label}</p>
+                <p className="text-2xl font-bold text-content-primary">
                   {isLoading ? '-' : stat.value}
                 </p>
               </div>
@@ -62,55 +62,55 @@ export default function DashboardPage() {
       {/* Quick Actions + Recent Projects */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Quick Actions */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">빠른 작업</h2>
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">빠른 작업</h2>
           <div className="space-y-3">
             <Link
               to="/projects/new"
-              className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5"
+              className="flex items-center gap-3 border border-line p-3 transition-colors hover:bg-surface-hover"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
-                <Plus className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex h-9 w-9 items-center justify-center bg-surface-hover">
+                <Plus className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">새 프로젝트</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">새로운 인터뷰 프로젝트 시작</p>
+                <p className="text-sm font-medium text-content-primary">새 프로젝트</p>
+                <p className="text-xs text-content-tertiary">새로운 인터뷰 프로젝트 시작</p>
               </div>
             </Link>
             <Link
               to="/projects"
-              className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/5"
+              className="flex items-center gap-3 border border-line p-3 transition-colors hover:bg-surface-hover"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <FolderOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-9 w-9 items-center justify-center bg-surface-hover">
+                <FolderOpen className="h-5 w-5 text-content-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">프로젝트 목록</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">전체 프로젝트 관리</p>
+                <p className="text-sm font-medium text-content-primary">프로젝트 목록</p>
+                <p className="text-xs text-content-tertiary">전체 프로젝트 관리</p>
               </div>
             </Link>
           </div>
         </div>
 
         {/* Recent Projects */}
-        <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-[#1a1a2e]">
+        <div className="lg:col-span-2 border border-line bg-surface-secondary p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">최근 프로젝트</h2>
+            <h2 className="text-lg font-semibold text-content-primary">최근 프로젝트</h2>
             <Link
               to="/projects"
-              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+              className="text-sm text-accent hover:text-accent"
             >
               전체 보기
             </Link>
           </div>
 
           {isLoading ? (
-            <div className="flex h-40 items-center justify-center text-gray-400">
+            <div className="flex h-40 items-center justify-center text-content-tertiary">
               <Clock className="mr-2 h-4 w-4 animate-spin" />
               로딩 중...
             </div>
           ) : recentProjects.length === 0 ? (
-            <div className="flex h-40 flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+            <div className="flex h-40 flex-col items-center justify-center text-content-tertiary">
               <FolderOpen className="mb-2 h-8 w-8" />
               <p className="text-sm">프로젝트가 없습니다</p>
             </div>
@@ -120,13 +120,13 @@ export default function DashboardPage() {
                 <Link
                   key={project.id}
                   to={`/projects/${project.id}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700/50 dark:hover:bg-white/5"
+                  className="flex items-center justify-between border border-line p-4 transition-colors hover:bg-surface-hover"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="truncate text-sm font-medium text-content-primary">
                       {project.title}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-content-tertiary">
                       {project.client_name}
                     </p>
                   </div>
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     >
                       {PROJECT_STATUS_LABELS[project.status]}
                     </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                    <span className="text-xs text-content-tertiary">
                       {formatRelativeTime(project.updated_at)}
                     </span>
                   </div>
