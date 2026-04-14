@@ -8,13 +8,29 @@ import {
   Play,
   Eye,
   ChevronRight,
+  Plus,
+  X,
+  Upload,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 import { useProject, useDeleteProject } from '@/hooks/useProjects';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_PHASES } from '@/utils/constants';
+import {
+  useDepartments,
+  useCreateDepartment,
+  useDeleteDepartment,
+  usePositions,
+  useCreatePosition,
+  useDeletePosition,
+} from '@/hooks/useProjectStructure';
+import { useProjectFiles, useUploadFile, useDeleteFile, useAnalyzeFile } from '@/hooks/useProjectFiles';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_PHASES, DEFAULT_AI_PROVIDER } from '@/utils/constants';
+import type { AiProvider } from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus } from '@/types/project';
+import AiProviderSelect from '@/components/common/AiProviderSelect';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 // Project status progression order
 const STATUS_ORDER: ProjectStatus[] = [
@@ -103,6 +119,75 @@ export default function ProjectDetailPage() {
   const deleteProject = useDeleteProject();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Department / Position hooks
+  const { data: departments = [] } = useDepartments(id);
+  const createDepartment = useCreateDepartment();
+  const deleteDepartment = useDeleteDepartment();
+  const { data: positions = [] } = usePositions(id);
+  const createPosition = useCreatePosition();
+  const deletePosition = useDeletePosition();
+
+  // File hooks
+  const { data: files = [] } = useProjectFiles(id);
+  const uploadFile = useUploadFile();
+  const deleteFile = useDeleteFile();
+  const analyzeFile = useAnalyzeFile();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newPosName, setNewPosName] = useState('');
+  const [isAddingDept, setIsAddingDept] = useState(false);
+  const [isAddingPos, setIsAddingPos] = useState(false);
+
+  const handleAddDepartment = async () => {
+    if (!id || !newDeptName.trim() || isAddingDept) return;
+    setIsAddingDept(true);
+    try {
+      await createDepartment.mutateAsync({ projectId: id, data: { name: newDeptName.trim() } });
+      setNewDeptName('');
+    } catch {
+      toast.error('부서 추가에 실패했습니다.');
+    } finally {
+      setIsAddingDept(false);
+    }
+  };
+
+  const handleRemoveDepartment = async (deptId: number) => {
+    if (!id) return;
+    try {
+      await deleteDepartment.mutateAsync({ projectId: id, deptId });
+    } catch {
+      toast.error('부서 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleAddPosition = async () => {
+    if (!id || !newPosName.trim() || isAddingPos) return;
+    setIsAddingPos(true);
+    try {
+      await createPosition.mutateAsync({
+        projectId: id,
+        data: { name: newPosName.trim(), weight: positions.length > 0 ? 1.0 : 2.0 },
+      });
+      setNewPosName('');
+    } catch {
+      toast.error('직급 추가에 실패했습니다.');
+    } finally {
+      setIsAddingPos(false);
+    }
+  };
+
+  const handleRemovePosition = async (posId: number) => {
+    if (!id) return;
+    try {
+      await deletePosition.mutateAsync({ projectId: id, posId });
+    } catch {
+      toast.error('직급 삭제에 실패했습니다.');
+    }
+  };
+
   const handleDelete = async () => {
     if (!id) return;
     try {
@@ -112,6 +197,52 @@ export default function ProjectDetailPage() {
     } catch {
       toast.error('프로젝트 삭제에 실패했습니다.');
     }
+  };
+
+  const ACCEPTED_FILE_TYPES = '.pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.gif,.bmp,.webp';
+
+  const handleFileUpload = async (fileList: FileList | null) => {
+    if (!id || !fileList) return;
+    for (const file of Array.from(fileList)) {
+      try {
+        await uploadFile.mutateAsync({ projectId: id, file });
+        toast.success(`${file.name} 업로드 완료`);
+      } catch {
+        toast.error(`${file.name} 업로드에 실패했습니다.`);
+      }
+    }
+  };
+
+  const handleDeleteFile = async (fileId: number) => {
+    if (!id) return;
+    try {
+      await deleteFile.mutateAsync({ projectId: id, fileId });
+      toast.success('파일이 삭제되었습니다.');
+    } catch {
+      toast.error('파일 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleAnalyzeFile = async (fileId: number) => {
+    if (!id) return;
+    try {
+      await analyzeFile.mutateAsync({ projectId: id, fileId, ai_provider: aiProvider });
+      toast.success('AI 분석이 완료되었습니다.');
+    } catch {
+      toast.error('AI 분석에 실패했습니다.');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileUpload(e.dataTransfer.files);
   };
 
   if (isLoading) {
@@ -180,6 +311,201 @@ export default function ProjectDetailPage() {
           <p className="text-sm text-content-secondary">{project.requirements_text}</p>
         </div>
       )}
+
+      {/* 요구사항 파일 */}
+      <div className="border border-line bg-surface-secondary p-6">
+        <h2 className="mb-4 text-lg font-semibold text-content-primary">요구사항 파일</h2>
+
+        {/* File list */}
+        {files.length > 0 && (
+          <div className="mb-4">
+            {files.map((f) => (
+              <div key={f.id} className="flex items-center justify-between border border-line p-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 flex-shrink-0 text-content-tertiary" />
+                    <span className="text-sm font-medium text-content-primary truncate">{f.original_name}</span>
+                    <span className="text-xs text-content-tertiary">{formatFileSize(f.file_size)}</span>
+                    <span className="text-xs text-content-muted">{f.file_type}</span>
+                  </div>
+
+                  {f.extracted_text && (
+                    <p className="mt-1 ml-6 text-xs text-content-secondary line-clamp-3">
+                      {f.extracted_text.slice(0, 200)}
+                      {f.extracted_text.length > 200 && '...'}
+                    </p>
+                  )}
+
+                  {f.ai_summary && (
+                    <div className="mt-2 ml-6 border-l-2 border-accent pl-3">
+                      <p className="text-xs font-medium text-accent">AI 요약</p>
+                      <p className="text-xs text-content-secondary">{f.ai_summary}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  {f.extracted_text && !f.ai_summary && (
+                    <div className="flex items-center gap-1">
+                      <AiProviderSelect
+                        value={aiProvider}
+                        onChange={setAiProvider}
+                        className="text-xs py-1 px-2"
+                      />
+                      <button
+                        onClick={() => handleAnalyzeFile(f.id)}
+                        disabled={analyzeFile.isPending}
+                        className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+                      >
+                        {analyzeFile.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        AI 분석
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleDeleteFile(f.id)}
+                    disabled={deleteFile.isPending}
+                    className="text-content-muted hover:text-danger"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload area */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed p-8 text-center cursor-pointer transition-colors ${
+            isDragging ? 'border-accent bg-surface-hover' : 'border-line hover:border-line-hover'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_FILE_TYPES}
+            onChange={(e) => handleFileUpload(e.target.files)}
+            className="hidden"
+          />
+          <Upload className="mx-auto h-8 w-8 text-content-tertiary" />
+          <p className="mt-2 text-sm text-content-secondary">
+            파일을 드래그하거나 클릭하여 업로드
+          </p>
+          <p className="mt-1 text-xs text-content-tertiary">
+            PDF, DOCX, TXT, 이미지 파일 지원
+          </p>
+          {uploadFile.isPending && (
+            <div className="mt-2 flex items-center justify-center gap-2 text-xs text-content-tertiary">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              업로드 중...
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 팀/직급 구조 */}
+      <div className="border border-line bg-surface-secondary p-6">
+        <h2 className="mb-4 text-lg font-semibold text-content-primary">팀/직급 구조</h2>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {/* 부서 */}
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-content-secondary">부서</h3>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {departments.map((dept) => (
+                <span
+                  key={dept.id}
+                  className="inline-flex items-center gap-1.5 bg-surface-hover px-3 py-1.5 text-sm text-content-primary"
+                >
+                  {dept.name}
+                  <button
+                    onClick={() => handleRemoveDepartment(dept.id)}
+                    className="text-content-muted hover:text-danger"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+              {departments.length === 0 && (
+                <span className="text-xs text-content-tertiary">등록된 부서가 없습니다.</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newDeptName}
+                onChange={(e) => setNewDeptName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddDepartment(); } }}
+                placeholder="부서명"
+                className="border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
+              />
+              <button
+                onClick={handleAddDepartment}
+                disabled={!newDeptName.trim() || isAddingDept}
+                className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+              >
+                {isAddingDept ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                추가
+              </button>
+            </div>
+          </div>
+
+          {/* 직급 */}
+          <div>
+            <h3 className="mb-1 text-sm font-medium text-content-secondary">직급</h3>
+            <p className="mb-3 text-xs text-content-muted">위에서부터 높은 직급순. 높은 직급의 응답이 취합 시 더 높은 가중치를 받습니다.</p>
+            <div className="mb-3 space-y-1">
+              {positions.map((pos, idx) => (
+                <div
+                  key={pos.id}
+                  className="flex items-center justify-between border border-line bg-surface-hover px-3 py-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-center text-xs font-semibold text-content-muted">{idx + 1}</span>
+                    <span className="text-sm text-content-primary">{pos.name}</span>
+                  </div>
+                  <button
+                    onClick={() => handleRemovePosition(pos.id)}
+                    className="text-content-muted hover:text-danger"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              {positions.length === 0 && (
+                <p className="py-4 text-center text-xs text-content-tertiary">등록된 직급이 없습니다.</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newPosName}
+                onChange={(e) => setNewPosName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPosition(); } }}
+                placeholder="직급명 (예: 임원, 팀장, 실무자)"
+                className="flex-1 border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
+              />
+              <button
+                onClick={handleAddPosition}
+                disabled={!newPosName.trim() || isAddingPos}
+                className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+              >
+                {isAddingPos ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                추가
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Progress Stepper */}
       <div className="border border-line bg-surface-secondary p-6">

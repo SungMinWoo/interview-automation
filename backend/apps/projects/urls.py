@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import ProjectViewSet, ReferenceSiteViewSet
+from .views import ProjectViewSet, ReferenceSiteViewSet, ProjectDepartmentViewSet, ProjectPositionViewSet, ProjectFileViewSet, FileAnalyzeView
 
 router = DefaultRouter()
 router.register(r'', ProjectViewSet, basename='project')
@@ -9,10 +9,36 @@ router.register(r'', ProjectViewSet, basename='project')
 reference_site_router = DefaultRouter()
 reference_site_router.register(r'', ReferenceSiteViewSet, basename='reference-site')
 
+department_router = DefaultRouter()
+department_router.register(r'', ProjectDepartmentViewSet, basename='department')
+
+position_router = DefaultRouter()
+position_router.register(r'', ProjectPositionViewSet, basename='position')
+
+file_router = DefaultRouter()
+file_router.register(r'', ProjectFileViewSet, basename='file')
+
 urlpatterns = router.urls + [
     path(
         '<int:project_id>/reference-sites/',
         include(reference_site_router.urls),
+    ),
+    path(
+        '<int:project_id>/departments/',
+        include(department_router.urls),
+    ),
+    path(
+        '<int:project_id>/positions/',
+        include(position_router.urls),
+    ),
+    path(
+        '<int:project_id>/files/',
+        include(file_router.urls),
+    ),
+    path(
+        '<int:project_id>/files/<int:pk>/analyze/',
+        FileAnalyzeView.as_view({'post': 'create'}),
+        name='file-analyze',
     ),
     path(
         '<int:project_id>/analysis/',

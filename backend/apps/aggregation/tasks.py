@@ -30,23 +30,40 @@ def run_aggregation(self, aggregation_id: int, ai_provider: str | None = None) -
             completed_at__isnull=False,
         ).select_related('employee').prefetch_related('answers__question')
 
+        # Build position weight map from project positions (order-based: 1st = highest)
+        from apps.projects.models import ProjectPosition
+        position_weights = {}
+        project_positions = ProjectPosition.objects.filter(project=project).order_by('order')
+        total_positions = project_positions.count()
+        for idx, pos in enumerate(project_positions):
+            # First position gets highest weight, decreasing
+            position_weights[pos.name] = round(max(1.0, (total_positions - idx) * 0.5 + 0.5), 1)
+
         questions_with_answers = {}
         for response in responses:
+            emp = response.employee
+            weight = position_weights.get(emp.position, 1.0)
             for answer in response.answers.all():
-                q_text = answer.question.text
-                if q_text not in questions_with_answers:
-                    questions_with_answers[q_text] = []
-                questions_with_answers[q_text].append({
-                    'employee_name': response.employee.name,
-                    'position': response.employee.position,
+                q = answer.question
+                q_key = q.text
+                if q_key not in questions_with_answers:
+                    questions_with_answers[q_key] = {
+                        'section': q.section.title if q.section else '기타',
+                        'answers': [],
+                    }
+                questions_with_answers[q_key]['answers'].append({
+                    'employee_name': emp.name,
+                    'position': emp.position,
+                    'department': emp.department,
+                    'weight': weight,
                     'text_value': answer.text_value,
                     'choice_values': answer.choice_values,
                     'rating_value': answer.rating_value,
                 })
 
         formatted_data = [
-            {'question_text': q, 'answers': a}
-            for q, a in questions_with_answers.items()
+            {'question_text': q, 'section': data['section'], 'answers': data['answers']}
+            for q, data in questions_with_answers.items()
         ]
 
         # Get analysis context
@@ -67,6 +84,7 @@ def run_aggregation(self, aggregation_id: int, ai_provider: str | None = None) -
 
         # Save aggregation results
         aggregation.summary = result.get('summary', '')
+        aggregation.section_summaries = result.get('section_summaries', [])
         aggregation.company_direction = result.get('company_direction', '')
         aggregation.desired_changes = result.get('desired_changes', [])
         aggregation.company_values = result.get('company_values', [])

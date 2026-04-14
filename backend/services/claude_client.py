@@ -117,7 +117,7 @@ class ClaudeClient:
             raise
 
     def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str]) -> dict:
-        """Phase 2: Generate interview questions based on confirmed analysis."""
+        """Phase 2: Generate interview questions organized by sections with sub-categories."""
         prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
 
 ## 분석 결과
@@ -127,28 +127,47 @@ class ClaudeClient:
 {', '.join(position_categories) if position_categories else '전체 (직급 구분 없음)'}
 
 ## 지시사항
-위 분석 결과를 바탕으로 클라이언트 회사의 임직원 인터뷰 질문지를 생성하세요.
-- 회사의 현재 방향성과 미래 비전에 대한 질문 포함
-- 현재 사이트/서비스에 대한 만족도와 개선사항
-- 브랜드 이미지와 가치에 대한 인식
-- 직급별로 적합한 질문이 다를 수 있음 (임원은 전략적, 실무자는 실용적)
-- position_categories가 비어있으면 모든 직급 공통 질문만 생성
+위 분석 결과를 바탕으로 체계적인 인터뷰 질문지를 생성하세요.
+
+### 질문지 구조
+- **구분 (section)**: 대분류. 각 구분에 설명과 중요도(상/중/하), 질문영역(공통 등)을 부여
+- **세부구분 (sub_category)**: 각 질문의 소주제 분류
+- **질문**: 실제 인터뷰에서 물어볼 질문. 각 질문에 중요도와 의도를 포함
+
+### 구분 예시 (분석 결과에 맞게 적절히 변경)
+1. Project Overview — 기본 소개 및 프로젝트 전반 (직무/포지션, 전략/로드맵, 트렌드, 업의 본질)
+2. Service Image — 서비스 이미지/브랜드 인식
+3. Target / Business — 고객유치, 강점/약점, 리뉴얼 방향
+4. UX/UI Design — 벤치마킹, 디자인 방향, 사용자 경험
+
+### 질문 작성 원칙
+- 주로 서술형(textarea) 질문
+- 구체적이고 답변하기 쉬운 질문 (예시를 괄호로 추가)
+- 각 구분에 4~8개 질문
+- 각 질문에 세부구분(sub_category)과 의도(purpose)를 반드시 포함
 
 ## 출력 형식 (JSON)
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
+반드시 아래 JSON 형식으로만 응답하세요.
 {{
     "title": "질문지 제목",
     "description": "질문지 설명",
-    "questions": [
+    "sections": [
         {{
-            "text": "질문 내용",
-            "description": "질문 보조 설명 (선택)",
-            "question_type": "textarea|text|single_choice|multiple_choice|rating",
-            "is_required": true,
-            "options": ["선택지1", "선택지2"],
-            "importance": 3,
-            "purpose": "이 질문이 확인하고자 하는 것에 대한 설명",
-            "position_categories": ["해당 직급"] 또는 [] (전체 대상)
+            "title": "구분 제목 (e.g., Project Overview)",
+            "description": "이 구분의 설명 (e.g., 기본적인 소개와 프로젝트 전반의 질의로 구성합니다.)",
+            "importance": "high|medium|low",
+            "target_area": "공통",
+            "questions": [
+                {{
+                    "sub_category": "세부구분 (e.g., 직무/포지션)",
+                    "text": "질문 내용",
+                    "description": "질문 보조 설명이나 예시 (선택)",
+                    "question_type": "textarea",
+                    "options": [],
+                    "importance": "required|important|optional",
+                    "purpose": "이 질문의 의도 — 무엇을 확인하고자 하는지"
+                }}
+            ]
         }}
     ]
 }}
@@ -159,8 +178,50 @@ class ClaudeClient:
             logger.error(f"Claude questionnaire generation failed: {e}")
             raise
 
+    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str]) -> dict:
+        """Generate additional questions for a specific section."""
+        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
+
+## 분석 컨텍스트
+{json.dumps(analysis_context, ensure_ascii=False, indent=2)}
+
+## 섹션 정보
+- 섹션 제목: {section_title}
+- 섹션 설명: {section_description}
+
+## 이미 있는 질문 (중복 금지)
+{chr(10).join(f'- {q}' for q in existing_questions) if existing_questions else '(없음)'}
+
+## 지시사항
+위 섹션에 추가할 질문을 정확히 {count}개 생성하세요.
+- 이미 있는 질문과 중복되지 않는 새로운 질문
+- 주로 서술형(textarea) 질문
+- 구체적이고 답변하기 쉬운 질문
+- 각 질문에 세부구분(sub_category)과 의도(purpose)를 반드시 포함
+
+## 출력 형식 (JSON)
+반드시 아래 JSON 형식으로만 응답하세요.
+{{
+    "questions": [
+        {{
+            "sub_category": "세부구분",
+            "text": "질문 내용",
+            "description": "질문 보조 설명 (선택)",
+            "question_type": "textarea",
+            "options": [],
+            "importance": "required|important|optional",
+            "purpose": "이 질문의 의도"
+        }}
+    ]
+}}"""
+        try:
+            return self._request_json(prompt, temperature=0.7)
+        except Exception as e:
+            logger.error(f"Claude section question generation failed: {e}")
+            raise
+
     def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict) -> dict:
-        """Phase 3: Aggregate all survey responses."""
+        """Phase 3: Aggregate all survey responses by section with preserved wording."""
         prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 인터뷰 응답 분석 전문가입니다.
 
 ## 원래 분석 컨텍스트
@@ -170,26 +231,46 @@ class ClaudeClient:
 {json.dumps(questions_with_answers, ensure_ascii=False, indent=2)}
 
 ## 지시사항
-모든 인터뷰 응답을 종합 분석하여 다음을 추출하세요:
-1. 전체 요약: 임직원들의 전반적인 의견 종합
-2. 회사 방향성: 임직원들이 생각하는 회사의 나아갈 방향
-3. 변화하고 싶은 것들: 개선하고 싶은 점들
-4. 추구하는 가치: 회사가 중시하는 가치
-5. 핵심 키워드: 디자인 방향에 활용할 키워드들 (카테고리: tone, feature, value, emotion 등)
-6. 핵심 문장: 디자인 컨셉에 활용할 인상적인 문장들
+모든 인터뷰 응답을 종합 분석하되 다음 원칙을 지켜주세요:
+
+### 1. 파트별 구분 요약 (section_summaries)
+- 질문 데이터에 section 정보가 있으면 파트별로 구분하여 요약
+- 각 파트별로 핵심 내용을 정리
+- section 정보가 없으면 질문 주제별로 자연스럽게 그룹핑
+
+### 2. 원문 워딩 유지 (sentences)
+- 응답자의 원래 표현을 최대한 살려서 인용
+- "OOO 과장: '디지털 전환이 급선무'" 형태로 화자와 원문을 함께 기록
+- 임원의 발언은 특히 중요하게 다룰 것
+
+### 3. 변화사항 카테고라이징 (desired_changes)
+- 단순 리스트가 아닌 카테고리별 분류: UX, 디자인, 기술, 조직/문화, 서비스 등
+
+### 4. 키워드는 디자인 방향에 활용할 것들 위주
 
 ## 출력 형식 (JSON)
-반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
+반드시 아래 JSON 형식으로만 응답하세요.
 {{
     "summary": "전체 종합 요약",
+    "section_summaries": [
+        {{
+            "section_title": "파트명 (예: 회사 비전/방향성)",
+            "summary": "이 파트의 응답 요약",
+            "key_quotes": ["화자: '원문 인용'", ...]
+        }}
+    ],
     "company_direction": "회사 방향성 서술",
-    "desired_changes": ["변화1", "변화2", ...],
-    "company_values": ["가치1", "가치2", ...],
+    "desired_changes": [
+        {{"category": "UX", "items": ["변화1", "변화2"]}},
+        {{"category": "디자인", "items": ["변화3"]}},
+        {{"category": "기술", "items": ["변화4"]}}
+    ],
+    "company_values": ["가치1", "가치2"],
     "keywords": [
-        {{"text": "키워드", "category": "카테고리", "weight": 0.9}}
+        {{"text": "키워드", "category": "tone|feature|value|emotion", "weight": 0.9}}
     ],
     "sentences": [
-        {{"text": "핵심 문장", "category": "카테고리"}}
+        {{"text": "화자: '원문 인용 문장'", "category": "비전|브랜드|UX|기술"}}
     ]
 }}
 """
@@ -197,6 +278,36 @@ class ClaudeClient:
             return self._request_json(prompt, temperature=0.5)
         except Exception as e:
             logger.error(f"Claude aggregation failed: {e}")
+            raise
+
+    def analyze_file_content(self, file_text: str, file_name: str) -> dict:
+        """Analyze uploaded file content and extract requirements summary."""
+        prompt = f"""다음은 SI 프로젝트의 요구사항 관련 파일입니다.
+파일명: {file_name}
+
+## 파일 내용
+{file_text[:8000]}
+
+## 지시사항
+이 파일에서 다음을 추출해주세요:
+1. 프로젝트 요구사항 요약
+2. 핵심 키워드/요구 기능
+3. 타겟 사용자/오디언스
+4. 특별한 제약 조건이나 참고사항
+
+반드시 JSON 형식으로 응답하세요.
+{{
+    "summary": "파일 내용 요약",
+    "requirements": ["요구사항1", "요구사항2"],
+    "keywords": ["키워드1", "키워드2"],
+    "target_audience": "타겟 사용자",
+    "constraints": ["제약조건1"],
+    "notes": "기타 참고사항"
+}}"""
+        try:
+            return self._request_json(prompt, temperature=0.3)
+        except Exception as e:
+            logger.error(f"Claude file analysis failed: {e}")
             raise
 
     def generate_additional_keywords(self, existing_keywords: list[str], context: dict) -> list[dict]:

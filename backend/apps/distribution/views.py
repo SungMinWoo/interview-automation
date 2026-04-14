@@ -88,6 +88,16 @@ class GenerateInvitationsView(APIView):
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
+
+        # 질문지가 확정되어야만 초대 링크 생성 가능
+        from apps.questionnaires.models import Questionnaire
+        questionnaire = Questionnaire.objects.filter(project=project).first()
+        if not questionnaire or questionnaire.status != Questionnaire.Status.CONFIRMED:
+            return Response(
+                {'detail': '질문지가 확정된 후에만 초대 링크를 생성할 수 있습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         employees = Employee.objects.filter(project=project).exclude(
             invitation__isnull=False,
         )
@@ -345,22 +355,52 @@ class SurveyQuestionsView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        questions = Question.objects.filter(questionnaire=questionnaire)
-        if employee.position_category:
-            questions = questions.filter(
-                position_categories=employee.position_category,
-            )
+        # Get all questions, then filter by employee's position matching section targets
+        questions = Question.objects.filter(questionnaire=questionnaire).select_related('section')
+
+        # Find employee's matching ProjectPosition and ProjectDepartment
+        from apps.projects.models import ProjectPosition, ProjectDepartment
+        emp_position = None
+        emp_department = None
+        if employee.position:
+            emp_position = ProjectPosition.objects.filter(
+                project=invitation.project, name=employee.position,
+            ).first()
+        if employee.department:
+            emp_department = ProjectDepartment.objects.filter(
+                project=invitation.project, name=employee.department,
+            ).first()
+
+        filtered_questions = []
+        for q in questions.order_by('order'):
+            # Check section-level target_positions
+            if q.section and q.section.target_positions.exists():
+                if not (emp_position and q.section.target_positions.filter(pk=emp_position.pk).exists()):
+                    continue
+
+            # Check question-level target_positions
+            if q.target_positions.exists():
+                if not (emp_position and q.target_positions.filter(pk=emp_position.pk).exists()):
+                    continue
+
+            # Check question-level target_departments
+            if q.target_departments.exists():
+                if not (emp_department and q.target_departments.filter(pk=emp_department.pk).exists()):
+                    continue
+
+            filtered_questions.append(q)
 
         data = []
-        for q in questions.order_by('order'):
+        for q in filtered_questions:
             data.append({
                 'id': q.id,
                 'text': q.text,
                 'description': q.description,
                 'question_type': q.question_type,
-                'is_required': q.is_required,
+                'importance': q.importance,
                 'order': q.order,
                 'options': q.options,
+                'section': q.section.title if q.section else None,
             })
 
         return Response(data)

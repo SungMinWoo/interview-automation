@@ -43,6 +43,17 @@ export interface SentenceUpdateRequest {
   category?: string;
 }
 
+export interface SectionSummary {
+  section_title: string;
+  summary: string;
+  key_quotes?: string[];
+}
+
+export interface DesiredChangeCategory {
+  category: string;
+  items: string[];
+}
+
 export interface Aggregation {
   id: number;
   project: number;
@@ -51,8 +62,9 @@ export interface Aggregation {
   ai_provider?: AiProvider;
   raw_ai_response?: Record<string, unknown>;
   summary: string;
+  section_summaries?: SectionSummary[];
   company_direction: string;
-  desired_changes: string[];
+  desired_changes: string[] | DesiredChangeCategory[];
   company_values: string[];
   error_message?: string;
   keywords: Keyword[];

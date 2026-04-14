@@ -133,21 +133,41 @@ export const QUESTION_TYPE_LABELS: Record<string, string> = {
   ranking: '순위',
 };
 
-export const IMPORTANCE_LABELS: Record<number, string> = {
-  1: '낮음',
-  2: '보통이하',
-  3: '보통',
-  4: '중요',
-  5: '매우중요',
+export const IMPORTANCE_LABELS: Record<string, string> = {
+  required: '필수',
+  important: '중요',
+  optional: '선택',
 };
 
-export const IMPORTANCE_COLORS: Record<number, string> = {
-  1: 'bg-surface-hover text-content-tertiary',
-  2: 'bg-surface-hover text-content-secondary',
-  3: 'bg-warning-bg text-warning',
-  4: 'bg-warning-bg text-warning',
-  5: 'bg-danger-bg text-danger',
+export const IMPORTANCE_COLORS: Record<string, string> = {
+  required: 'bg-danger-bg text-danger',
+  important: 'bg-warning-bg text-warning',
+  optional: 'bg-surface-hover text-content-tertiary',
 };
+
+export const IMPORTANCE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'required', label: '필수' },
+  { value: 'important', label: '중요' },
+  { value: 'optional', label: '선택' },
+];
+
+export const SECTION_IMPORTANCE_LABELS: Record<string, string> = {
+  high: '상',
+  medium: '중',
+  low: '하',
+};
+
+export const SECTION_IMPORTANCE_COLORS: Record<string, string> = {
+  high: 'bg-danger-bg text-danger',
+  medium: 'bg-warning-bg text-warning',
+  low: 'bg-surface-hover text-content-tertiary',
+};
+
+export const SECTION_IMPORTANCE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'high', label: '상' },
+  { value: 'medium', label: '중' },
+  { value: 'low', label: '하' },
+];
 
 // --- Project Phase Steps ---
 
@@ -183,8 +203,18 @@ export const API_PATHS = {
   QUESTIONS: (projectId: number) => `/projects/${projectId}/questionnaire/questions/`,
   QUESTION: (projectId: number, qId: number) => `/projects/${projectId}/questionnaire/questions/${qId}/`,
   QUESTIONS_REORDER: (projectId: number) => `/projects/${projectId}/questionnaire/questions/reorder/`,
+  QUESTIONNAIRE_SECTIONS: (projectId: number) => `/projects/${projectId}/questionnaire/sections/`,
+  QUESTIONNAIRE_SECTION: (projectId: number, sectionId: number) => `/projects/${projectId}/questionnaire/sections/${sectionId}/`,
+  QUESTIONNAIRE_SECTION_GENERATE: (projectId: number, sectionId: number) => `/projects/${projectId}/questionnaire/sections/${sectionId}/generate/`,
   POSITION_CATEGORIES: (projectId: number) => `/projects/${projectId}/questionnaire/categories/`,
   POSITION_CATEGORY: (projectId: number, catId: number) => `/projects/${projectId}/questionnaire/categories/${catId}/`,
+  PROJECT_FILES: (projectId: number) => `/projects/${projectId}/files/`,
+  PROJECT_FILE: (projectId: number, fileId: number) => `/projects/${projectId}/files/${fileId}/`,
+  PROJECT_FILE_ANALYZE: (projectId: number, fileId: number) => `/projects/${projectId}/files/${fileId}/analyze/`,
+  DEPARTMENTS: (projectId: number) => `/projects/${projectId}/departments/`,
+  DEPARTMENT: (projectId: number, deptId: number) => `/projects/${projectId}/departments/${deptId}/`,
+  POSITIONS: (projectId: number) => `/projects/${projectId}/positions/`,
+  POSITION: (projectId: number, posId: number) => `/projects/${projectId}/positions/${posId}/`,
   EMPLOYEES: (projectId: number) => `/projects/${projectId}/employees/`,
   EMPLOYEE: (projectId: number, empId: number) => `/projects/${projectId}/employees/${empId}/`,
   EMPLOYEES_BULK: (projectId: number) => `/projects/${projectId}/employees/bulk/`,

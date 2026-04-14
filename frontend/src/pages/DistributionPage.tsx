@@ -20,6 +20,8 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useProject } from '@/hooks/useProjects';
+import { useQuestionnaire } from '@/hooks/useQuestionnaire';
+import { useDepartments, usePositions } from '@/hooks/useProjectStructure';
 import {
   useEmployees,
   useCreateEmployee,
@@ -80,6 +82,10 @@ export default function DistributionPage() {
 function EmployeeSection({ projectId }: { projectId: number }) {
   const { data: employees = [], isLoading: empLoading } = useEmployees(projectId);
   const { data: invitations = [], isLoading: invLoading } = useInvitations(projectId);
+  const { data: questionnaire } = useQuestionnaire(projectId);
+  const { data: departments = [] } = useDepartments(projectId);
+  const { data: positions = [] } = usePositions(projectId);
+  const isQuestionnaireConfirmed = questionnaire?.status === 'confirmed';
   const createEmployee = useCreateEmployee();
   const deleteEmployee = useDeleteEmployee();
   const generateInvitations = useGenerateInvitations();
@@ -177,14 +183,21 @@ function EmployeeSection({ projectId }: { projectId: number }) {
         </p>
         <div className="flex flex-wrap gap-2">
           {employeesWithoutInvitation.length > 0 && (
-            <button
-              onClick={handleGenerateAll}
-              disabled={generateInvitations.isPending}
-              className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
-            >
-              {generateInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
-              전체 초대 링크 생성 ({employeesWithoutInvitation.length})
-            </button>
+            isQuestionnaireConfirmed ? (
+              <button
+                onClick={handleGenerateAll}
+                disabled={generateInvitations.isPending}
+                className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
+              >
+                {generateInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+                전체 초대 링크 생성 ({employeesWithoutInvitation.length})
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm text-content-muted">
+                <AlertCircle className="h-4 w-4" />
+                질문지 확정 후 초대 링크를 생성할 수 있습니다
+              </span>
+            )
           )}
           {invitations.some((inv) => inv.status === 'pending') && (
             <button
@@ -221,7 +234,7 @@ function EmployeeSection({ projectId }: { projectId: number }) {
         <div className="space-y-3">
           {employees.map((emp) => {
             const inv = invByEmployee[emp.id];
-            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} />;
+            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} isQuestionnaireConfirmed={isQuestionnaireConfirmed} />;
           })}
         </div>
       )}
@@ -263,11 +276,29 @@ function EmployeeSection({ projectId }: { projectId: number }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-content-secondary">부서</label>
-                  <input type="text" className={inputClass} {...register('department')} />
+                  {departments.length > 0 ? (
+                    <select className={inputClass} {...register('department')}>
+                      <option value="">선택</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="text" className={inputClass} placeholder="부서명" {...register('department')} />
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-content-secondary">직급</label>
-                  <input type="text" className={inputClass} {...register('position')} />
+                  {positions.length > 0 ? (
+                    <select className={inputClass} {...register('position')}>
+                      <option value="">선택</option>
+                      {positions.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="text" className={inputClass} placeholder="직급" {...register('position')} />
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -302,6 +333,7 @@ function EmployeeCard({
   onResend,
   onRegenerate,
   projectId,
+  isQuestionnaireConfirmed = false,
 }: {
   employee: Employee;
   invitation?: Invitation;
@@ -309,6 +341,7 @@ function EmployeeCard({
   onResend: (invId: number) => void;
   onRegenerate: (empId: number) => void;
   projectId: number;
+  isQuestionnaireConfirmed?: boolean;
 }) {
   const generateInvitations = useGenerateInvitations();
   const statusCfg = invitation ? STATUS_CONFIG[invitation.is_expired && invitation.status !== 'completed' ? 'expired' : invitation.status] || STATUS_CONFIG.pending : null;
@@ -418,7 +451,7 @@ function EmployeeCard({
             </div>
           </div>
         </div>
-      ) : (
+      ) : isQuestionnaireConfirmed ? (
         <div className="mt-3">
           <button
             onClick={handleGenerateForOne}
@@ -429,6 +462,8 @@ function EmployeeCard({
             초대 링크 생성
           </button>
         </div>
+      ) : (
+        <p className="mt-3 text-xs text-content-muted">질문지 확정 후 초대 링크 생성 가능</p>
       )}
     </div>
   );

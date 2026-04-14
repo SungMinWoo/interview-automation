@@ -20,6 +20,7 @@ class Aggregation(models.Model):
     version = models.PositiveIntegerField(default=1)
     raw_ai_response = models.JSONField(default=dict)
     summary = models.TextField(blank=True)
+    section_summaries = models.JSONField(default=list)
     company_direction = models.TextField(blank=True)
     desired_changes = models.JSONField(default=list)
     company_values = models.JSONField(default=list)

@@ -34,6 +34,7 @@ interface SurveyQuestion {
   description: string;
   question_type: string;
   is_required: boolean;
+  importance?: string;
   order: number;
   options: string[];
 }
@@ -218,7 +219,7 @@ export default function SurveyPage() {
                     <div>
                       <p className="text-sm font-medium text-content-primary">{q.text}</p>
                       {q.description && <p className="mt-1 text-xs text-content-tertiary">{q.description}</p>}
-                      {q.is_required && <span className="mt-1 inline-block text-xs text-danger">* 필수</span>}
+                      {q.importance === 'required' && <span className="mt-1 inline-block text-xs text-danger">* 필수</span>}
                     </div>
                   </div>
                 </div>

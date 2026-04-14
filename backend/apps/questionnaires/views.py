@@ -6,10 +6,11 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from services.ai_client import validate_ai_provider
-from .models import Questionnaire, Question, PositionCategory
+from .models import Questionnaire, QuestionSection, Question, PositionCategory
 from .serializers import (
     QuestionnaireSerializer,
     QuestionnaireStatusSerializer,
+    QuestionSectionSerializer,
     QuestionSerializer,
     PositionCategorySerializer,
     QuestionReorderSerializer,
@@ -195,6 +196,112 @@ class QuestionReorderView(APIView):
                 question.save(update_fields=['order', 'updated_at'])
 
         return Response({'detail': 'Questions reordered successfully.'})
+
+
+class QuestionSectionViewSet(viewsets.ModelViewSet):
+    """CRUD for sections within a questionnaire."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = QuestionSectionSerializer
+
+    def get_questionnaire(self):
+        project = get_user_project(self.request, self.kwargs['project_id'])
+        return get_object_or_404(Questionnaire, project=project)
+
+    def _check_not_confirmed(self):
+        questionnaire = self.get_questionnaire()
+        if questionnaire.status == Questionnaire.Status.CONFIRMED:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('질문지가 확정되어 수정할 수 없습니다.')
+        return questionnaire
+
+    def get_queryset(self):
+        questionnaire = self.get_questionnaire()
+        return QuestionSection.objects.filter(questionnaire=questionnaire)
+
+    def perform_create(self, serializer):
+        questionnaire = self._check_not_confirmed()
+        serializer.save(questionnaire=questionnaire)
+
+    def perform_update(self, serializer):
+        self._check_not_confirmed()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_not_confirmed()
+        instance.delete()
+
+
+class GenerateSectionQuestionsView(APIView):
+    """POST - Generate AI questions for a specific section."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, project_id, section_id):
+        project = get_user_project(request, project_id)
+        questionnaire = get_object_or_404(Questionnaire, project=project)
+
+        if questionnaire.status == Questionnaire.Status.CONFIRMED:
+            return Response(
+                {'detail': '질문지가 확정되어 추가 생성할 수 없습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        section = get_object_or_404(QuestionSection, pk=section_id, questionnaire=questionnaire)
+        count = int(request.data.get('count', 3))
+        count = max(1, min(count, 10))  # Clamp 1-10
+        ai_provider = validate_ai_provider(request.data.get('ai_provider'))
+
+        # Get analysis context
+        analysis_data = {}
+        if hasattr(project, 'analysis') and project.analysis:
+            a = project.analysis
+            analysis_data = {
+                'requirements_summary': a.requirements_summary,
+                'combined_insights': a.combined_insights,
+            }
+
+        # Existing questions in this section
+        existing_questions = list(section.questions.values_list('text', flat=True))
+
+        from services.ai_client import get_ai_client
+        ai_client = get_ai_client(ai_provider)
+
+        try:
+            result = ai_client.generate_section_questions(
+                section_title=section.title,
+                section_description=section.description or '',
+                count=count,
+                analysis_context=analysis_data,
+                existing_questions=existing_questions,
+            )
+        except Exception as e:
+            return Response({'detail': f'AI 질문 생성 실패: {str(e)}'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Create questions
+        from django.db import models as db_models
+        max_order = questionnaire.questions.aggregate(max_order=db_models.Max('order'))['max_order'] or -1
+        created_questions = []
+        for q_data in result.get('questions', []):
+            max_order += 1
+            q = Question.objects.create(
+                questionnaire=questionnaire,
+                section=section,
+                sub_category=q_data.get('sub_category', ''),
+                text=q_data.get('text', ''),
+                description=q_data.get('description', ''),
+                question_type=q_data.get('question_type', Question.QuestionType.TEXTAREA),
+                order=max_order,
+                options=q_data.get('options', []),
+                importance=q_data.get('importance', 'important'),
+                purpose=q_data.get('purpose', ''),
+            )
+            created_questions.append(q)
+
+        return Response({
+            'detail': f'{len(created_questions)}개 질문이 생성되었습니다.',
+            'questions': QuestionSerializer(created_questions, many=True).data,
+        }, status=status.HTTP_201_CREATED)
 
 
 class PositionCategoryViewSet(viewsets.ModelViewSet):

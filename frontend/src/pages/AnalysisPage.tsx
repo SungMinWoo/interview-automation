@@ -34,8 +34,8 @@ export default function AnalysisPage() {
   const id = projectId ? Number(projectId) : undefined;
   const { data: project } = useProject(id);
   const { data: analysis, refetch: refetchAnalysis } = useAnalysis(id);
-  const [isPolling, setIsPolling] = useState(false);
-  const { data: statusData } = useAnalysisStatus(id, isPolling);
+  const shouldPoll = analysis?.status === 'processing';
+  const { data: statusData } = useAnalysisStatus(id, shouldPoll);
   const triggerAnalysis = useTriggerAnalysis();
   const updateAnalysis = useUpdateAnalysis();
   const confirmAnalysis = useConfirmAnalysis();
@@ -46,16 +46,9 @@ export default function AnalysisPage() {
     combined_insights: {} as Record<string, unknown>,
   });
 
-  // Polling logic
+  // Polling: when status changes from processing, refetch main data
   useEffect(() => {
-    if (analysis?.status === 'processing') {
-      setIsPolling(true);
-    }
-  }, [analysis?.status]);
-
-  useEffect(() => {
-    if (statusData?.status === 'completed' || statusData?.status === 'failed') {
-      setIsPolling(false);
+    if (statusData && statusData.status !== 'processing') {
       refetchAnalysis();
     }
   }, [statusData?.status, refetchAnalysis]);
@@ -74,7 +67,7 @@ export default function AnalysisPage() {
     if (!id) return;
     try {
       await triggerAnalysis.mutateAsync({ projectId: id, ai_provider: aiProvider });
-      setIsPolling(true);
+      refetchAnalysis();
       toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 분석을 시작합니다.`);
     } catch {
       toast.error('분석 시작에 실패했습니다.');
@@ -85,7 +78,7 @@ export default function AnalysisPage() {
     if (!id) return;
     try {
       await triggerAnalysis.mutateAsync({ projectId: id, ai_provider: aiProvider });
-      setIsPolling(true);
+      refetchAnalysis();
       toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 분석을 다시 시작합니다.`);
     } catch {
       toast.error('분석 재시작에 실패했습니다.');
@@ -113,7 +106,7 @@ export default function AnalysisPage() {
     }
   };
 
-  const isProcessing = analysis?.status === 'processing' || isPolling;
+  const isProcessing = analysis?.status === 'processing';
   const isCompleted = analysis?.status === 'completed';
   const isConfirmed = analysis?.status === 'confirmed';
   const isFailed = analysis?.status === 'failed';
@@ -197,7 +190,7 @@ export default function AnalysisPage() {
       )}
 
       {/* Trigger Button (no analysis yet or pending) */}
-      {(!analysis || analysis.status === 'pending') && !isPolling && (
+      {(!analysis || analysis.status === 'pending') && !isProcessing && (
         <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
           <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
             <Play className="h-8 w-8 text-accent" />
@@ -308,8 +301,14 @@ export default function AnalysisPage() {
           )}
 
           {/* Reference Sites Analysis */}
-          {analysis.reference_sites_analysis && Object.keys(analysis.reference_sites_analysis).length > 0 && (
-            <JsonSection title="레퍼런스 사이트 분석" data={analysis.reference_sites_analysis} />
+          {analysis.reference_sites_analysis && (
+            Array.isArray(analysis.reference_sites_analysis) ? (
+              analysis.reference_sites_analysis.map((site: any, i: number) => (
+                <JsonSection key={i} title={site.url ? `레퍼런스 ${i + 1}: ${site.url}` : `레퍼런스 사이트 ${i + 1}`} data={site} />
+              ))
+            ) : Object.keys(analysis.reference_sites_analysis).length > 0 ? (
+              <JsonSection title="레퍼런스 사이트 분석" data={analysis.reference_sites_analysis} />
+            ) : null
           )}
 
           {/* Combined Insights */}
@@ -360,31 +359,68 @@ function Section({
   );
 }
 
+const LABEL_MAP: Record<string, string> = {
+  url: 'URL', layout: '레이아웃', navigation: '네비게이션',
+  color_scheme: '컬러 스킴', typography: '타이포그래피',
+  strengths: '강점', weaknesses: '약점',
+  standout_features: '주요 특징', design_patterns: '디자인 패턴',
+  relevant_to_requirements: '요구사항 관련성',
+  recommended_direction: '추천 디자인 방향',
+  key_patterns_to_adopt: '채택할 패턴', gaps_to_address: '해결할 격차',
+  risk_areas: '위험 영역',
+};
+
+function renderValue(value: unknown): JSX.Element | null {
+  if (value == null) return <span className="text-sm text-content-muted">-</span>;
+
+  if (typeof value === 'string') {
+    if (value.startsWith('http')) {
+      return <a href={value} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline break-all">{value}</a>;
+    }
+    return <p className="text-sm text-content-secondary whitespace-pre-wrap">{value}</p>;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-sm text-content-muted">-</span>;
+    return (
+      <ul className="space-y-1">
+        {value.map((item, i) => (
+          <li key={i} className="text-sm text-content-secondary flex items-start gap-2">
+            <span className="text-content-muted mt-0.5">-</span>
+            <span>{typeof item === 'object' ? JSON.stringify(item) : String(item)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof value === 'object') {
+    return (
+      <div className="space-y-2 border-l-2 border-line pl-4 mt-1">
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k}>
+            <p className="text-xs font-medium text-content-muted mb-0.5">{LABEL_MAP[k] || k.replace(/_/g, ' ')}</p>
+            {renderValue(v)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <p className="text-sm text-content-secondary">{String(value)}</p>;
+}
+
 function JsonSection({ title, data }: { title: string; data: Record<string, unknown> }) {
   return (
     <div className="border border-line bg-surface-secondary p-6">
-      <h3 className="mb-3 text-base font-semibold text-content-primary">{title}</h3>
-      <div className="space-y-3">
+      <h3 className="mb-4 text-base font-semibold text-content-primary">{title}</h3>
+      <div className="space-y-4">
         {Object.entries(data).map(([key, value]) => (
           <div key={key}>
-            <p className="mb-1 text-xs font-medium text-content-tertiary">
-              {key.replace(/_/g, ' ')}
+            <p className="mb-1 text-xs font-medium text-content-tertiary uppercase tracking-wide">
+              {LABEL_MAP[key] || key.replace(/_/g, ' ')}
             </p>
-            {Array.isArray(value) ? (
-              <ul className="space-y-1">
-                {value.map((item, i) => (
-                  <li key={i} className="text-sm text-content-secondary">
-                    {typeof item === 'string' ? `- ${item}` : JSON.stringify(item)}
-                  </li>
-                ))}
-              </ul>
-            ) : typeof value === 'object' && value !== null ? (
-              <pre className="bg-surface-primary p-3 text-xs text-content-secondary">
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-sm text-content-secondary">{String(value)}</p>
-            )}
+            {renderValue(value)}
           </div>
         ))}
       </div>

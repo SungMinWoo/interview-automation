@@ -33,8 +33,8 @@ export default function AggregationPage() {
   const id = projectId ? Number(projectId) : undefined;
   const { data: project } = useProject(id);
   const { data: aggregation, refetch: refetchAggregation } = useAggregation(id);
-  const [isPolling, setIsPolling] = useState(false);
-  const { data: statusData } = useAggregationStatus(id, isPolling);
+  const shouldPoll = aggregation?.status === 'processing';
+  const { data: statusData } = useAggregationStatus(id, shouldPoll);
   const triggerAggregation = useTriggerAggregation();
   const regenerateAggregation = useRegenerateAggregation();
   const { data: keywords, refetch: refetchKeywords } = useKeywords(id);
@@ -50,14 +50,7 @@ export default function AggregationPage() {
   const [newSentence, setNewSentence] = useState('');
 
   useEffect(() => {
-    if (aggregation?.status === 'processing') {
-      setIsPolling(true);
-    }
-  }, [aggregation?.status]);
-
-  useEffect(() => {
-    if (statusData?.status === 'completed' || statusData?.status === 'failed') {
-      setIsPolling(false);
+    if (statusData && statusData.status !== 'processing') {
       refetchAggregation();
       refetchKeywords();
       refetchSentences();
@@ -68,7 +61,7 @@ export default function AggregationPage() {
     if (!id) return;
     try {
       await triggerAggregation.mutateAsync({ projectId: id, ai_provider: aiProvider });
-      setIsPolling(true);
+      refetchAggregation();
       toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 AI 취합을 시작합니다.`);
     } catch {
       toast.error('취합 시작에 실패했습니다.');
@@ -79,7 +72,7 @@ export default function AggregationPage() {
     if (!id) return;
     try {
       await regenerateAggregation.mutateAsync({ projectId: id, ai_provider: aiProvider });
-      setIsPolling(true);
+      refetchAggregation();
       toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 재생성을 시작합니다.`);
     } catch {
       toast.error('재생성에 실패했습니다.');
@@ -136,7 +129,7 @@ export default function AggregationPage() {
     }
   };
 
-  const isProcessing = aggregation?.status === 'processing' || isPolling;
+  const isProcessing = aggregation?.status === 'processing';
   const isCompleted = aggregation?.status === 'completed';
 
   return (
@@ -237,6 +230,30 @@ export default function AggregationPage() {
             </div>
           )}
 
+          {/* Section Summaries */}
+          {Array.isArray(aggregation.section_summaries) && aggregation.section_summaries.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-base font-semibold text-content-primary">파트별 요약</h3>
+              {aggregation.section_summaries.map((section: { title?: string; summary?: string; key_quotes?: string[] }, idx: number) => (
+                <div key={idx} className="border border-line bg-surface-secondary p-6 mb-4">
+                  {section.title && (
+                    <h4 className="mb-2 text-sm font-bold text-content-primary">{section.title}</h4>
+                  )}
+                  {section.summary && (
+                    <p className="whitespace-pre-wrap text-sm text-content-secondary">{section.summary}</p>
+                  )}
+                  {Array.isArray(section.key_quotes) && section.key_quotes.length > 0 && (
+                    <ul className="mt-3 space-y-1">
+                      {section.key_quotes.map((quote: string, qi: number) => (
+                        <li key={qi} className="text-sm italic text-content-tertiary">"{quote}"</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Company Direction & Values */}
           {(aggregation.company_direction || aggregation.company_values?.length > 0 || aggregation.desired_changes?.length > 0) && (
             <div className="border border-line bg-surface-secondary p-6">
@@ -259,15 +276,79 @@ export default function AggregationPage() {
               {aggregation.desired_changes?.length > 0 && (
                 <div>
                   <h4 className="mb-1 text-sm font-semibold text-content-primary">변화하고 싶은 것들</h4>
-                  <ul className="space-y-1">
-                    {aggregation.desired_changes.map((c, i) => (
-                      <li key={i} className="text-sm text-content-secondary">- {c}</li>
-                    ))}
-                  </ul>
+                  {typeof aggregation.desired_changes[0] === 'object' && aggregation.desired_changes[0] !== null ? (
+                    <div className="space-y-3">
+                      {aggregation.desired_changes.map((group: { category?: string; items?: string[] }, i: number) => (
+                        <div key={i}>
+                          {group.category && (
+                            <h5 className="mb-1 text-xs font-semibold text-content-tertiary">{group.category}</h5>
+                          )}
+                          <ul className="space-y-1">
+                            {(group.items ?? []).map((item: string, j: number) => (
+                              <li key={j} className="text-sm text-content-secondary">- {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <ul className="space-y-1">
+                      {aggregation.desired_changes.map((c: string, i: number) => (
+                        <li key={i} className="text-sm text-content-secondary">- {c}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>
           )}
+
+          {/* Sentences */}
+          <div className="border border-line bg-surface-secondary p-6">
+            <h3 className="mb-4 text-base font-semibold text-content-primary">핵심 문장</h3>
+
+            <div className="mb-4 space-y-2">
+              {(sentences ?? aggregation.sentences ?? []).map((s) => (
+                <div
+                  key={s.id}
+                  className="group flex items-start justify-between border border-line p-3"
+                >
+                  <div className="flex-1">
+                    <p className="text-sm text-content-secondary">{s.text}</p>
+                    {s.category && (
+                      <span className="mt-1 inline-block bg-surface-hover px-2 py-0.5 text-xs text-content-tertiary">
+                        {s.category}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteSentence(s.id)}
+                    className="ml-2 hidden flex-shrink-0 text-danger hover:text-danger group-hover:block"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newSentence}
+                onChange={(e) => setNewSentence(e.target.value)}
+                placeholder="새 핵심 문장..."
+                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSentence()}
+              />
+              <button
+                onClick={handleAddSentence}
+                disabled={createSentence.isPending || !newSentence.trim()}
+                className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
 
           {/* Keywords */}
           <div className="border border-line bg-surface-secondary p-6">
@@ -322,53 +403,6 @@ export default function AggregationPage() {
               <button
                 onClick={handleAddKeyword}
                 disabled={createKeyword.isPending || !newKeyword.trim()}
-                className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Sentences */}
-          <div className="border border-line bg-surface-secondary p-6">
-            <h3 className="mb-4 text-base font-semibold text-content-primary">핵심 문장</h3>
-
-            <div className="mb-4 space-y-2">
-              {(sentences ?? aggregation.sentences ?? []).map((s) => (
-                <div
-                  key={s.id}
-                  className="group flex items-start justify-between border border-line p-3"
-                >
-                  <div className="flex-1">
-                    <p className="text-sm text-content-secondary">{s.text}</p>
-                    {s.category && (
-                      <span className="mt-1 inline-block bg-surface-hover px-2 py-0.5 text-xs text-content-tertiary">
-                        {s.category}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDeleteSentence(s.id)}
-                    className="ml-2 hidden flex-shrink-0 text-danger hover:text-danger group-hover:block"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newSentence}
-                onChange={(e) => setNewSentence(e.target.value)}
-                placeholder="새 핵심 문장..."
-                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddSentence()}
-              />
-              <button
-                onClick={handleAddSentence}
-                disabled={createSentence.isPending || !newSentence.trim()}
                 className="bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" />

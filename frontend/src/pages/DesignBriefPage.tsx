@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -43,7 +43,7 @@ export default function DesignBriefPage() {
   const { data: brief, isLoading: briefLoading } = useDesignBrief(id);
   const compileBrief = useCompileBrief();
   const updateBrief = useUpdateBrief();
-  const { data: stitchGenerations } = useStitchGenerations(id);
+  const { data: stitchGenerations, refetch: refetchStitch } = useStitchGenerations(id);
   const triggerStitch = useTriggerStitch();
   const regenerateStitch = useRegenerateStitch();
   const fetchScreens = useFetchStitchScreens();
@@ -62,6 +62,16 @@ export default function DesignBriefPage() {
   const [selectedStitchId, setSelectedStitchId] = useState<number | null>(null);
   const [showPromptId, setShowPromptId] = useState<number | null>(null);
   const [fetchingGenId, setFetchingGenId] = useState<number | null>(null);
+
+  // Poll stitch list while any generation is pending/processing
+  const hasProcessing = stitchGenerations?.some((g: any) => g.status === 'pending' || g.status === 'processing');
+  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  useEffect(() => {
+    if (hasProcessing) {
+      pollRef.current = setInterval(() => refetchStitch(), 5000);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [hasProcessing, refetchStitch]);
 
   // Use actual backend field names (snake_case)
   const briefData = brief as any;
@@ -110,6 +120,7 @@ export default function DesignBriefPage() {
     if (!id) return;
     try {
       await triggerStitch.mutateAsync({ projectId: id });
+      refetchStitch();
       toast.success('Stitch 디자인 생성을 시작합니다.');
     } catch {
       toast.error('생성에 실패했습니다.');

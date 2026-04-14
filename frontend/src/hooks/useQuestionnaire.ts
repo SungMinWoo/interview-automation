@@ -130,6 +130,46 @@ export function useReorderQuestions() {
   });
 }
 
+// --- Section hooks ---
+
+export function useCreateSection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, data }: { projectId: number; data: { title: string; description?: string; importance?: string; target_area?: string } }) => {
+      const res = await apiClient.post(API_PATHS.QUESTIONNAIRE_SECTIONS(projectId), data);
+      return res.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
+    },
+  });
+}
+
+export function useDeleteSection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, sectionId }: { projectId: number; sectionId: number }) => {
+      await apiClient.delete(API_PATHS.QUESTIONNAIRE_SECTION(projectId, sectionId));
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
+    },
+  });
+}
+
+export function useGenerateSectionQuestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, sectionId, count, ai_provider }: { projectId: number; sectionId: number; count: number; ai_provider?: string }) => {
+      const res = await apiClient.post(API_PATHS.QUESTIONNAIRE_SECTION_GENERATE(projectId, sectionId), { count, ai_provider });
+      return res.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
+    },
+  });
+}
+
 // --- Position Category hooks ---
 
 export function usePositionCategories(projectId: number | undefined) {

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None = None) -> None:
     """Generate interview questions using AI."""
     from apps.projects.models import Project
-    from .models import Questionnaire, Question, PositionCategory
+    from .models import Questionnaire, QuestionSection, Question, PositionCategory
     from services.ai_client import get_ai_client
 
     try:
@@ -52,33 +52,57 @@ def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None 
         if result.get('description'):
             questionnaire.description = result['description']
 
-        # Create questions (append to existing, don't delete old ones)
-        existing_max_order = questionnaire.questions.aggregate(
+        # Create sections and questions
+        existing_section_order = questionnaire.sections.aggregate(
+            max_order=models.Max('order')
+        )['max_order'] or -1
+        existing_q_order = questionnaire.questions.aggregate(
             max_order=models.Max('order')
         )['max_order'] or -1
 
-        questions_data = result.get('questions', [])
-        for i, q_data in enumerate(questions_data):
-            question = Question.objects.create(
-                questionnaire=questionnaire,
-                text=q_data.get('text', ''),
-                description=q_data.get('description', ''),
-                question_type=q_data.get('question_type', Question.QuestionType.TEXTAREA),
-                is_required=q_data.get('is_required', True),
-                order=existing_max_order + 1 + i,
-                options=q_data.get('options', []),
-                importance=q_data.get('importance', 3),
-                purpose=q_data.get('purpose', ''),
-            )
+        sections_data = result.get('sections', [])
+        q_order = existing_q_order
 
-            # Link position categories
-            q_positions = q_data.get('position_categories', [])
-            if q_positions:
-                categories = PositionCategory.objects.filter(
+        if sections_data:
+            # New format: sections with nested questions
+            for s_idx, s_data in enumerate(sections_data):
+                section = QuestionSection.objects.create(
                     questionnaire=questionnaire,
-                    name__in=q_positions,
+                    title=s_data.get('title', f'파트 {s_idx + 1}'),
+                    description=s_data.get('description', ''),
+                    importance=s_data.get('importance', 'medium'),
+                    target_area=s_data.get('target_area', '공통'),
+                    order=existing_section_order + 1 + s_idx,
                 )
-                question.position_categories.set(categories)
+
+                for q_data in s_data.get('questions', []):
+                    q_order += 1
+                    Question.objects.create(
+                        questionnaire=questionnaire,
+                        section=section,
+                        sub_category=q_data.get('sub_category', ''),
+                        text=q_data.get('text', ''),
+                        description=q_data.get('description', ''),
+                        question_type=q_data.get('question_type', Question.QuestionType.TEXTAREA),
+                        order=q_order,
+                        options=q_data.get('options', []),
+                        importance=q_data.get('importance', 'important'),
+                        purpose=q_data.get('purpose', ''),
+                    )
+        else:
+            # Fallback: flat questions list (backward compatibility)
+            for q_data in result.get('questions', []):
+                q_order += 1
+                Question.objects.create(
+                    questionnaire=questionnaire,
+                    text=q_data.get('text', ''),
+                    description=q_data.get('description', ''),
+                    question_type=q_data.get('question_type', Question.QuestionType.TEXTAREA),
+                    order=q_order,
+                    options=q_data.get('options', []),
+                    importance=q_data.get('importance', 'important'),
+                    purpose=q_data.get('purpose', ''),
+                )
 
         questionnaire.status = Questionnaire.Status.COMPLETED
         questionnaire.save(update_fields=['status', 'updated_at'])
@@ -86,7 +110,8 @@ def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None 
         project.status = Project.Status.QUESTIONNAIRE_READY
         project.save(update_fields=['status', 'updated_at'])
 
-        logger.info(f"Questionnaire generated for project {project.id}: {len(questions_data)} questions")
+        total_questions = questionnaire.questions.count()
+        logger.info(f"Questionnaire generated for project {project.id}: {total_questions} questions")
 
     except Questionnaire.DoesNotExist:
         logger.error(f"Questionnaire not found: {questionnaire_id}")

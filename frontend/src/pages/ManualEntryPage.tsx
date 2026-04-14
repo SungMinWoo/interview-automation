@@ -179,7 +179,7 @@ export default function ManualEntryPage() {
           {questions.map((q, index) => {
             const qType = q.question_type || q.type || 'textarea';
             const importance = q.importance ?? 3;
-            const isRequired = q.is_required ?? q.isRequired ?? false;
+            const isRequired = q.importance === 'required';
             return (
               <div key={q.id} className="border border-line bg-surface-secondary p-5">
                 <div className="mb-3">

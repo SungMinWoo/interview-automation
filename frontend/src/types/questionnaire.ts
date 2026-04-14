@@ -32,16 +32,18 @@ export interface Question {
   id: number;
   questionnaireId: number;
   categoryId?: number;
+  section?: number | null;
+  sub_category?: string;
   text: string;
   type: QuestionType;
   question_type?: QuestionType;
-  options: QuestionOption[];
-  isRequired: boolean;
-  is_required?: boolean;
+  options: QuestionOption[] | string[];
   order: number;
   description?: string;
-  importance: number;
+  importance: string;
   purpose?: string;
+  target_departments?: number[];
+  target_positions?: number[];
   createdAt: string;
   updatedAt: string;
 }
@@ -49,27 +51,52 @@ export interface Question {
 export interface QuestionCreateRequest {
   text: string;
   question_type?: QuestionType;
+  sub_category?: string;
   description?: string;
-  is_required?: boolean;
-  importance?: number;
+  importance?: string;
   purpose?: string;
   options?: string[];
+  section?: number | null;
+  target_departments?: number[];
+  target_positions?: number[];
 }
 
 export interface QuestionUpdateRequest {
   text?: string;
-  type?: QuestionType;
   question_type?: QuestionType;
   description?: string;
-  isRequired?: boolean;
-  is_required?: boolean;
-  importance?: number;
+  importance?: string;
   purpose?: string;
   order?: number;
+  options?: string[];
+  sub_category?: string;
+  section?: number | null;
+  target_departments?: number[];
+  target_positions?: number[];
 }
 
 export interface QuestionReorderRequest {
   questionIds: number[];
+}
+
+export interface QuestionSection {
+  id: number;
+  questionnaire: number;
+  title: string;
+  description?: string;
+  importance?: string;
+  target_area?: string;
+  order: number;
+  target_positions?: number[];
+  questions: Question[];
+}
+
+export interface QuestionSectionCreateRequest {
+  title: string;
+  description?: string;
+  importance?: string;
+  target_area?: string;
+  order?: number;
 }
 
 export type AiProvider = 'claude' | 'gemini';
@@ -85,6 +112,7 @@ export interface Questionnaire {
   status?: QuestionnaireStatus;
   ai_provider?: AiProvider;
   error_message?: string;
+  sections: QuestionSection[];
   categories: PositionCategory[];
   questions: Question[];
   isGenerated: boolean;

@@ -30,9 +30,9 @@ class AggregationSerializer(serializers.ModelSerializer):
         model = Aggregation
         fields = [
             'id', 'project', 'status', 'version', 'ai_provider',
-            'raw_ai_response', 'summary', 'company_direction',
-            'desired_changes', 'company_values', 'error_message',
-            'keywords', 'sentences', 'created_at',
+            'raw_ai_response', 'summary', 'section_summaries',
+            'company_direction', 'desired_changes', 'company_values',
+            'error_message', 'keywords', 'sentences', 'created_at',
         ]
         read_only_fields = [
             'id', 'project', 'status', 'version', 'ai_provider',

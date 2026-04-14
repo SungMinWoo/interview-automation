@@ -36,9 +36,19 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 9. **Stitch 통합**: Node.js 브릿지 → @google/stitch-sdk 실제 연동. 2단계 (생성 + 결과조회). DESIGN.md를 prompt에 포함하여 전달
 10. **다크모드**: TailwindCSS `dark:` 클래스 + html 태그 class 토글
 11. **DRF 페이지네이션**: 전역 PageNumberPagination 설정. 프론트 hooks에서 flat/paginated 응답 모두 처리
-12. **Question 필드**: importance(1-5 중요도), purpose(의도 설명) — AI 생성 시 포함, 취합/브리프에 활용
+12. **Question 중요도**: `importance` 필드가 IntegerChoices(1-5) → TextChoices('required'/'important'/'optional')로 변경. is_required 필드 삭제 → importance === 'required'로 대체
 13. **DESIGN.md**: AI로 생성하여 DesignBrief.design_md에 저장. Stitch 생성 시 prompt에 포함 + create_design_system의 designMd 필드에도 전달
 14. **Stitch callTool 파라미터**: camelCase 사용 (projectId, deviceType, prompt) — snake_case 아님
+15. **질문지 구조**: 섹션(QuestionSection) 기반 — 초기 AI 전체 생성 후, 섹션별 AI 추가 생성(count 지정, `sections/{id}/generate/`). section에 importance(상/중/하), target_area(공통 등), target_positions(M2M). 질문에 sub_category(세부구분), section FK, options(JSONField, 선택지), target_departments/target_positions(M2M) 포함. 질문 수정 시 선택지 추가/삭제 + 대상 부서/직급 토글 설정 가능
+16. **프로젝트 구조**: ProjectDepartment(부서), ProjectPosition(직급+weight가중치) — 프로젝트별 독립 관리. 배포 시 직원 등록에 드롭다운으로 연동
+17. **파일 업로드**: ProjectFile 모델 + file_extractor 서비스(pypdf, python-docx). 업로드 시 자동 텍스트 추출 → AI 분석(analyze_file_content) 가능
+18. **취합 개선**: 직급별 가중치(ProjectPosition.order 기반), 파트별 요약(section_summaries), 카테고리별 변화사항(desired_changes), 원문 워딩 보존(sentences에 '화자: 원문' 형태)
+19. **폴링 패턴**: 수동 isPolling useState 제거 → `shouldPoll = data?.status === 'processing'`으로 자동 관리 (새로고침 시에도 자동 폴링 재개)
+20. **설문 질문 필터링**: section.target_positions → question.target_positions → question.target_departments 순서로 체크 (비어있으면 모든 대상)
+21. **초대 링크 생성 제한**: 질문지가 CONFIRMED 상태여야만 초대 링크 생성 가능 (백엔드 GenerateInvitationsView + 프론트 DistributionPage 양쪽에서 체크)
+22. **AI 질문 생성 흐름**: 초기에만 상단 "AI 질문지 생성" 버튼 표시 (전체 섹션+질문 한번에 생성). 이후에는 각 섹션의 "AI 추가" 버튼으로 해당 섹션에만 질문 추가 (1~10개 지정)
+23. **QuestionSerializer M2M 필드**: PrimaryKeyRelatedField를 `queryset=[]`로 선언하면 `list.get()` 에러 발생. 반드시 `__init__`에서 필드 자체를 재생성해야 함 (`self.fields['target_departments'] = PrimaryKeyRelatedField(...)`)
+24. **QuestionnaireSerializer.questions**: `section__isnull=True`로 필터하여 섹션 없는 질문만 반환 (섹션 소속 질문은 sections → questions 중첩으로 제공, 중복 방지)
 
 ---
 
@@ -60,3 +70,10 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 | `STITCH_LIST` | `/projects/{id}/design-brief/stitch/` |
 | `MANUAL_ENTRY_START` | `/projects/{id}/manual-entry/start/` (responses/manual 아님!) |
 | `AGGREGATION_TRIGGER` | `/projects/{id}/aggregation/trigger/` |
+| `QUESTIONNAIRE_SECTIONS` | `/projects/{id}/questionnaire/sections/` |
+| `QUESTIONNAIRE_SECTION` | `/projects/{id}/questionnaire/sections/{sectionId}/` |
+| `QUESTIONNAIRE_SECTION_GENERATE` | `/projects/{id}/questionnaire/sections/{sectionId}/generate/` |
+| `DEPARTMENTS` | `/projects/{id}/departments/` |
+| `POSITIONS` | `/projects/{id}/positions/` |
+| `PROJECT_FILES` | `/projects/{id}/files/` |
+| `PROJECT_FILE_ANALYZE` | `/projects/{id}/files/{fileId}/analyze/` |

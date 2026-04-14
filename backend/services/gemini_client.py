@@ -83,15 +83,7 @@ class GeminiClient:
             raise
 
     def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str]) -> dict:
-        """Phase 2: Generate interview questions based on confirmed analysis.
-
-        Args:
-            confirmed_analysis: The confirmed ProjectAnalysis data (with user edits applied)
-            position_categories: List of position category names (e.g., ["임원", "관리자", "실무자"])
-
-        Returns:
-            {title, description, questions: [{text, description, question_type, is_required, options, position_categories}]}
-        """
+        """Phase 2: Generate interview questions organized by sections."""
         prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
 
 ## 분석 결과
@@ -101,27 +93,29 @@ class GeminiClient:
 {', '.join(position_categories) if position_categories else '전체 (직급 구분 없음)'}
 
 ## 지시사항
-위 분석 결과를 바탕으로 클라이언트 회사의 임직원 인터뷰 질문지를 생성하세요.
-- 회사의 현재 방향성과 미래 비전에 대한 질문 포함
-- 현재 사이트/서비스에 대한 만족도와 개선사항
-- 브랜드 이미지와 가치에 대한 인식
-- 직급별로 적합한 질문이 다를 수 있음 (임원은 전략적, 실무자는 실용적)
-- position_categories가 비어있으면 모든 직급 공통 질문만 생성
+구분(section)별로 질문지를 생성하세요. 각 구분에 4~8개 질문. 질문마다 sub_category, importance, purpose 필수.
 
 ## 출력 형식 (JSON)
 {{
     "title": "질문지 제목",
     "description": "질문지 설명",
-    "questions": [
+    "sections": [
         {{
-            "text": "질문 내용",
-            "description": "질문 보조 설명 (선택)",
-            "question_type": "textarea|text|single_choice|multiple_choice|rating",
-            "is_required": true,
-            "options": ["선택지1", "선택지2"],
-            "importance": 3,
-            "purpose": "이 질문이 확인하고자 하는 것에 대한 설명",
-            "position_categories": ["해당 직급"] 또는 [] (전체 대상)
+            "title": "구분 제목",
+            "description": "구분 설명",
+            "importance": "high|medium|low",
+            "target_area": "공통",
+            "questions": [
+                {{
+                    "sub_category": "세부구분",
+                    "text": "질문 내용",
+                    "description": "",
+                    "question_type": "textarea",
+                    "options": [],
+                    "importance": "required|important|optional",
+                    "purpose": "질문 의도"
+                }}
+            ]
         }}
     ]
 }}
@@ -139,6 +133,26 @@ class GeminiClient:
             logger.error(f"Gemini questionnaire generation failed: {e}")
             raise
 
+    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str]) -> dict:
+        """Generate additional questions for a specific section."""
+        existing = chr(10).join(f'- {q}' for q in existing_questions) if existing_questions else '(없음)'
+        prompt = f"""섹션 "{section_title}" ({section_description})에 추가할 질문을 정확히 {count}개 생성하세요. 기존 질문과 중복 금지.
+
+## 컨텍스트
+{json.dumps(analysis_context, ensure_ascii=False, indent=2)}
+
+## 기존 질문
+{existing}
+
+## JSON 출력
+{{"questions": [{{"sub_category":"세부구분","text":"질문","description":"","question_type":"textarea","options":[],"importance":"required|important|optional","purpose":"의도"}}]}}"""
+        try:
+            response = self.model.generate_content(prompt, generation_config={'response_mime_type': 'application/json', 'temperature': 0.7})
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Gemini section question generation failed: {e}")
+            raise
+
     def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict) -> dict:
         """Phase 3: Aggregate all survey responses.
 
@@ -149,35 +163,28 @@ class GeminiClient:
         Returns:
             {summary, company_direction, desired_changes, company_values, keywords, sentences}
         """
-        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 인터뷰 응답 분석 전문가입니다.
+        prompt = f"""인터뷰 응답을 파트별로 요약하세요. 원문 워딩을 최대한 유지하고, 변화사항은 카테고리(UX, 디자인, 기술 등)로 분류하세요.
 
-## 원래 분석 컨텍스트
+## 컨텍스트
 {json.dumps(analysis_context, ensure_ascii=False, indent=2)}
 
-## 인터뷰 응답 데이터
+## 응답 데이터
 {json.dumps(questions_with_answers, ensure_ascii=False, indent=2)}
-
-## 지시사항
-모든 인터뷰 응답을 종합 분석하여 다음을 추출하세요:
-1. 전체 요약: 임직원들의 전반적인 의견 종합
-2. 회사 방향성: 임직원들이 생각하는 회사의 나아갈 방향
-3. 변화하고 싶은 것들: 개선하고 싶은 점들
-4. 추구하는 가치: 회사가 중시하는 가치
-5. 핵심 키워드: 디자인 방향에 활용할 키워드들 (카테고리: tone, feature, value, emotion 등)
-6. 핵심 문장: 디자인 컨셉에 활용할 인상적인 문장들
 
 ## 출력 형식 (JSON)
 {{
     "summary": "전체 종합 요약",
-    "company_direction": "회사 방향성 서술",
-    "desired_changes": ["변화1", "변화2", ...],
-    "company_values": ["가치1", "가치2", ...],
-    "keywords": [
-        {{"text": "키워드", "category": "카테고리", "weight": 0.9}}
+    "section_summaries": [
+        {{"section_title": "파트명", "summary": "파트 요약", "key_quotes": ["화자: '원문'"]}}
     ],
-    "sentences": [
-        {{"text": "핵심 문장", "category": "카테고리"}}
-    ]
+    "company_direction": "회사 방향성",
+    "desired_changes": [
+        {{"category": "UX", "items": ["변화1"]}},
+        {{"category": "디자인", "items": ["변화2"]}}
+    ],
+    "company_values": ["가치1"],
+    "keywords": [{{"text": "키워드", "category": "tone|feature|value|emotion", "weight": 0.9}}],
+    "sentences": [{{"text": "화자: '원문 인용'", "category": "비전|브랜드|UX"}}]
 }}
 """
         try:
@@ -191,6 +198,16 @@ class GeminiClient:
             return json.loads(response.text)
         except Exception as e:
             logger.error(f"Gemini aggregation failed: {e}")
+            raise
+
+    def analyze_file_content(self, file_text: str, file_name: str) -> dict:
+        """Analyze uploaded file content and extract requirements summary."""
+        prompt = f"""파일명: {file_name}\n\n{file_text[:8000]}\n\n위 파일에서 프로젝트 요구사항을 추출하세요. JSON: {{"summary":"요약","requirements":["항목"],"keywords":["키워드"],"target_audience":"타겟","constraints":["제약"],"notes":"참고"}}"""
+        try:
+            response = self.model.generate_content(prompt, generation_config={'response_mime_type': 'application/json', 'temperature': 0.3})
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Gemini file analysis failed: {e}")
             raise
 
     def generate_additional_keywords(self, existing_keywords: list[str], context: dict) -> list[dict]:

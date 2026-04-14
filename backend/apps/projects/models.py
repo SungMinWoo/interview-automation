@@ -37,6 +37,35 @@ class Project(models.Model):
         return f"{self.title} - {self.client_name}"
 
 
+class ProjectDepartment(models.Model):
+    """Team/department structure defined at project level."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='departments')
+    name = models.CharField(max_length=100)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'projects_projectdepartment'
+        ordering = ['order']
+
+    def __str__(self):
+        return self.name
+
+
+class ProjectPosition(models.Model):
+    """Position/role structure defined at project level, with weight for aggregation."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='positions')
+    name = models.CharField(max_length=100)
+    weight = models.FloatField(default=1.0, help_text='취합 시 가중치 (1.0=기본, 2.0=2배 중요)')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'projects_projectposition'
+        ordering = ['order']
+
+    def __str__(self):
+        return self.name
+
+
 class ReferenceSite(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reference_sites')
     url = models.URLField()
@@ -53,3 +82,22 @@ class ReferenceSite(models.Model):
 
     def __str__(self):
         return f"{self.title or self.url}"
+
+
+class ProjectFile(models.Model):
+    """Files uploaded for project requirements (PDF, DOCX, images, etc.)."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='files')
+    file = models.FileField(upload_to='project_files/%Y/%m/')
+    original_name = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=50, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+    extracted_text = models.TextField(blank=True)
+    ai_summary = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'projects_projectfile'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.original_name

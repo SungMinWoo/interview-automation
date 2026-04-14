@@ -8,8 +8,8 @@ SI(System Integration) 회사에서 클라이언트 UXUI 디자인 전 단계로
 2. **AI 사이트 분석** — Claude/Gemini API로 클라이언트 요구사항 + 사이트들 자동 분석 (AI 선택 가능)
 3. **유저 컨펌** — AI 분석 결과를 유저가 검토/수정 후 확인 (확인 후 잠금)
 4. **AI 질문지 생성** — 확인된 분석 결과 기반으로 직급별 인터뷰 질문지 자동 생성 (중요도 + 의도 포함)
-5. **질문지 편집/확정** — 유저가 순서 변경, 내용 수정, 직접 추가, AI 추가 생성 가능. 확정 시 잠금
-6. **배포** — 임직원 정보 입력 → 일회용 URL 생성 (비밀번호: 폰번호 뒷4자리 또는 랜덤) → 이메일 발송, 개별 링크 관리/재생성
+5. **질문지 편집/확정** — 섹션별 관리, 질문 수정 (선택지/대상 부서·직급 설정 포함), 순서 변경, 직접 추가, 섹션별 AI 추가 생성. 확정 시 잠금
+6. **배포** — 질문지 확정 필수 → 임직원 정보 입력 → 일회용 URL 생성 (비밀번호: 폰번호 뒷4자리 또는 랜덤) → 이메일 발송, 개별 링크 관리/재생성
 7. **응답 수집** — 온라인 설문 (부분 답변 허용) + 대면 인터뷰 수동 입력, 수집 마감
 8. **AI 취합** — 모든 응답을 AI로 종합 분석 → 회사 방향성, 가치, 키워드, 핵심 문장 추출
 9. **키워드/문장 편집** — 유저가 AI 추출 결과를 추가생성, 재생성, 수정 가능
@@ -28,6 +28,7 @@ SI(System Integration) 회사에서 클라이언트 UXUI 디자인 전 단계로
 | **상태관리** | Zustand (auth/theme) + TanStack Query (서버 상태) |
 | **비동기 작업** | Celery + Redis |
 | **AI** | Anthropic Claude API + Google Gemini API (선택 가능, 기본 Claude) |
+| **파일 파싱** | pypdf (PDF), python-docx (DOCX), 내장 (TXT 등) |
 | **디자인 생성** | Google Stitch SDK (@google/stitch-sdk) via Node.js 브릿지 |
 | **인프라** | Docker Compose + Nginx |
 | **인증** | JWT (djangorestframework-simplejwt), 추후 SSO 추가 예정 |
@@ -45,17 +46,18 @@ interview_tool/
 │   ├── config/              # Django 설정 (base/dev/prod/test)
 │   ├── apps/
 │   │   ├── accounts/        # 유저 인증
-│   │   ├── projects/        # 프로젝트 관리, 12단계 상태
+│   │   ├── projects/        # 프로젝트 관리, 12단계 상태, 부서/직급 구조, 파일 업로드
 │   │   ├── analysis/        # AI 사이트 분석 (ai_provider 선택)
-│   │   ├── questionnaires/  # 질문지 관리 (중요도, 의도, 확정 잠금)
+│   │   ├── questionnaires/  # 질문지 관리 (섹션/세부구분, 중요도, 의도, 확정 잠금)
 │   │   ├── distribution/    # 직원 관리, 초대 링크 생성/재생성, 이메일 발송
 │   │   ├── responses/       # 응답 수집, 수동 입력, 수집 마감
-│   │   ├── aggregation/     # AI 취합, 키워드/문장 추출
+│   │   ├── aggregation/     # AI 취합, 파트별 요약, 키워드/문장 추출
 │   │   └── design_brief/    # 디자인 브리프, DESIGN.md 생성, Stitch 연동
 │   └── services/
 │       ├── ai_client.py         # AI 팩토리 (Claude/Gemini 선택)
 │       ├── claude_client.py     # Anthropic Claude API 래퍼
 │       ├── gemini_client.py     # Google Gemini API 래퍼
+│       ├── file_extractor.py    # 파일 텍스트 추출 (PDF, DOCX, TXT)
 │       ├── stitch_client.py     # Stitch Bridge HTTP 클라이언트
 │       ├── crawler_service.py   # 웹 크롤링
 │       ├── screenshot_service.py # 스크린샷
@@ -65,7 +67,7 @@ interview_tool/
 │   ├── src/
 │   │   ├── api/             # Axios API 클라이언트
 │   │   ├── components/      # layout/ + common/ (AiProviderSelect 포함)
-│   │   ├── hooks/           # TanStack Query 커스텀 훅
+│   │   ├── hooks/           # TanStack Query 커스텀 훅 (useProjectFiles, useProjectStructure 포함)
 │   │   ├── pages/           # 14개 페이지 컴포넌트
 │   │   ├── routes/          # React Router 설정
 │   │   ├── store/           # Zustand 스토어
@@ -88,19 +90,29 @@ interview_tool/
 
 ### 프로젝트
 - `GET/POST /api/v1/projects/` — 프로젝트 목록/생성
+- `GET/POST /api/v1/projects/{id}/departments/` — 부서 목록/생성
+- `DELETE /api/v1/projects/{id}/departments/{deptId}/` — 부서 삭제
+- `GET/POST /api/v1/projects/{id}/positions/` — 직급 목록/생성 (weight 가중치 포함)
+- `DELETE /api/v1/projects/{id}/positions/{posId}/` — 직급 삭제
+- `GET/POST /api/v1/projects/{id}/files/` — 요구사항 파일 목록/업로드 (PDF, DOCX, TXT, 이미지)
+- `DELETE /api/v1/projects/{id}/files/{fileId}/` — 파일 삭제
+- `POST /api/v1/projects/{id}/files/{fileId}/analyze/` — AI 파일 분석
 
 ### 분석
 - `POST /api/v1/projects/{id}/analysis/trigger/` — AI 분석 시작 (ai_provider 선택)
 - `POST /api/v1/projects/{id}/analysis/confirm/` — 분석 확인
 
 ### 질문지
-- `POST /api/v1/projects/{id}/questionnaire/generate/` — AI 질문지 생성 (ai_provider 선택)
+- `POST /api/v1/projects/{id}/questionnaire/generate/` — AI 질문지 생성 (섹션 기반, ai_provider 선택)
 - `POST /api/v1/projects/{id}/questionnaire/confirm/` — 질문지 확정 (잠금)
 - `GET /api/v1/projects/{id}/questionnaire/status/` — 생성 상태 폴링
+- `GET/POST/DELETE /api/v1/projects/{id}/questionnaire/sections/` — 질문 섹션 CRUD
+- `POST /api/v1/projects/{id}/questionnaire/sections/{sectionId}/generate/` — 섹션별 AI 질문 추가 생성 (count, ai_provider)
+- `GET/POST/PATCH/DELETE /api/v1/projects/{id}/questionnaire/questions/` — 질문 CRUD (options, target_departments, target_positions 포함)
 - `POST /api/v1/projects/{id}/questionnaire/questions/reorder/` — 질문 순서 변경
 
 ### 배포
-- `POST /api/v1/projects/{id}/invitations/generate/` — 설문 초대 링크 생성
+- `POST /api/v1/projects/{id}/invitations/generate/` — 설문 초대 링크 생성 (**질문지 확정 필수**)
 - `POST /api/v1/projects/{id}/invitations/send/` — 이메일 발송
 - `POST /api/v1/projects/{id}/invitations/{empId}/regenerate/` — 초대 링크 재생성
 

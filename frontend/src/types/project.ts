@@ -22,6 +22,30 @@ export interface ReferenceSiteUpdateRequest {
   order?: number;
 }
 
+export interface ProjectDepartment {
+  id: number;
+  name: string;
+  order: number;
+}
+
+export interface ProjectPosition {
+  id: number;
+  name: string;
+  weight: number;
+  order: number;
+}
+
+export interface ProjectFile {
+  id: number;
+  file: string;
+  original_name: string;
+  file_type: string;
+  file_size: number;
+  extracted_text: string;
+  ai_summary: string;
+  created_at: string;
+}
+
 export interface Project {
   id: number;
   title: string;
@@ -33,6 +57,9 @@ export interface Project {
   status: ProjectStatus;
   reference_sites: ReferenceSite[];
   reference_sites_count?: number;
+  files?: ProjectFile[];
+  departments?: ProjectDepartment[];
+  positions?: ProjectPosition[];
   created_at: string;
   updated_at: string;
 }

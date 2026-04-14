@@ -44,6 +44,39 @@ class PositionCategory(models.Model):
         return self.name
 
 
+class QuestionSection(models.Model):
+    """구분 — 질문지의 대분류 (e.g., Project Overview, Service Image, UX/UI Design)"""
+
+    class SectionImportance(models.TextChoices):
+        HIGH = 'high', '상'
+        MEDIUM = 'medium', '중'
+        LOW = 'low', '하'
+
+    questionnaire = models.ForeignKey(Questionnaire, on_delete=models.CASCADE, related_name='sections')
+    title = models.CharField(max_length=255, help_text='구분 (e.g., Project Overview)')
+    description = models.TextField(blank=True, help_text='구분 설명')
+    importance = models.CharField(
+        max_length=10, choices=SectionImportance.choices,
+        default=SectionImportance.MEDIUM, help_text='질문영역 중요도 (상/중/하)',
+    )
+    target_area = models.CharField(
+        max_length=50, blank=True, default='공통',
+        help_text='질문 영역 (공통, FO 등)',
+    )
+    order = models.PositiveIntegerField(default=0)
+    target_positions = models.ManyToManyField(
+        'projects.ProjectPosition', blank=True, related_name='question_sections',
+        help_text='비어있으면 모든 직급 대상',
+    )
+
+    class Meta:
+        db_table = 'questionnaires_questionsection'
+        ordering = ['order']
+
+    def __str__(self):
+        return self.title
+
+
 class Question(models.Model):
     class QuestionType(models.TextChoices):
         TEXT = 'text', '단답형'
@@ -53,23 +86,30 @@ class Question(models.Model):
         RATING = 'rating', '평점'
         RANKING = 'ranking', '순위'
 
-    class Importance(models.IntegerChoices):
-        LOW = 1, '낮음'
-        BELOW_NORMAL = 2, '보통이하'
-        NORMAL = 3, '보통'
-        IMPORTANT = 4, '중요'
-        VERY_IMPORTANT = 5, '매우중요'
+    class Importance(models.TextChoices):
+        REQUIRED = 'required', '필수'
+        IMPORTANT = 'important', '중요'
+        OPTIONAL = 'optional', '선택'
 
     questionnaire = models.ForeignKey(Questionnaire, on_delete=models.CASCADE, related_name='questions')
+    section = models.ForeignKey(QuestionSection, on_delete=models.CASCADE, related_name='questions', null=True, blank=True)
+    sub_category = models.CharField(max_length=100, blank=True, help_text='세부구분 (e.g., 직무/포지션, 전략/로드맵)')
     text = models.TextField()
     description = models.TextField(blank=True)
     question_type = models.CharField(max_length=20, choices=QuestionType.choices, default=QuestionType.TEXTAREA)
-    is_required = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
     options = models.JSONField(default=list, blank=True)
-    importance = models.IntegerField(choices=Importance.choices, default=Importance.NORMAL)
+    importance = models.CharField(max_length=20, choices=Importance.choices, default=Importance.IMPORTANT)
     purpose = models.TextField(blank=True)
     position_categories = models.ManyToManyField(PositionCategory, blank=True, related_name='questions')
+    target_departments = models.ManyToManyField(
+        'projects.ProjectDepartment', blank=True, related_name='targeted_questions',
+        help_text='비어있으면 모든 부서 대상',
+    )
+    target_positions = models.ManyToManyField(
+        'projects.ProjectPosition', blank=True, related_name='targeted_questions',
+        help_text='비어있으면 모든 직급 대상',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
