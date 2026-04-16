@@ -127,14 +127,14 @@ QUESTIONS_DATA = [
     {
         'text': '현재 웹사이트에서 가장 불편하다고 느끼는 점은 무엇인가요?',
         'question_type': 'textarea',
-        'importance': 5,
+        'importance': 'required',
         'purpose': '현재 사이트의 주요 문제점 파악',
         'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
     },
     {
         'text': '새 웹사이트에서 가장 중요하게 생각하는 기능을 선택해주세요.',
         'question_type': 'multiple_choice',
-        'importance': 5,
+        'importance': 'required',
         'options': ['반응형 디자인', '빠른 로딩 속도', '검색 기능', '다국어 지원', '접근성', 'SEO 최적화'],
         'purpose': '핵심 기능 우선순위 파악',
         'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
@@ -142,14 +142,14 @@ QUESTIONS_DATA = [
     {
         'text': '브랜드 이미지를 한 단어로 표현한다면?',
         'question_type': 'text',
-        'importance': 4,
+        'importance': 'important',
         'purpose': '브랜드 인식 조사',
         'categories': ['경영진', '마케팅/기획'],
     },
     {
         'text': '웹사이트의 주요 타겟 사용자층은 누구라고 생각하시나요?',
         'question_type': 'single_choice',
-        'importance': 4,
+        'importance': 'important',
         'options': ['10-20대 젊은 층', '30-40대 직장인', '50대 이상', '기업 고객(B2B)', '글로벌 사용자'],
         'purpose': '타겟 사용자 정의',
         'categories': ['경영진', '마케팅/기획'],
@@ -157,7 +157,7 @@ QUESTIONS_DATA = [
     {
         'text': '디자인 방향성에 대해 선호하는 스타일을 선택해주세요.',
         'question_type': 'single_choice',
-        'importance': 4,
+        'importance': 'important',
         'options': ['미니멀/모던', '화려하고 역동적', '전통적/클래식', '친근하고 따뜻한', '테크/미래지향적'],
         'purpose': '디자인 방향 설정',
         'categories': ['경영진', '디자인'],
@@ -165,14 +165,14 @@ QUESTIONS_DATA = [
     {
         'text': '컬러 톤에 대한 선호도를 평가해주세요. (1: 차가운 톤 ~ 5: 따뜻한 톤)',
         'question_type': 'rating',
-        'importance': 3,
+        'importance': 'optional',
         'purpose': '컬러 방향 설정',
         'categories': ['디자인'],
     },
     {
         'text': '아래 항목을 중요도 순으로 정렬해주세요.',
         'question_type': 'ranking',
-        'importance': 4,
+        'importance': 'important',
         'options': ['시각적 임팩트', '정보 전달력', '사용 편의성', '브랜드 일관성', '성능/속도'],
         'purpose': '디자인 우선순위 결정',
         'categories': ['경영진', '디자인', '개발'],
@@ -180,7 +180,7 @@ QUESTIONS_DATA = [
     {
         'text': '리뉴얼 후 가장 기대하는 변화는 무엇인가요?',
         'question_type': 'textarea',
-        'importance': 3,
+        'importance': 'optional',
         'purpose': '기대 효과 파악',
         'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
     },
@@ -542,7 +542,6 @@ class Command(BaseCommand):
                 question_type=q_data['question_type'],
                 importance=q_data['importance'],
                 purpose=q_data.get('purpose', ''),
-                is_required=True,
                 order=i,
                 options=q_data.get('options', []),
             )

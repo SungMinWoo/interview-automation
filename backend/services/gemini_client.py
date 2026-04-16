@@ -13,21 +13,21 @@ class GeminiClient:
         genai.configure(api_key=settings.GEMINI_API_KEY)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict]) -> dict:
-        """Phase 1: Analyze client requirements and sites.
-
-        Args:
-            requirements_text: Client's requirements description
-            existing_site_data: {url, screenshot_base64, crawl_text} or None
-            reference_sites_data: [{url, screenshot_base64, crawl_text}, ...]
-
-        Returns:
-            {requirements_summary, existing_site_analysis, reference_sites_analysis, combined_insights}
-        """
+    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None) -> dict:
+        """Phase 1: Analyze client requirements and sites."""
         prompt_parts = [
             "당신은 SI 회사의 UX/UI 분석 전문가입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n",
             f"## 클라이언트 요구사항\n{requirements_text}\n",
         ]
+
+        if file_contents:
+            prompt_parts.append("\n## 요구사항 첨부 파일")
+            for fc in file_contents:
+                prompt_parts.append(f"\n### 파일: {fc['file_name']}")
+                if fc.get('ai_summary'):
+                    prompt_parts.append(f"AI 요약: {fc['ai_summary']}")
+                if fc.get('content'):
+                    prompt_parts.append(f"내용:\n{fc['content']}\n")
 
         if existing_site_data:
             prompt_parts.append(f"\n## 기존 사이트\nURL: {existing_site_data.get('url', '')}\n")
@@ -80,6 +80,19 @@ class GeminiClient:
             return json.loads(response.text)
         except Exception as e:
             logger.error(f"Gemini analysis failed: {e}")
+            raise
+
+    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict) -> dict:
+        """Regenerate a specific section of the analysis."""
+        prompt = f"""현재 분석: {json.dumps(current_analysis, ensure_ascii=False)}
+컨텍스트: {json.dumps(context, ensure_ascii=False)}
+
+"{section}" 섹션을 더 깊이 있고 구체적으로 다시 작성하세요. JSON: {{"{section}": ...}}"""
+        try:
+            response = self.model.generate_content(prompt, generation_config={'response_mime_type': 'application/json', 'temperature': 0.7})
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Gemini section regeneration failed: {e}")
             raise
 
     def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str]) -> dict:

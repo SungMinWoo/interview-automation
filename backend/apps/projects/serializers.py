@@ -31,7 +31,7 @@ class ProjectFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectFile
         fields = ['id', 'file', 'original_name', 'file_type', 'file_size', 'extracted_text', 'ai_summary', 'created_at']
-        read_only_fields = ['id', 'extracted_text', 'ai_summary', 'created_at']
+        read_only_fields = ['id', 'original_name', 'file_type', 'file_size', 'extracted_text', 'ai_summary', 'created_at']
 
 
 class ProjectListSerializer(serializers.ModelSerializer):

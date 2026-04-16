@@ -196,6 +196,7 @@ export const API_PATHS = {
   ANALYSIS_TRIGGER: (projectId: number) => `/projects/${projectId}/analysis/trigger/`,
   ANALYSIS_STATUS: (projectId: number) => `/projects/${projectId}/analysis/status/`,
   ANALYSIS_CONFIRM: (projectId: number) => `/projects/${projectId}/analysis/confirm/`,
+  ANALYSIS_REGENERATE_SECTION: (projectId: number) => `/projects/${projectId}/analysis/regenerate-section/`,
   QUESTIONNAIRE: (projectId: number) => `/projects/${projectId}/questionnaire/`,
   QUESTIONNAIRE_GENERATE: (projectId: number) => `/projects/${projectId}/questionnaire/generate/`,
   QUESTIONNAIRE_STATUS: (projectId: number) => `/projects/${projectId}/questionnaire/status/`,

@@ -270,17 +270,22 @@ export default function ProjectDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/projects')}
-            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-content-primary">{project.title}</h1>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate('/projects')}
+          className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h1 className="text-2xl font-bold text-content-primary">{project.title}</h1>
+      </div>
+
+      {/* Project Info Card */}
+      <div className="border border-line bg-surface-secondary p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-3 flex-1">
+            {/* Status + Meta */}
+            <div className="flex flex-wrap items-center gap-3">
               <span
                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   PROJECT_STATUS_COLORS[project.status]
@@ -288,29 +293,66 @@ export default function ProjectDetailPage() {
               >
                 {PROJECT_STATUS_LABELS[project.status]}
               </span>
+              <span className="text-sm text-content-secondary">{project.client_name}</span>
+              {project.client_contact_email && (
+                <span className="text-sm text-content-tertiary">{project.client_contact_email}</span>
+              )}
+              {project.client_contact_phone && (
+                <span className="text-sm text-content-tertiary">{project.client_contact_phone}</span>
+              )}
+              <span className="text-xs text-content-muted">{formatDate(project.created_at)}</span>
             </div>
-            <p className="mt-1 text-sm text-content-tertiary">
-              {project.client_name} &middot; {formatDate(project.created_at)}
-            </p>
+
+            {/* Existing site URL */}
+            {project.existing_site_url && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-content-muted">기존 사이트</span>
+                <a href={project.existing_site_url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline break-all">
+                  {project.existing_site_url}
+                </a>
+              </div>
+            )}
+
+            {/* Requirements text */}
+            {project.requirements_text && (
+              <div>
+                <span className="text-xs font-medium text-content-muted">요구사항</span>
+                <p className="mt-1 text-sm text-content-secondary whitespace-pre-wrap leading-relaxed">
+                  {project.requirements_text}
+                </p>
+              </div>
+            )}
+
+            {/* Reference sites */}
+            {project.reference_sites && project.reference_sites.length > 0 && (
+              <div>
+                <span className="text-xs font-medium text-content-muted">레퍼런스 사이트</span>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {project.reference_sites.map((site) => (
+                    <a
+                      key={site.id}
+                      href={site.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 border border-line px-2.5 py-1 text-xs text-accent hover:bg-surface-hover"
+                    >
+                      {site.title || site.url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-        <div className="flex gap-2">
+
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 text-danger transition-colors hover:bg-danger-bg hover:text-danger"
+            className="ml-4 flex-shrink-0 p-2 text-content-muted transition-colors hover:bg-danger-bg hover:text-danger"
             title="프로젝트 삭제"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
-
-      {/* Description */}
-      {project.requirements_text && (
-        <div className="border border-line bg-surface-secondary p-5">
-          <p className="text-sm text-content-secondary">{project.requirements_text}</p>
-        </div>
-      )}
 
       {/* 요구사항 파일 */}
       <div className="border border-line bg-surface-secondary p-6">
@@ -328,13 +370,6 @@ export default function ProjectDetailPage() {
                     <span className="text-xs text-content-tertiary">{formatFileSize(f.file_size)}</span>
                     <span className="text-xs text-content-muted">{f.file_type}</span>
                   </div>
-
-                  {f.extracted_text && (
-                    <p className="mt-1 ml-6 text-xs text-content-secondary line-clamp-3">
-                      {f.extracted_text.slice(0, 200)}
-                      {f.extracted_text.length > 200 && '...'}
-                    </p>
-                  )}
 
                   {f.ai_summary && (
                     <div className="mt-2 ml-6 border-l-2 border-accent pl-3">

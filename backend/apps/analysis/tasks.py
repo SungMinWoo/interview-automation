@@ -64,12 +64,26 @@ def run_project_analysis(self, project_id: int, ai_provider: str | None = None) 
                 'crawl_text': crawl_result.get('main_text', ''),
             })
 
+        # Gather uploaded file contents
+        from apps.projects.models import ProjectFile
+        file_contents = []
+        for pf in ProjectFile.objects.filter(project=project):
+            text = pf.extracted_text or ''
+            summary = pf.ai_summary or ''
+            if text or summary:
+                file_contents.append({
+                    'file_name': pf.original_name,
+                    'content': text[:5000],
+                    'ai_summary': summary,
+                })
+
         # Run AI analysis
         ai_client = get_ai_client(ai_provider)
         result = ai_client.analyze_project(
             requirements_text=project.requirements_text,
             existing_site_data=existing_site_data,
             reference_sites_data=reference_sites_data,
+            file_contents=file_contents,
         )
 
         analysis.requirements_summary = result.get('requirements_summary', '')

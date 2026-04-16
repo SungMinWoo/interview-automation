@@ -1,8 +1,10 @@
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Loader2, Upload, FileText, X } from 'lucide-react';
 import { useCreateProject } from '@/hooks/useProjects';
+import { useUploadFile } from '@/hooks/useProjectFiles';
 import { projectSchema } from '@/utils/validators';
 import type { ProjectFormValues } from '@/utils/validators';
 import toast from 'react-hot-toast';
@@ -10,6 +12,9 @@ import toast from 'react-hot-toast';
 export default function ProjectCreatePage() {
   const navigate = useNavigate();
   const createProject = useCreateProject();
+  const uploadFile = useUploadFile();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -50,6 +55,16 @@ export default function ProjectCreatePage() {
         })) || [],
       };
       const project = await createProject.mutateAsync(payload);
+
+      // Upload pending files
+      for (const file of pendingFiles) {
+        try {
+          await uploadFile.mutateAsync({ projectId: project.id, file });
+        } catch {
+          toast.error(`${file.name} 업로드에 실패했습니다.`);
+        }
+      }
+
       toast.success('프로젝트가 생성되었습니다.');
       navigate(`/projects/${project.id}`);
     } catch {
@@ -172,6 +187,55 @@ export default function ProjectCreatePage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Requirement Files */}
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">요구사항 파일</h2>
+          <p className="mb-3 text-xs text-content-tertiary">PDF, DOCX, TXT 등 요구사항 관련 파일을 첨부하면 AI 분석에 반영됩니다.</p>
+
+          {pendingFiles.length > 0 && (
+            <div className="mb-3 space-y-2">
+              {pendingFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center justify-between border border-line p-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 flex-shrink-0 text-content-tertiary" />
+                    <span className="text-sm text-content-primary truncate">{file.name}</span>
+                    <span className="text-xs text-content-muted">{(file.size / 1024).toFixed(1)} KB</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== idx))}
+                    className="text-content-muted hover:text-danger flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 border-2 border-dashed border-line py-6 text-sm text-content-tertiary hover:border-line-hover hover:text-accent transition-colors"
+          >
+            <Upload className="h-5 w-5" />
+            파일 추가
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg"
+            onChange={(e) => {
+              if (e.target.files) {
+                setPendingFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                e.target.value = '';
+              }
+            }}
+            className="hidden"
+          />
         </div>
 
         {/* Reference Sites */}

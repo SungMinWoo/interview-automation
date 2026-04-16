@@ -61,6 +61,22 @@ export function useUpdateAnalysis() {
   });
 }
 
+export function useRegenerateSection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, section, ai_provider }: { projectId: number; section: string; ai_provider?: string }) => {
+      const res = await apiClient.post<AnalysisResult>(API_PATHS.ANALYSIS_REGENERATE_SECTION(projectId), {
+        section,
+        ai_provider,
+      });
+      return res.data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: analysisKey(variables.projectId) });
+    },
+  });
+}
+
 export function useConfirmAnalysis() {
   const queryClient = useQueryClient();
   return useMutation({

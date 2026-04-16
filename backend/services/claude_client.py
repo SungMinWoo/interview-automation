@@ -62,12 +62,21 @@ class ClaudeClient:
                 else:
                     raise
 
-    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict]) -> dict:
+    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None) -> dict:
         """Phase 1: Analyze client requirements and sites."""
         prompt_parts = [
             "당신은 SI 회사의 UX/UI 분석 전문가입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n",
             f"## 클라이언트 요구사항\n{requirements_text}\n",
         ]
+
+        if file_contents:
+            prompt_parts.append("\n## 요구사항 첨부 파일")
+            for fc in file_contents:
+                prompt_parts.append(f"\n### 파일: {fc['file_name']}")
+                if fc.get('ai_summary'):
+                    prompt_parts.append(f"AI 요약: {fc['ai_summary']}")
+                if fc.get('content'):
+                    prompt_parts.append(f"내용:\n{fc['content']}\n")
 
         if existing_site_data:
             prompt_parts.append(f"\n## 기존 사이트\nURL: {existing_site_data.get('url', '')}\n")
@@ -114,6 +123,38 @@ class ClaudeClient:
             return self._request_json('\n'.join(prompt_parts), temperature=0.7)
         except Exception as e:
             logger.error(f"Claude analysis failed: {e}")
+            raise
+
+    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict) -> dict:
+        """Regenerate a specific section of the analysis."""
+        section_prompts = {
+            'requirements_summary': '클라이언트 요구사항을 다시 분석하여 요약해주세요. 첨부 파일 내용도 반영하세요.',
+            'existing_site_analysis': '기존 사이트를 다시 분석해주세요. layout, navigation, color_scheme, typography, strengths, weaknesses를 포함하세요.',
+            'reference_sites_analysis': '레퍼런스 사이트들을 다시 분석해주세요. 각 사이트별로 url, layout, standout_features, design_patterns, relevant_to_requirements를 포함하세요.',
+            'combined_insights': '모든 분석 결과를 종합하여 인사이트를 다시 도출해주세요. recommended_direction, key_patterns_to_adopt, gaps_to_address, risk_areas를 포함하세요.',
+        }
+        instruction = section_prompts.get(section, f'{section} 섹션을 다시 분석해주세요.')
+
+        prompt = f"""당신은 SI 회사의 UX/UI 분석 전문가입니다.
+
+## 현재 분석 결과
+{json.dumps(current_analysis, ensure_ascii=False, indent=2)}
+
+## 프로젝트 컨텍스트
+{json.dumps(context, ensure_ascii=False, indent=2)}
+
+## 지시사항
+{instruction}
+
+기존 분석 결과를 참고하되, 더 깊이 있고 구체적으로 다시 작성해주세요.
+
+## 출력 형식
+반드시 JSON으로만 응답하세요. "{section}" 키의 값만 반환하세요.
+{{"{ section }": ...}}"""
+        try:
+            return self._request_json(prompt, temperature=0.7)
+        except Exception as e:
+            logger.error(f"Claude section regeneration failed: {e}")
             raise
 
     def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str]) -> dict:

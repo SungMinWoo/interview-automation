@@ -112,6 +112,74 @@ class AnalysisConfirmView(APIView):
         return Response(ProjectAnalysisSerializer(analysis).data)
 
 
+class RegenerateAnalysisSectionView(APIView):
+    """POST - Regenerate a specific section of the analysis with AI."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    VALID_SECTIONS = {'requirements_summary', 'existing_site_analysis', 'reference_sites_analysis', 'combined_insights'}
+
+    def post(self, request, project_id):
+        project = get_user_project(request, project_id)
+        analysis = get_object_or_404(ProjectAnalysis, project=project)
+
+        if analysis.status == ProjectAnalysis.Status.CONFIRMED:
+            return Response(
+                {'detail': '분석이 확인되어 수정할 수 없습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        section = request.data.get('section')
+        if section not in self.VALID_SECTIONS:
+            return Response(
+                {'detail': f'유효하지 않은 섹션: {section}. 가능한 값: {", ".join(self.VALID_SECTIONS)}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ai_provider = validate_ai_provider(request.data.get('ai_provider'))
+
+        # Build context
+        current_analysis = {
+            'requirements_summary': analysis.requirements_summary,
+            'existing_site_analysis': analysis.existing_site_analysis,
+            'reference_sites_analysis': analysis.reference_sites_analysis,
+            'combined_insights': analysis.combined_insights,
+        }
+        context = {
+            'requirements_text': project.requirements_text,
+            'existing_site_url': project.existing_site_url or '',
+        }
+
+        # Include file contents
+        from apps.projects.models import ProjectFile
+        files = ProjectFile.objects.filter(project=project)
+        if files.exists():
+            context['file_contents'] = [
+                {'file_name': f.original_name, 'summary': f.ai_summary or '', 'content': (f.extracted_text or '')[:3000]}
+                for f in files if f.extracted_text or f.ai_summary
+            ]
+
+        from services.ai_client import get_ai_client
+        ai_client = get_ai_client(ai_provider)
+
+        try:
+            result = ai_client.regenerate_analysis_section(
+                section=section,
+                current_analysis=current_analysis,
+                context=context,
+            )
+        except Exception as e:
+            return Response({'detail': f'AI 재생성 실패: {str(e)}'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Update the specific section
+        new_value = result.get(section)
+        if new_value is not None:
+            setattr(analysis, section, new_value)
+            analysis.save(update_fields=[section, 'updated_at'])
+
+        return Response(ProjectAnalysisSerializer(analysis).data)
+
+
 class AnalysisStatusView(APIView):
     """GET - Return current status for polling."""
 

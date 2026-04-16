@@ -1,8 +1,9 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
 import { Bell, ChevronRight, User, LogOut, Settings } from 'lucide-react';
 import { Fragment } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   className?: string;
@@ -52,6 +53,14 @@ function Breadcrumbs() {
 }
 
 export function Header({ className = '' }: HeaderProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <header
       className={`flex h-16 items-center justify-between border-b border-line bg-surface-secondary px-6 ${className}`}
@@ -121,6 +130,7 @@ export function Header({ className = '' }: HeaderProps) {
               <MenuItem>
                 {({ active }) => (
                   <button
+                    onClick={handleLogout}
                     className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
                       active
                         ? 'bg-red-50 text-danger'
