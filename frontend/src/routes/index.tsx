@@ -17,6 +17,7 @@ import ManualEntryPage from '@/pages/ManualEntryPage';
 import AggregationPage from '@/pages/AggregationPage';
 import DesignBriefPage from '@/pages/DesignBriefPage';
 import SurveyPage from '@/pages/SurveyPage';
+import ToolsPage from '@/pages/ToolsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
           { path: '/projects/:projectId/responses/manual/:employeeId', element: <ManualEntryPage /> },
           { path: '/projects/:projectId/aggregation', element: <AggregationPage /> },
           { path: '/projects/:projectId/design-brief', element: <DesignBriefPage /> },
+          { path: '/tools', element: <ToolsPage /> },
         ],
       },
     ],

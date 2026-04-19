@@ -219,6 +219,16 @@ class GeminiClient:
             logger.error(f"Gemini aggregation failed: {e}")
             raise
 
+    def analyze_site(self, url: str, crawl_text: str) -> dict:
+        """Standalone site analysis (project-independent)."""
+        prompt = f"""URL: {url}\n크롤링:\n{crawl_text[:4000]}\n\n이 사이트를 UX/UI 관점에서 분석하세요. JSON: {{"summary":"요약","layout":"레이아웃","navigation":"네비게이션","color_scheme":"컬러","typography":"타이포","strengths":["강점"],"weaknesses":["약점"],"ux_insights":"UX 인사이트","recommendations":["제안"]}}"""
+        try:
+            response = self.model.generate_content(prompt, generation_config={'response_mime_type': 'application/json', 'temperature': 0.5})
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Gemini site analysis failed: {e}")
+            raise
+
     def analyze_file_content(self, file_text: str, file_name: str) -> dict:
         """Analyze uploaded file content and extract requirements summary."""
         prompt = f"""파일명: {file_name}\n\n{file_text[:8000]}\n\n위 파일에서 프로젝트 요구사항을 추출하세요. JSON: {{"summary":"요약","requirements":["항목"],"keywords":["키워드"],"target_audience":"타겟","constraints":["제약"],"notes":"참고"}}"""

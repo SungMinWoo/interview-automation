@@ -62,6 +62,14 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 35. **Activity API**: `GET /projects/{id}/activities/` — 최근 50건. ProjectDetailPage 하단에 타임라인 UI (아바타+이름+한국어 액션 라벨+상대시간)
 36. **이전 질문지 불러오기**: `GET questionnaire/templates/` (다른 프로젝트 질문지 목록), `POST questionnaire/import/` (source_project_id로 섹션+질문 복사). 프론트에 모달 UI
 37. **이전 질문지 참고 AI 생성**: generate 요청 시 reference_project_ids 파라미터. Celery 태스크에서 참고 질문지 구조를 AI 프롬프트에 포함 ("구조만 참고, 그대로 복사 금지")
+38. **독립 도구 앱 (tools)**: 프로젝트 없이 사용 가능한 AI 도구. `POST /api/v1/tools/analyze-site/` (URL → 크롤링 + AI 분석), `POST /api/v1/tools/analyze-file/` (파일 업로드 → 텍스트 추출 + AI 분석). 기존 CrawlerService/file_extractor/AI 클라이언트를 프로젝트 의존 없이 호출. 사이드바에 "도구" 메뉴, ToolsPage에서 탭으로 전환
+39. **미사용 코드 정리**: registerSchema/RegisterRequest/register훅/API 삭제, usePositionCategories 등 4개 훅 삭제, POSITION_CATEGORIES/POSITION_CATEGORY 상수 삭제. PositionCategory 모델은 AI 생성에서 아직 사용 중이라 유지
+40. **도구 사이트 분석 전용 메서드**: `analyze_site(url, crawl_text)` — Claude/Gemini 클라이언트에 추가. `analyze_project`와 분리하여 사이트 분석에 특화된 프롬프트 사용 (레이아웃/네비/컬러/타이포/강점/약점/UX 인사이트/개선 제안)
+41. **도구 파일 분석 복사 기능**: 추출 텍스트 표시 제거. "텍스트 복사"/"마크다운 복사" 버튼 추가 — `analysisToText()`, `analysisToMarkdown()` 헬퍼
+42. **글자 넘침 방지**: `index.css`에 글로벌 `overflow-wrap: break-word; word-break: break-word;` 적용
+43. **디자인 브리프 톤앤무드**: `<pre>JSON.stringify</pre>` → 키별 라벨+값 표시로 변경 (primary/secondary는 텍스트, keywords는 태그)
+44. **Activity 타임스탬프**: 7일 이내 상대시간 (방금전/N분전/N시간전/N일전), 7일 초과 `YYYY.MM.DD HH:mm` 형식
+45. **프로젝트 생성 Activity**: `perform_create`에서 `project_created` 액션 기록. ACTION_LABELS에 추가
 
 ---
 
@@ -94,3 +102,5 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 | `PROJECT_FILE_ANALYZE` | `/projects/{id}/files/{fileId}/analyze/` |
 | `QUESTIONNAIRE_TEMPLATES` | `/projects/{id}/questionnaire/templates/` |
 | `QUESTIONNAIRE_IMPORT` | `/projects/{id}/questionnaire/import/` |
+| `TOOLS_ANALYZE_SITE` | `/tools/analyze-site/` |
+| `TOOLS_ANALYZE_FILE` | `/tools/analyze-file/` |

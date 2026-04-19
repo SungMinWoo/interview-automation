@@ -412,10 +412,23 @@ export default function DesignBriefPage() {
             )}
             {briefData.tone_and_mood && Object.keys(briefData.tone_and_mood).length > 0 && (
               <div>
-                <p className="mb-1 text-xs font-medium text-content-tertiary">톤 & 무드</p>
-                <pre className="bg-surface-primary p-3 text-xs text-content-secondary">
-                  {JSON.stringify(briefData.tone_and_mood, null, 2)}
-                </pre>
+                <p className="mb-2 text-xs font-medium text-content-tertiary">톤 & 무드</p>
+                <div className="space-y-2">
+                  {Object.entries(briefData.tone_and_mood as Record<string, unknown>).map(([key, val]) => (
+                    <div key={key}>
+                      <span className="text-xs font-medium text-content-muted">{key === 'primary' ? '주요' : key === 'secondary' ? '보조' : key === 'keywords' ? '키워드' : key}</span>
+                      {Array.isArray(val) ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {(val as string[]).map((v, i) => (
+                            <span key={i} className="bg-surface-hover px-2 py-0.5 text-xs text-content-secondary">{v}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-content-secondary">{String(val)}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {briefData.additional_notes && (

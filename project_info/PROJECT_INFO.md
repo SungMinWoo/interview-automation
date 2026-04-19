@@ -46,8 +46,9 @@ interview_tool/
 │   ├── config/              # Django 설정 (base/dev/prod/test)
 │   ├── apps/
 │   │   ├── accounts/        # 유저 인증
-│   │   ├── projects/        # 프로젝트 관리, 12단계 상태, 부서/직급 구조, 파일 업로드
+│   │   ├── projects/        # 프로젝트 관리, 12단계 상태, 부서/직급 구조, 파일 업로드, 활동 히스토리
 │   │   ├── analysis/        # AI 사이트 분석 (ai_provider 선택)
+│   │   ├── tools/           # 독립 도구 (사이트 분석, 파일 분석 — 프로젝트 없이 사용)
 │   │   ├── questionnaires/  # 질문지 관리 (섹션/세부구분, 중요도, 의도, 확정 잠금)
 │   │   ├── distribution/    # 직원 관리, 초대 링크 생성/재생성, 이메일 발송
 │   │   ├── responses/       # 응답 수집, 수동 입력, 수집 마감
@@ -87,6 +88,10 @@ interview_tool/
 
 ### 인증
 - `POST /api/v1/auth/login/` — JWT 로그인
+
+### 독립 도구
+- `POST /api/v1/tools/analyze-site/` — URL 입력 → 크롤링 + AI 분석 (프로젝트 없이)
+- `POST /api/v1/tools/analyze-file/` — 파일 업로드 → 텍스트 추출 + AI 분석 (프로젝트 없이)
 
 ### 프로젝트
 - `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**전체 공개 — 로그인 유저 모두 접근 가능**)
@@ -204,11 +209,13 @@ interview_tool/
 - 프론트에서 타입에 따라 입력 필드/라벨/섹션 예시 조건부 표시
 - 최종 산출물: UX/UI → DESIGN.md, BX → BRAND.md
 
+### 독립 도구 확장
+- [ ] 내부 설문 도구 — 프로젝트 없이 간단한 설문 생성/배포/수집 (기존 질문지보다 가벼운 버전)
+- [ ] 데이터 취합 도구 — CSV/외부 설문 결과 업로드 → AI 종합 분석
+
 ### 기타
 - [ ] SSO 인증 연동
-- [ ] Playwright 스크린샷 서비스 Docker 설정
 - [ ] 프론트엔드 코드 스플리팅 (dynamic import)
-- [ ] E2E 테스트 (Playwright)
 - [ ] 프로덕션 배포 설정 (SSL, 도메인 등)
 - [ ] Stitch 편집(edit_screens) 기능 연동
 - [ ] Stitch variants 생성 기능 연동

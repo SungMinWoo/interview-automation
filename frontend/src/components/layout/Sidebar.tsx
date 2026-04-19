@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -10,6 +10,7 @@ interface SidebarProps {
 const navItems = [
   { to: '/dashboard', label: '대시보드', icon: LayoutDashboard },
   { to: '/projects', label: '프로젝트', icon: FolderOpen },
+  { to: '/tools', label: '도구', icon: Wrench },
 ];
 
 export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {

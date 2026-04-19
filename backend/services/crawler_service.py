@@ -15,8 +15,8 @@ class CrawlerService:
             {url, title, meta_description, headings, main_text, navigation, colors_found}
         """
         try:
-            response = httpx.get(url, timeout=30, follow_redirects=True, headers={
-                'User-Agent': 'Mozilla/5.0 (compatible; InterviewSiteBot/1.0)'
+            response = httpx.get(url, timeout=30, follow_redirects=True, verify=False, headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             })
             response.raise_for_status()
 

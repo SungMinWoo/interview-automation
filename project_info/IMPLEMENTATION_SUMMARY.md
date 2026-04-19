@@ -13,13 +13,14 @@
 | **responses** | SurveyResponse, Answer | 온라인 응답 수집 (부분 답변 허용), 대면 인터뷰 수동 입력, 수집 마감 |
 | **aggregation** | Aggregation (ai_provider, section_summaries), ExtractedKeyword, ExtractedSentence | AI 취합, 파트별 요약 (section_summaries), 카테고리별 변화사항 (desired_changes), 원문 워딩 보존 문장 추출, 키워드 추출, 직급 가중치 기반 분석, 버전 관리, 유저 수정 |
 | **design_brief** | DesignBrief (design_md, color_preferences), StitchGeneration (design_md_snapshot, stitch_project_url) | 디자인 브리프 컴파일, DESIGN.md 생성, Stitch 2단계 연동 |
+| **tools** | (모델 없음) | 독립 도구 — 사이트 분석 (URL → 크롤링 + AI), 파일 분석 (업로드 → 텍스트 추출 + AI). 프로젝트 없이 사용 가능 |
 
 ### 서비스 레이어
 | 서비스 | 파일 | 기능 |
 |--------|------|------|
 | **AIClientFactory** | `services/ai_client.py` | Claude/Gemini 선택 팩토리, 기본값 Claude |
-| **ClaudeClient** | `services/claude_client.py` | Anthropic Claude API - 분석(파일 포함), 분석 섹션별 재생성, 질문지(섹션 기반), 섹션별 추가 질문 생성, 취합(파트별/원문워딩), 파일분석, 키워드, DESIGN.md 생성 (429/529 재시도) |
-| **GeminiClient** | `services/gemini_client.py` | Google Gemini API - 동일 인터페이스 (분석 파일 포함, 섹션별 재생성, 섹션 기반 질문지, 섹션별 추가 생성, 파트별 취합, 파일분석) |
+| **ClaudeClient** | `services/claude_client.py` | Anthropic Claude API - 분석(파일 포함), 분석 섹션별 재생성, 사이트 단독 분석(analyze_site), 질문지(섹션 기반, 참고 생성), 섹션별 추가 질문 생성, 취합(파트별/원문워딩), 파일분석, 키워드, DESIGN.md 생성 (429/529 재시도) |
+| **GeminiClient** | `services/gemini_client.py` | Google Gemini API - 동일 인터페이스 (사이트 단독 분석, 분석 파일 포함, 섹션별 재생성, 참고 생성, 파트별 취합, 파일분석) |
 | **FileExtractor** | `services/file_extractor.py` | 파일 텍스트 추출 - PDF(pypdf), DOCX(python-docx), TXT 지원 |
 | **StitchClient** | `services/stitch_client.py` | Stitch Bridge 통신 - generate_design, fetch_screens |
 | **CrawlerService** | `services/crawler_service.py` | httpx + BeautifulSoup 웹 크롤링 |
@@ -65,6 +66,7 @@
 | **ManualEntryPage** | `.../manual/:empId` | 대면 인터뷰 답변 수동 입력 (question_type 매핑) |
 | **AggregationPage** | `.../aggregation` | AI 취합/폴링, 파트별 요약 표시, 카테고리별 변화사항, 종합요약/방향성/가치/핵심문장/키워드 편집 |
 | **DesignBriefPage** | `.../design-brief` | 브리프 편집, 키 컬러 입력, DESIGN.md 생성/다운로드, Stitch 생성/결과가져오기/미리보기 |
+| **ToolsPage** | `/tools` | 독립 도구 — 탭 구성: 사이트 분석 (URL → 크롤링 + AI, 전용 analyze_site 메서드), 파일 분석 (드래그앤드롭 → AI 요약 + 텍스트/마크다운 복사) |
 | **SurveyPage** | `/survey/:token` | 공개 설문 (비밀번호 인증 → JWT → 질문 → 제출) |
 | **NotFoundPage** | `*` | 404 페이지 |
 
@@ -78,6 +80,7 @@
 - **useProjectFiles**: useProjectFiles, useUploadFile, useDeleteFile, useAnalyzeFile
 - **useAnalysis**: useRegenerateSection 추가 (섹션별 AI 재생성)
 - **useQuestionnaire**: useCreateSection, useDeleteSection, useGenerateSectionQuestions, useQuestionnaireTemplates, useImportQuestionnaire 추가
+- **useTools**: useAnalyzeSite, useAnalyzeFileTool (독립 도구용)
 
 ### 상태관리
 - **Zustand**: authStore (JWT 토큰, 유저 정보), themeStore (다크/라이트 모드)

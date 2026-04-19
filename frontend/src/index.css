@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
   /* ========== DARK (default) ========== */
   :root {
     --bg-primary: #161616;

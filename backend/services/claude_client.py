@@ -328,6 +328,35 @@ class ClaudeClient:
             logger.error(f"Claude aggregation failed: {e}")
             raise
 
+    def analyze_site(self, url: str, crawl_text: str) -> dict:
+        """Standalone site analysis (project-independent)."""
+        prompt = f"""당신은 UX/UI 분석 전문가입니다. 다음 웹사이트를 분석해주세요.
+
+## 사이트 정보
+URL: {url}
+
+## 크롤링 텍스트
+{crawl_text[:4000]}
+
+## 지시사항
+이 사이트를 분석하여 다음을 JSON으로 응답해주세요.
+{{
+    "summary": "사이트 전체 요약",
+    "layout": "레이아웃 구조 분석",
+    "navigation": "네비게이션 구조",
+    "color_scheme": "컬러 스킴 분석",
+    "typography": "타이포그래피 분석",
+    "strengths": ["강점1", "강점2"],
+    "weaknesses": ["약점1", "약점2"],
+    "ux_insights": "UX 관점 인사이트",
+    "recommendations": ["개선 제안1", "개선 제안2"]
+}}"""
+        try:
+            return self._request_json(prompt, temperature=0.5)
+        except Exception as e:
+            logger.error(f"Claude site analysis failed: {e}")
+            raise
+
     def analyze_file_content(self, file_text: str, file_name: str) -> dict:
         """Analyze uploaded file content and extract requirements summary."""
         prompt = f"""다음은 SI 프로젝트의 요구사항 관련 파일입니다.

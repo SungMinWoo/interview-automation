@@ -253,4 +253,7 @@ export const API_PATHS = {
   SURVEY_VERIFY: (token: string) => `/survey/${token}/verify/`,
   SURVEY_SUBMIT: (token: string) => `/survey/${token}/submit/`,
   SURVEY_DRAFT: (token: string) => `/survey/${token}/draft/`,
+  // Tools (project-independent)
+  TOOLS_ANALYZE_SITE: '/tools/analyze-site/',
+  TOOLS_ANALYZE_FILE: '/tools/analyze-file/',
 } as const;
