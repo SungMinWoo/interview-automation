@@ -30,7 +30,7 @@ import uuid
 
 def get_user_project(request, project_id):
     """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id, owner=request.user)
+    return get_object_or_404(Project, pk=project_id)
 
 
 # ──────────────────────────────────────────────
@@ -47,7 +47,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Employee.objects.filter(
             project__pk=self.kwargs['project_id'],
-            project__owner=self.request.user,
         )
 
     def perform_create(self, serializer):
@@ -126,6 +125,9 @@ class GenerateInvitationsView(APIView):
         if project.status == Project.Status.QUESTIONNAIRE_READY:
             project.status = Project.Status.DISTRIBUTING
             project.save(update_fields=['status', 'updated_at'])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'invitations_generated', {'count': len(created)})
 
         return Response(
             {

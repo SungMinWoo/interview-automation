@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Lock,
   X,
+  Copy,
 } from 'lucide-react';
 import {
   DndContext,
@@ -47,6 +48,8 @@ import {
   useCreateSection,
   useDeleteSection,
   useGenerateSectionQuestions,
+  useQuestionnaireTemplates,
+  useImportQuestionnaire,
 } from '@/hooks/useQuestionnaire';
 import { AiProviderSelect } from '@/components/common';
 import {
@@ -590,6 +593,11 @@ export default function QuestionnairePage() {
   const deleteQuestion = useDeleteQuestion();
   const reorderQuestions = useReorderQuestions();
   const createSection = useCreateSection();
+  const { data: templates = [] } = useQuestionnaireTemplates(id);
+  const importQuestionnaire = useImportQuestionnaire();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showRefOptions, setShowRefOptions] = useState(false);
+  const [selectedRefIds, setSelectedRefIds] = useState<number[]>([]);
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -639,10 +647,27 @@ export default function QuestionnairePage() {
       ? questions
       : questions.filter((q) => q.categoryId === categoryFilter);
 
+  const handleImport = async (sourceProjectId: number) => {
+    if (!id) return;
+    try {
+      const result = await importQuestionnaire.mutateAsync({ projectId: id, sourceProjectId });
+      setShowImportModal(false);
+      toast.success(result.detail || '질문지를 불러왔습니다.');
+    } catch {
+      toast.error('질문지 불러오기에 실패했습니다.');
+    }
+  };
+
   const handleGenerate = async () => {
     if (!id) return;
     try {
-      await generateQuestionnaire.mutateAsync({ projectId: id, ai_provider: aiProvider });
+      await generateQuestionnaire.mutateAsync({
+        projectId: id,
+        ai_provider: aiProvider,
+        reference_project_ids: selectedRefIds.length > 0 ? selectedRefIds : undefined,
+      } as any);
+      setSelectedRefIds([]);
+      setShowRefOptions(false);
       refetchQuestionnaire();
       toast.success(`${AI_PROVIDER_LABELS[aiProvider]}로 질문지 생성을 시작합니다.`);
     } catch {
@@ -765,6 +790,16 @@ export default function QuestionnairePage() {
           {!isConfirmed && (
             <>
               <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              {/* 이전 질문지 불러오기 */}
+              {templates.length > 0 && (
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
+                >
+                  <Copy className="h-4 w-4" />
+                  불러오기
+                </button>
+              )}
               {/* 초기 생성 버튼: 질문이 없을 때만 표시 */}
               {totalQuestions === 0 && sections.length === 0 && (
                 <button
@@ -1137,10 +1172,52 @@ export default function QuestionnairePage() {
           로딩 중...
         </div>
       ) : !isProcessing && totalQuestions === 0 && !showAddForm ? (
-        <div className="flex h-32 flex-col items-center justify-center border-2 border-dashed border-line">
+        <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-8 space-y-4">
           <p className="text-sm text-content-tertiary">
             질문이 없습니다. AI 생성 또는 직접 추가해주세요.
           </p>
+          {/* 이전 질문지 참고 옵션 */}
+          {templates.length > 0 && !isConfirmed && (
+            <div className="w-full max-w-md space-y-2 px-6">
+              <button
+                onClick={() => setShowRefOptions(!showRefOptions)}
+                className="text-xs text-accent hover:underline"
+              >
+                {showRefOptions ? '참고 옵션 닫기' : '이전 질문지 참고하여 AI 생성'}
+              </button>
+              {showRefOptions && (
+                <div className="border border-line bg-surface-secondary p-3 space-y-2">
+                  <p className="text-xs text-content-muted">참고할 프로젝트를 선택하세요 (최대 3개). AI가 구조를 참고하여 현재 프로젝트에 맞게 생성합니다.</p>
+                  {templates.map((t) => (
+                    <label key={t.project_id} className="flex items-center gap-2 text-sm text-content-secondary cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedRefIds.includes(t.project_id)}
+                        onChange={() => setSelectedRefIds((prev) =>
+                          prev.includes(t.project_id)
+                            ? prev.filter((id) => id !== t.project_id)
+                            : prev.length < 3 ? [...prev, t.project_id] : prev
+                        )}
+                        className="text-accent"
+                      />
+                      <span>{t.project_title}</span>
+                      <span className="text-xs text-content-muted">({t.client_name} · {t.section_count}섹션 {t.question_count}문항)</span>
+                    </label>
+                  ))}
+                  {selectedRefIds.length > 0 && (
+                    <button
+                      onClick={handleGenerate}
+                      disabled={generateQuestionnaire.isPending}
+                      className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                    >
+                      {generateQuestionnaire.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      {selectedRefIds.length}개 참고하여 AI 생성
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : sections.length > 0 ? (
         <>
@@ -1221,6 +1298,48 @@ export default function QuestionnairePage() {
           </DndContext>
         </>
       ) : null}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
+          <div className="w-full max-w-lg bg-surface-secondary p-6">
+            <h3 className="text-lg font-semibold text-content-primary">이전 질문지 불러오기</h3>
+            <p className="mt-1 text-sm text-content-tertiary">선택한 프로젝트의 질문지를 현재 프로젝트에 복사합니다.</p>
+            <div className="mt-4 max-h-80 overflow-y-auto space-y-2">
+              {templates.map((t) => (
+                <div
+                  key={t.project_id}
+                  className="flex items-center justify-between border border-line p-3 hover:bg-surface-hover transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-content-primary truncate">{t.project_title}</p>
+                    <p className="text-xs text-content-tertiary">{t.client_name} · {t.section_count}개 섹션 · {t.question_count}개 질문</p>
+                  </div>
+                  <button
+                    onClick={() => handleImport(t.project_id)}
+                    disabled={importQuestionnaire.isPending}
+                    className="ml-3 flex-shrink-0 inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                  >
+                    {importQuestionnaire.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                    불러오기
+                  </button>
+                </div>
+              ))}
+              {templates.length === 0 && (
+                <p className="py-4 text-center text-sm text-content-tertiary">불러올 수 있는 질문지가 없습니다.</p>
+              )}
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {confirmDeleteId !== null && (

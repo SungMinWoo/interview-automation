@@ -157,8 +157,15 @@ class ClaudeClient:
             logger.error(f"Claude section regeneration failed: {e}")
             raise
 
-    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str]) -> dict:
+    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str], reference_questionnaires: list[dict] | None = None) -> dict:
         """Phase 2: Generate interview questions organized by sections with sub-categories."""
+        ref_section = ''
+        if reference_questionnaires:
+            ref_section = '\n\n## 참고할 이전 질문지\n아래 이전 프로젝트의 질문지를 참고하되, 현재 프로젝트의 분석 결과에 맞게 변형/개선하세요. 그대로 복사하지 말고, 구조와 질문 방향을 참고만 하세요.\n'
+            for ref in reference_questionnaires:
+                ref_section += f'\n### {ref["project_title"]} ({ref["client_name"]})\n'
+                ref_section += json.dumps(ref['sections'], ensure_ascii=False, indent=2) + '\n'
+
         prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
 
 ## 분석 결과
@@ -166,7 +173,7 @@ class ClaudeClient:
 
 ## 직급 카테고리
 {', '.join(position_categories) if position_categories else '전체 (직급 구분 없음)'}
-
+{ref_section}
 ## 지시사항
 위 분석 결과를 바탕으로 체계적인 인터뷰 질문지를 생성하세요.
 

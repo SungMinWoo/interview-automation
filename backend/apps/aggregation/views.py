@@ -16,7 +16,7 @@ from .serializers import (
 
 def get_user_project(request, project_id):
     """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id, owner=request.user)
+    return get_object_or_404(Project, pk=project_id)
 
 
 def get_latest_aggregation(project):
@@ -48,6 +48,9 @@ class TriggerAggregationView(APIView):
 
         from .tasks import run_aggregation
         run_aggregation.delay(aggregation.id, ai_provider=ai_provider)
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'aggregation_triggered', {'ai_provider': ai_provider})
 
         return Response(
             AggregationSerializer(aggregation).data,

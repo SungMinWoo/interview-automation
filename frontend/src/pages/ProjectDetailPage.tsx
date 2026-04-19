@@ -14,7 +14,7 @@ import {
   FileText,
   Sparkles,
 } from 'lucide-react';
-import { useProject, useDeleteProject } from '@/hooks/useProjects';
+import { useProject, useDeleteProject, useProjectActivities } from '@/hooks/useProjects';
 import {
   useDepartments,
   useCreateDepartment,
@@ -31,6 +31,38 @@ import type { ProjectStatus } from '@/types/project';
 import AiProviderSelect from '@/components/common/AiProviderSelect';
 import toast from 'react-hot-toast';
 import { useState, useRef } from 'react';
+
+const ACTION_LABELS: Record<string, string> = {
+  project_created: '프로젝트를 생성했습니다',
+  analysis_triggered: 'AI 분석을 시작했습니다',
+  analysis_confirmed: '분석을 확인했습니다',
+  analysis_section_regenerated: '분석 섹션을 재생성했습니다',
+  questionnaire_generate_triggered: 'AI 질문지 생성을 시작했습니다',
+  questionnaire_confirmed: '질문지를 확정했습니다',
+  questionnaire_imported: '이전 질문지를 불러왔습니다',
+  invitations_generated: '초대 링크를 생성했습니다',
+  collection_closed: '응답 수집을 마감했습니다',
+  aggregation_triggered: 'AI 취합을 시작했습니다',
+};
+
+function formatRelativeTime(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return '방금 전';
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}일 전`;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${d} ${h}:${min}`;
+}
 
 // Project status progression order
 const STATUS_ORDER: ProjectStatus[] = [
@@ -117,6 +149,7 @@ export default function ProjectDetailPage() {
   const id = projectId ? Number(projectId) : undefined;
   const { data: project, isLoading, error } = useProject(id);
   const deleteProject = useDeleteProject();
+  const { data: activities = [] } = useProjectActivities(id);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Department / Position hooks
@@ -684,6 +717,32 @@ export default function ProjectDetailPage() {
       )}
 
       {/* Delete Confirmation Modal */}
+      {/* Activity Timeline */}
+      {activities.length > 0 && (
+        <div className="border border-line bg-surface-secondary p-6">
+          <h2 className="mb-4 text-lg font-semibold text-content-primary">최근 활동</h2>
+          <div className="space-y-3">
+            {activities.slice(0, 20).map((a) => (
+              <div key={a.id} className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-hover text-xs font-medium text-accent">
+                  {a.user_name?.charAt(0) || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-content-primary">
+                    <span className="font-medium">{a.user_name || '알 수 없음'}</span>
+                    <span className="text-content-secondary">{' '}{ACTION_LABELS[a.action] || a.action}</span>
+                    {a.detail?.ai_provider && (
+                      <span className="ml-1 text-xs text-content-muted">({a.detail.ai_provider as string})</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-content-muted">{formatRelativeTime(a.created_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
           <div className="w-full max-w-sm bg-surface-secondary p-6">

@@ -22,7 +22,7 @@ from .serializers import (
 
 def get_user_project(request, project_id):
     """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id, owner=request.user)
+    return get_object_or_404(Project, pk=project_id)
 
 
 # ──────────────────────────────────────────────
@@ -81,6 +81,9 @@ class CloseCollectionView(APIView):
 
         project.status = Project.Status.CLOSED
         project.save(update_fields=['status', 'updated_at'])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'collection_closed')
 
         return Response({'detail': 'Response collection closed.', 'status': project.status})
 

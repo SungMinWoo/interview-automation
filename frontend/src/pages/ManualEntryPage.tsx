@@ -84,7 +84,10 @@ export default function ManualEntryPage() {
   const submitManualEntry = useSubmitManualEntry();
 
   const employee = employees?.find((e) => e.id === eid);
-  const questions = questionnaire?.questions ?? [];
+  // Collect all questions: sectioned + unsectioned
+  const sectionQuestions = (questionnaire?.sections ?? []).flatMap((s) => s.questions ?? []);
+  const unsectionedQuestions = questionnaire?.questions ?? [];
+  const questions = [...sectionQuestions, ...unsectionedQuestions].sort((a, b) => a.order - b.order);
   const [answers, setAnswers] = useState<Record<number, string | string[] | number>>({});
   const [responseId, setResponseId] = useState<number | null>(null);
 

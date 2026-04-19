@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
-def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None = None) -> None:
+def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None = None, reference_project_ids: list[int] | None = None) -> None:
     """Generate interview questions using AI."""
     from apps.projects.models import Project
     from .models import Questionnaire, QuestionSection, Question, PositionCategory
@@ -39,11 +39,35 @@ def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None 
             questionnaire.position_categories.values_list('name', flat=True)
         )
 
+        # Build reference questionnaires data
+        reference_questionnaires = []
+        if reference_project_ids:
+            for ref_q in Questionnaire.objects.filter(
+                project_id__in=reference_project_ids,
+            ).prefetch_related('sections__questions'):
+                ref_data = {
+                    'project_title': ref_q.project.title,
+                    'client_name': ref_q.project.client_name,
+                    'sections': [],
+                }
+                for sec in ref_q.sections.order_by('order'):
+                    ref_data['sections'].append({
+                        'title': sec.title,
+                        'description': sec.description,
+                        'importance': sec.importance,
+                        'questions': [
+                            {'text': q.text, 'sub_category': q.sub_category, 'importance': q.importance, 'purpose': q.purpose, 'question_type': q.question_type}
+                            for q in sec.questions.order_by('order')
+                        ],
+                    })
+                reference_questionnaires.append(ref_data)
+
         # Generate via AI
         ai_client = get_ai_client(ai_provider)
         result = ai_client.generate_questionnaire(
             confirmed_analysis=analysis_data,
             position_categories=position_names,
+            reference_questionnaires=reference_questionnaires if reference_questionnaires else None,
         )
 
         # Update questionnaire metadata

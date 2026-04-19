@@ -64,3 +64,23 @@ export function useDeleteProject() {
     },
   });
 }
+
+export interface ProjectActivityItem {
+  id: number;
+  user_id: number | null;
+  user_name: string;
+  action: string;
+  detail: Record<string, unknown>;
+  created_at: string;
+}
+
+export function useProjectActivities(projectId: number | undefined) {
+  return useQuery<ProjectActivityItem[]>({
+    queryKey: ['project-activities', projectId],
+    queryFn: async () => {
+      const res = await apiClient.get(API_PATHS.PROJECT_ACTIVITIES(projectId!));
+      return Array.isArray(res.data) ? res.data : res.data.results ?? [];
+    },
+    enabled: !!projectId,
+  });
+}

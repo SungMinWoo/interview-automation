@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 
 import os
 
-from .models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile
+from .models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
 from .serializers import (
     ProjectListSerializer,
     ProjectDetailSerializer,
@@ -14,6 +14,7 @@ from .serializers import (
     ProjectDepartmentSerializer,
     ProjectPositionSerializer,
     ProjectFileSerializer,
+    ProjectActivitySerializer,
 )
 
 
@@ -21,7 +22,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(owner=self.request.user)
+        return Project.objects.all()
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -33,7 +34,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return ProjectDetailSerializer
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        project = serializer.save(owner=self.request.user)
+        from .models import log_activity
+        log_activity(project, self.request.user, 'project_created', {'title': project.title, 'client_name': project.client_name})
 
 
 class ReferenceSiteViewSet(viewsets.ModelViewSet):
@@ -42,13 +45,12 @@ class ReferenceSiteViewSet(viewsets.ModelViewSet):
 
     def get_project(self):
         return get_object_or_404(
-            Project, pk=self.kwargs['project_id'], owner=self.request.user,
+            Project, pk=self.kwargs['project_id'],
         )
 
     def get_queryset(self):
         return ReferenceSite.objects.filter(
             project__pk=self.kwargs['project_id'],
-            project__owner=self.request.user,
         )
 
     def perform_create(self, serializer):
@@ -62,13 +64,12 @@ class ProjectDepartmentViewSet(viewsets.ModelViewSet):
 
     def get_project(self):
         return get_object_or_404(
-            Project, pk=self.kwargs['project_id'], owner=self.request.user,
+            Project, pk=self.kwargs['project_id'],
         )
 
     def get_queryset(self):
         return ProjectDepartment.objects.filter(
             project__pk=self.kwargs['project_id'],
-            project__owner=self.request.user,
         )
 
     def perform_create(self, serializer):
@@ -82,13 +83,12 @@ class ProjectPositionViewSet(viewsets.ModelViewSet):
 
     def get_project(self):
         return get_object_or_404(
-            Project, pk=self.kwargs['project_id'], owner=self.request.user,
+            Project, pk=self.kwargs['project_id'],
         )
 
     def get_queryset(self):
         return ProjectPosition.objects.filter(
             project__pk=self.kwargs['project_id'],
-            project__owner=self.request.user,
         )
 
     def perform_create(self, serializer):
@@ -103,13 +103,12 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
 
     def get_project(self):
         return get_object_or_404(
-            Project, pk=self.kwargs['project_id'], owner=self.request.user,
+            Project, pk=self.kwargs['project_id'],
         )
 
     def get_queryset(self):
         return ProjectFile.objects.filter(
             project__pk=self.kwargs['project_id'],
-            project__owner=self.request.user,
         )
 
     def perform_create(self, serializer):
@@ -146,7 +145,7 @@ class FileAnalyzeView(viewsets.ViewSet):
     def create(self, request, project_id, pk=None):
         from services.ai_client import get_ai_client, validate_ai_provider
 
-        project = get_object_or_404(Project, pk=project_id, owner=request.user)
+        project = get_object_or_404(Project, pk=project_id)
         project_file = get_object_or_404(ProjectFile, pk=pk, project=project)
 
         if not project_file.extracted_text:
@@ -174,3 +173,13 @@ class FileAnalyzeView(viewsets.ViewSet):
             'ai_summary': result.get('summary', ''),
             'analysis': result,
         })
+
+
+class ProjectActivityListView(viewsets.ViewSet):
+    """GET - List activity history for a project."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request, project_id):
+        project = get_object_or_404(Project, pk=project_id)
+        activities = ProjectActivity.objects.filter(project=project)[:50]
+        return Response(ProjectActivitySerializer(activities, many=True).data)

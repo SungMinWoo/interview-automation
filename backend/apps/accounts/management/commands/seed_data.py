@@ -16,9 +16,9 @@ from django.utils import timezone
 from django.contrib.auth.hashers import make_password
 
 from apps.accounts.models import User
-from apps.projects.models import Project, ReferenceSite
+from apps.projects.models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
 from apps.analysis.models import SiteAnalysis, ProjectAnalysis
-from apps.questionnaires.models import Questionnaire, PositionCategory, Question
+from apps.questionnaires.models import Questionnaire, QuestionSection, PositionCategory, Question
 from apps.distribution.models import Employee, SurveyInvitation
 from apps.responses.models import SurveyResponse, Answer
 from apps.aggregation.models import Aggregation, ExtractedKeyword, ExtractedSentence
@@ -55,7 +55,6 @@ STAGE_LABELS = {
     'completed': '완료',
 }
 
-# 프로젝트별 더미데이터 설정
 PROJECT_CONFIGS = [
     {
         'title': '산더미 전자 리뉴얼 프로젝트',
@@ -69,6 +68,8 @@ PROJECT_CONFIGS = [
             '글로벌 시장을 고려한 다국어 지원도 필요합니다.'
         ),
         'existing_site_url': 'https://electronics.example.com/',
+        'departments': ['경영진', '마케팅', '디자인', '개발', '기획'],
+        'positions': ['대표이사', '팀장', '실무자'],
     },
     {
         'title': '산더미 커머스 플랫폼',
@@ -81,6 +82,8 @@ PROJECT_CONFIGS = [
             '소셜 공유 기능 강화가 필요합니다.'
         ),
         'existing_site_url': 'https://commerce.example.com/',
+        'departments': ['서비스기획', '프론트엔드', '백엔드', 'QA'],
+        'positions': ['PM', '리드', '시니어', '주니어'],
     },
     {
         'title': '산더미 모터스 브랜드 사이트',
@@ -94,6 +97,8 @@ PROJECT_CONFIGS = [
             '프리미엄 브랜드 이미지를 강조하는 디자인을 원합니다.'
         ),
         'existing_site_url': 'https://motors.example.com/',
+        'departments': ['브랜드전략', 'UX', '개발', '영업'],
+        'positions': ['임원', '팀장', '매니저', '사원'],
     },
 ]
 
@@ -106,83 +111,49 @@ REFERENCE_SITES = [
 ]
 
 EMPLOYEES_DATA = [
-    {'name': '김철수', 'email': 'kim.cs@example.com', 'position': '대표이사', 'department': '경영진'},
-    {'name': '이영희', 'email': 'lee.yh@example.com', 'position': '마케팅 팀장', 'department': '마케팅'},
-    {'name': '박지성', 'email': 'park.js@example.com', 'position': '디자인 팀장', 'department': '디자인'},
-    {'name': '최수연', 'email': 'choi.sy@example.com', 'position': '개발 팀장', 'department': '개발'},
-    {'name': '정민호', 'email': 'jung.mh@example.com', 'position': '기획자', 'department': '기획'},
-    {'name': '한소희', 'email': 'han.sh@example.com', 'position': 'UX 디자이너', 'department': '디자인'},
-    {'name': '오세훈', 'email': 'oh.sh@example.com', 'position': '프론트엔드 개발자', 'department': '개발'},
-    {'name': '강다현', 'email': 'kang.dh@example.com', 'position': '콘텐츠 마케터', 'department': '마케팅'},
+    {'name': '김철수', 'email': 'kim.cs@example.com', 'position': '대표이사', 'department': '경영진', 'phone': '010-1234-5678'},
+    {'name': '이영희', 'email': 'lee.yh@example.com', 'position': '팀장', 'department': '마케팅', 'phone': '010-2345-6789'},
+    {'name': '박지성', 'email': 'park.js@example.com', 'position': '팀장', 'department': '디자인', 'phone': '010-3456-7890'},
+    {'name': '최수연', 'email': 'choi.sy@example.com', 'position': '팀장', 'department': '개발', 'phone': '010-4567-8901'},
+    {'name': '정민호', 'email': 'jung.mh@example.com', 'position': '실무자', 'department': '기획', 'phone': '010-5678-9012'},
+    {'name': '한소희', 'email': 'han.sh@example.com', 'position': '실무자', 'department': '디자인', 'phone': '010-6789-0123'},
+    {'name': '오세훈', 'email': 'oh.sh@example.com', 'position': '실무자', 'department': '개발', 'phone': '010-7890-1234'},
+    {'name': '강다현', 'email': 'kang.dh@example.com', 'position': '실무자', 'department': '마케팅', 'phone': '010-8901-2345'},
 ]
 
-POSITION_CATEGORIES_DATA = [
-    '경영진',
-    '마케팅/기획',
-    '디자인',
-    '개발',
-]
-
-QUESTIONS_DATA = [
+# 섹션 기반 질문 데이터
+SECTIONS_DATA = [
     {
-        'text': '현재 웹사이트에서 가장 불편하다고 느끼는 점은 무엇인가요?',
-        'question_type': 'textarea',
-        'importance': 'required',
-        'purpose': '현재 사이트의 주요 문제점 파악',
-        'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
+        'title': 'Project Overview',
+        'description': '프로젝트 전반에 대한 이해를 위한 질문입니다.',
+        'importance': 'high',
+        'target_area': '공통',
+        'questions': [
+            {'text': '현재 웹사이트에서 가장 불편하다고 느끼는 점은 무엇인가요?', 'question_type': 'textarea', 'importance': 'required', 'sub_category': '현황 파악', 'purpose': '현재 사이트의 주요 문제점 파악'},
+            {'text': '웹사이트의 주요 타겟 사용자층은 누구라고 생각하시나요?', 'question_type': 'single_choice', 'importance': 'required', 'sub_category': '타겟/고객', 'purpose': '타겟 사용자 정의', 'options': ['10-20대 젊은 층', '30-40대 직장인', '50대 이상', '기업 고객(B2B)', '글로벌 사용자']},
+            {'text': '리뉴얼 후 가장 기대하는 변화는 무엇인가요?', 'question_type': 'textarea', 'importance': 'important', 'sub_category': '전략/로드맵', 'purpose': '기대 효과 파악'},
+        ],
     },
     {
-        'text': '새 웹사이트에서 가장 중요하게 생각하는 기능을 선택해주세요.',
-        'question_type': 'multiple_choice',
-        'importance': 'required',
-        'options': ['반응형 디자인', '빠른 로딩 속도', '검색 기능', '다국어 지원', '접근성', 'SEO 최적화'],
-        'purpose': '핵심 기능 우선순위 파악',
-        'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
+        'title': 'Service Image',
+        'description': '서비스 이미지와 브랜드 인식에 대한 질문입니다.',
+        'importance': 'high',
+        'target_area': '공통',
+        'questions': [
+            {'text': '브랜드 이미지를 한 단어로 표현한다면?', 'question_type': 'text', 'importance': 'important', 'sub_category': '브랜드 인식', 'purpose': '브랜드 인식 조사'},
+            {'text': '디자인 방향성에 대해 선호하는 스타일을 선택해주세요.', 'question_type': 'single_choice', 'importance': 'important', 'sub_category': '디자인 방향', 'purpose': '디자인 방향 설정', 'options': ['미니멀/모던', '화려하고 역동적', '전통적/클래식', '친근하고 따뜻한', '테크/미래지향적']},
+        ],
     },
     {
-        'text': '브랜드 이미지를 한 단어로 표현한다면?',
-        'question_type': 'text',
-        'importance': 'important',
-        'purpose': '브랜드 인식 조사',
-        'categories': ['경영진', '마케팅/기획'],
-    },
-    {
-        'text': '웹사이트의 주요 타겟 사용자층은 누구라고 생각하시나요?',
-        'question_type': 'single_choice',
-        'importance': 'important',
-        'options': ['10-20대 젊은 층', '30-40대 직장인', '50대 이상', '기업 고객(B2B)', '글로벌 사용자'],
-        'purpose': '타겟 사용자 정의',
-        'categories': ['경영진', '마케팅/기획'],
-    },
-    {
-        'text': '디자인 방향성에 대해 선호하는 스타일을 선택해주세요.',
-        'question_type': 'single_choice',
-        'importance': 'important',
-        'options': ['미니멀/모던', '화려하고 역동적', '전통적/클래식', '친근하고 따뜻한', '테크/미래지향적'],
-        'purpose': '디자인 방향 설정',
-        'categories': ['경영진', '디자인'],
-    },
-    {
-        'text': '컬러 톤에 대한 선호도를 평가해주세요. (1: 차가운 톤 ~ 5: 따뜻한 톤)',
-        'question_type': 'rating',
-        'importance': 'optional',
-        'purpose': '컬러 방향 설정',
-        'categories': ['디자인'],
-    },
-    {
-        'text': '아래 항목을 중요도 순으로 정렬해주세요.',
-        'question_type': 'ranking',
-        'importance': 'important',
-        'options': ['시각적 임팩트', '정보 전달력', '사용 편의성', '브랜드 일관성', '성능/속도'],
-        'purpose': '디자인 우선순위 결정',
-        'categories': ['경영진', '디자인', '개발'],
-    },
-    {
-        'text': '리뉴얼 후 가장 기대하는 변화는 무엇인가요?',
-        'question_type': 'textarea',
-        'importance': 'optional',
-        'purpose': '기대 효과 파악',
-        'categories': ['경영진', '마케팅/기획', '디자인', '개발'],
+        'title': 'UX/UI Design',
+        'description': 'UX/UI 디자인 관련 세부 질문입니다.',
+        'importance': 'medium',
+        'target_area': '공통',
+        'questions': [
+            {'text': '새 웹사이트에서 가장 중요하게 생각하는 기능을 선택해주세요.', 'question_type': 'multiple_choice', 'importance': 'required', 'sub_category': '기능 우선순위', 'purpose': '핵심 기능 우선순위 파악', 'options': ['반응형 디자인', '빠른 로딩 속도', '검색 기능', '다국어 지원', '접근성', 'SEO 최적화']},
+            {'text': '컬러 톤에 대한 선호도를 평가해주세요. (1: 차가운 톤 ~ 5: 따뜻한 톤)', 'question_type': 'rating', 'importance': 'optional', 'sub_category': '컬러', 'purpose': '컬러 방향 설정'},
+            {'text': '아래 항목을 중요도 순으로 정렬해주세요.', 'question_type': 'ranking', 'importance': 'important', 'sub_category': '우선순위', 'purpose': '디자인 우선순위 결정', 'options': ['시각적 임팩트', '정보 전달력', '사용 편의성', '브랜드 일관성', '성능/속도']},
+        ],
     },
 ]
 
@@ -200,32 +171,28 @@ ANSWER_SAMPLES = {
     'text': [
         '혁신', '신뢰', '프리미엄', '도전', '연결', '미래', '품격', '에너지',
     ],
-    'single_choice': None,  # 랜덤 선택
-    'multiple_choice': None,  # 랜덤 복수 선택
-    'rating': None,  # 1-5 랜덤
-    'ranking': None,  # 순서 셔플
 }
 
 KEYWORDS_DATA = [
-    {'text': '모바일 퍼스트', 'category': '디자인', 'weight': 0.95},
-    {'text': '사용자 경험', 'category': '디자인', 'weight': 0.92},
-    {'text': '프리미엄', 'category': '브랜드', 'weight': 0.88},
-    {'text': '혁신', 'category': '브랜드', 'weight': 0.85},
-    {'text': '접근성', 'category': '기술', 'weight': 0.80},
-    {'text': '빠른 로딩', 'category': '기술', 'weight': 0.78},
-    {'text': '반응형', 'category': '기술', 'weight': 0.75},
-    {'text': '미니멀', 'category': '디자인', 'weight': 0.72},
-    {'text': '글로벌', 'category': '비즈니스', 'weight': 0.70},
-    {'text': '신뢰', 'category': '브랜드', 'weight': 0.68},
+    {'text': '모바일 퍼스트', 'category': 'feature', 'weight': 0.95},
+    {'text': '사용자 경험', 'category': 'value', 'weight': 0.92},
+    {'text': '프리미엄', 'category': 'tone', 'weight': 0.88},
+    {'text': '혁신', 'category': 'value', 'weight': 0.85},
+    {'text': '접근성', 'category': 'feature', 'weight': 0.80},
+    {'text': '빠른 로딩', 'category': 'feature', 'weight': 0.78},
+    {'text': '반응형', 'category': 'feature', 'weight': 0.75},
+    {'text': '미니멀', 'category': 'tone', 'weight': 0.72},
+    {'text': '글로벌', 'category': 'value', 'weight': 0.70},
+    {'text': '신뢰', 'category': 'emotion', 'weight': 0.68},
 ]
 
 SENTENCES_DATA = [
-    {'text': '모바일 환경에서의 사용성이 가장 중요합니다.', 'category': '디자인'},
-    {'text': '브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.', 'category': '브랜드'},
-    {'text': '사용자가 원하는 정보에 3클릭 이내로 접근할 수 있어야 합니다.', 'category': 'UX'},
-    {'text': '경쟁사 대비 차별화된 비주얼 아이덴티티가 필요합니다.', 'category': '디자인'},
-    {'text': '페이지 로딩 속도가 3초 이내여야 합니다.', 'category': '기술'},
-    {'text': '글로벌 시장을 고려한 다국어 지원이 필수입니다.', 'category': '비즈니스'},
+    {'text': '김철수 대표이사: \'모바일 환경에서의 사용성이 가장 중요합니다.\'', 'category': 'UX'},
+    {'text': '이영희 팀장: \'브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.\'', 'category': '브랜드'},
+    {'text': '박지성 팀장: \'사용자가 원하는 정보에 3클릭 이내로 접근할 수 있어야 합니다.\'', 'category': 'UX'},
+    {'text': '최수연 팀장: \'경쟁사 대비 차별화된 비주얼 아이덴티티가 필요합니다.\'', 'category': '디자인'},
+    {'text': '정민호 기획자: \'페이지 로딩 속도가 3초 이내여야 합니다.\'', 'category': '기술'},
+    {'text': '강다현 마케터: \'글로벌 시장을 고려한 다국어 지원이 필수입니다.\'', 'category': '비전'},
 ]
 
 
@@ -233,22 +200,9 @@ class Command(BaseCommand):
     help = '프로젝트 상태별 더미데이터를 생성합니다.'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--stage',
-            type=str,
-            choices=STAGE_ORDER,
-            help='특정 프로젝트 상태만 생성 (예: created, analysis_ready)',
-        )
-        parser.add_argument(
-            '--admin-only',
-            action='store_true',
-            help='어드민 계정만 생성',
-        )
-        parser.add_argument(
-            '--flush',
-            action='store_true',
-            help='기존 더미데이터 삭제 후 재생성',
-        )
+        parser.add_argument('--stage', type=str, choices=STAGE_ORDER, help='특정 프로젝트 상태만 생성')
+        parser.add_argument('--admin-only', action='store_true', help='어드민 계정만 생성')
+        parser.add_argument('--flush', action='store_true', help='기존 더미데이터 삭제 후 재생성')
 
     def handle(self, *args, **options):
         if options['flush']:
@@ -267,11 +221,7 @@ class Command(BaseCommand):
         for i, stage in enumerate(stages):
             config = PROJECT_CONFIGS[i % len(PROJECT_CONFIGS)]
             project = self._create_project_at_stage(user, stage, config, i)
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'  [{STAGE_LABELS[stage]}] {project.title} (id={project.id})'
-                )
-            )
+            self.stdout.write(self.style.SUCCESS(f'  [{STAGE_LABELS[stage]}] {project.title} (id={project.id})'))
 
         self.stdout.write(self.style.SUCCESS(f'\n총 {len(stages)}개 프로젝트 생성 완료'))
         self.stdout.write(self.style.SUCCESS(f'어드민: admin@example.com / admin1234'))
@@ -289,32 +239,25 @@ class Command(BaseCommand):
         SurveyInvitation.objects.all().delete()
         Employee.objects.all().delete()
         Question.objects.all().delete()
+        QuestionSection.objects.all().delete()
         PositionCategory.objects.all().delete()
         Questionnaire.objects.all().delete()
         ProjectAnalysis.objects.all().delete()
         SiteAnalysis.objects.all().delete()
+        ProjectActivity.objects.all().delete()
+        ProjectFile.objects.all().delete()
+        ProjectPosition.objects.all().delete()
+        ProjectDepartment.objects.all().delete()
         ReferenceSite.objects.all().delete()
         Project.objects.all().delete()
-        User.objects.filter(
-            email__in=['admin@example.com', 'test@example.com']
-        ).delete()
-        User.objects.filter(
-            username__in=['admin', 'testuser']
-        ).delete()
+        User.objects.filter(email__in=['admin@example.com', 'test@example.com']).delete()
+        User.objects.filter(username__in=['admin', 'testuser']).delete()
         self.stdout.write(self.style.SUCCESS('삭제 완료'))
 
     def _create_admin(self):
         admin, created = User.objects.get_or_create(
             email='admin@example.com',
-            defaults={
-                'username': 'admin',
-                'first_name': '관리자',
-                'last_name': '',
-                'company_name': '산더미 컴퍼니',
-                'is_staff': True,
-                'is_superuser': True,
-                'is_active': True,
-            },
+            defaults={'username': 'admin', 'first_name': '관리자', 'last_name': '', 'company_name': '산더미 컴퍼니', 'is_staff': True, 'is_superuser': True, 'is_active': True},
         )
         if created:
             admin.set_password('admin1234')
@@ -327,15 +270,7 @@ class Command(BaseCommand):
     def _create_test_user(self):
         user, created = User.objects.get_or_create(
             email='test@example.com',
-            defaults={
-                'username': 'testuser',
-                'first_name': '테스트',
-                'last_name': '유저',
-                'company_name': '테스트 에이전시',
-                'is_staff': False,
-                'is_superuser': False,
-                'is_active': True,
-            },
+            defaults={'username': 'testuser', 'first_name': '테스트', 'last_name': '유저', 'company_name': '테스트 에이전시', 'is_staff': False, 'is_superuser': False, 'is_active': True},
         )
         if created:
             user.set_password('test1234')
@@ -346,8 +281,16 @@ class Command(BaseCommand):
         return user
 
     def _create_project_at_stage(self, owner, stage, config, index):
-        """주어진 상태까지의 모든 데이터를 포함하는 프로젝트를 생성합니다."""
         stage_idx = STAGE_ORDER.index(stage)
+        now = timezone.now()
+
+        # 작업자 풀 (더미: 여러 사람이 작업한 것처럼)
+        actors = [
+            {'user_id': 1, 'user_name': '관리자'},
+            {'user_id': 2, 'user_name': '테스트'},
+            {'user_id': 1, 'user_name': '관리자'},
+        ]
+        actor = actors[index % len(actors)]
 
         project = Project.objects.create(
             owner=owner,
@@ -360,10 +303,17 @@ class Command(BaseCommand):
             status=stage,
         )
 
-        # 모든 프로젝트에 레퍼런스 사이트 추가
+        # 프로젝트 생성 활동 기록
+        self._log(project, actor, 'project_created', now - timedelta(days=14), {'title': project.title, 'client_name': config['client_name']})
+
+        # 부서/직급 구조 생성
+        dept_objs = self._create_departments(project, config.get('departments', []))
+        pos_objs = self._create_positions(project, config.get('positions', []))
+
+        # 레퍼런스 사이트
         ref_sites = self._create_reference_sites(project, index)
 
-        # analyzing 이상이면 분석 데이터 생성
+        # analyzing 이상
         if stage_idx >= STAGE_ORDER.index('analyzing'):
             self._create_site_analyses(project, ref_sites)
             analysis_status = 'processing'
@@ -372,145 +322,111 @@ class Command(BaseCommand):
             if stage_idx >= STAGE_ORDER.index('analysis_confirmed'):
                 analysis_status = 'confirmed'
             self._create_project_analysis(project, analysis_status)
+            self._log(project, actor, 'analysis_triggered', now - timedelta(days=10), {'ai_provider': 'claude'})
+            if stage_idx >= STAGE_ORDER.index('analysis_confirmed'):
+                self._log(project, actor, 'analysis_confirmed', now - timedelta(days=9))
 
-        # questionnaire_ready 이상이면 설문 데이터 생성
+        # questionnaire_ready 이상
         if stage_idx >= STAGE_ORDER.index('questionnaire_ready'):
             questionnaire = self._create_questionnaire(project)
-            position_categories = self._create_position_categories(questionnaire)
-            questions = self._create_questions(questionnaire, position_categories)
+            sections, questions = self._create_sections_and_questions(questionnaire, pos_objs, dept_objs)
+            self._log(project, actor, 'questionnaire_generate_triggered', now - timedelta(days=8), {'ai_provider': 'claude', 'reference_count': 0})
 
-            # distributing 이상이면 직원 및 초대 데이터 생성
+            # distributing 이상이면 질문지 확정
             if stage_idx >= STAGE_ORDER.index('distributing'):
-                employees = self._create_employees(project, position_categories)
+                questionnaire.status = 'confirmed'
+                questionnaire.save(update_fields=['status'])
+                self._log(project, actor, 'questionnaire_confirmed', now - timedelta(days=7))
+
+                employees = self._create_employees(project, dept_objs, pos_objs)
                 invitations = self._create_invitations(project, employees, stage_idx)
+                self._log(project, actor, 'invitations_generated', now - timedelta(days=6), {'count': len(employees)})
 
-                # collecting 이상이면 응답 데이터 생성
                 if stage_idx >= STAGE_ORDER.index('collecting'):
-                    self._create_responses(
-                        project, owner, employees, invitations, questions,
-                        all_completed=(stage_idx >= STAGE_ORDER.index('closed')),
-                    )
+                    self._create_responses(project, owner, employees, invitations, questions, all_completed=(stage_idx >= STAGE_ORDER.index('closed')))
 
-            # aggregating 이상이면 취합 데이터 생성
+                if stage_idx >= STAGE_ORDER.index('closed'):
+                    self._log(project, actor, 'collection_closed', now - timedelta(days=3))
+
+            # aggregating 이상
             if stage_idx >= STAGE_ORDER.index('aggregating'):
                 agg_status = 'processing'
                 if stage_idx >= STAGE_ORDER.index('aggregation_ready'):
                     agg_status = 'completed'
                 aggregation = self._create_aggregation(project, questions, agg_status)
+                self._log(project, actor, 'aggregation_triggered', now - timedelta(days=2), {'ai_provider': 'claude'})
 
-                # brief_ready 이상이면 디자인 브리프 생성
                 if stage_idx >= STAGE_ORDER.index('brief_ready'):
                     brief = self._create_design_brief(project, aggregation)
-
-                    # completed면 Stitch 생성 데이터 추가
                     if stage_idx >= STAGE_ORDER.index('completed'):
                         self._create_stitch_generation(brief)
 
         return project
 
+    def _log(self, project, actor, action, timestamp, detail=None):
+        activity = ProjectActivity.objects.create(
+            project=project,
+            user_id=actor['user_id'],
+            user_name=actor['user_name'],
+            action=action,
+            detail=detail or {},
+        )
+        # Override auto_now_add
+        ProjectActivity.objects.filter(pk=activity.pk).update(created_at=timestamp)
+
+    def _create_departments(self, project, dept_names):
+        objs = {}
+        for i, name in enumerate(dept_names):
+            objs[name] = ProjectDepartment.objects.create(project=project, name=name, order=i)
+        return objs
+
+    def _create_positions(self, project, pos_names):
+        objs = {}
+        for i, name in enumerate(pos_names):
+            weight = round(max(1.0, (len(pos_names) - i) * 0.5 + 0.5), 1)
+            objs[name] = ProjectPosition.objects.create(project=project, name=name, weight=weight, order=i)
+        return objs
+
     def _create_reference_sites(self, project, index):
         sites = []
-        # 2~4개 레퍼런스 사이트 할당
         start = index % len(REFERENCE_SITES)
         count = 2 + (index % 3)
         for i in range(count):
             ref = REFERENCE_SITES[(start + i) % len(REFERENCE_SITES)]
             site = ReferenceSite.objects.create(
-                project=project,
-                url=ref['url'],
-                title=ref['title'],
-                description=ref['description'],
-                order=i,
-                crawl_data={
-                    'title': ref['title'],
-                    'meta_description': ref['description'],
-                    'headings': [f'{ref["title"]} - 메인 페이지'],
-                    'text_content': f'{ref["title"]}의 웹사이트 크롤링 데이터입니다.',
-                },
+                project=project, url=ref['url'], title=ref['title'], description=ref['description'], order=i,
+                crawl_data={'title': ref['title'], 'meta_description': ref['description'], 'text_content': f'{ref["title"]}의 웹사이트 크롤링 데이터입니다.'},
             )
             sites.append(site)
         return sites
 
     def _create_site_analyses(self, project, ref_sites):
-        # 기존 사이트 분석
         if project.existing_site_url:
             SiteAnalysis.objects.create(
-                project=project,
-                is_existing_site=True,
-                url=project.existing_site_url,
+                project=project, is_existing_site=True, url=project.existing_site_url,
                 crawl_text=f'{project.client_name} 기존 웹사이트의 크롤링 텍스트입니다.',
-                ai_analysis={
-                    'overall_score': 65,
-                    'strengths': ['브랜드 인지도 높음', '풍부한 콘텐츠'],
-                    'weaknesses': ['모바일 최적화 부족', '느린 로딩 속도', '구식 디자인'],
-                    'ux_score': 60,
-                    'design_score': 55,
-                    'performance_score': 50,
-                    'accessibility_score': 45,
-                    'recommendations': [
-                        '반응형 디자인 적용 필요',
-                        '이미지 최적화로 로딩 속도 개선',
-                        '네비게이션 구조 단순화',
-                    ],
-                },
+                ai_analysis={'layout': '데스크톱 중심', 'navigation': '복잡한 메가 메뉴', 'strengths': ['브랜드 인지도', '풍부한 콘텐츠'], 'weaknesses': ['모바일 최적화 부족', '느린 로딩']},
             )
-
-        # 레퍼런스 사이트 분석
         for ref_site in ref_sites:
             SiteAnalysis.objects.create(
-                project=project,
-                reference_site=ref_site,
-                is_existing_site=False,
-                url=ref_site.url,
+                project=project, reference_site=ref_site, url=ref_site.url,
                 crawl_text=f'{ref_site.title} 레퍼런스 사이트의 크롤링 텍스트입니다.',
-                ai_analysis={
-                    'overall_score': 85,
-                    'strengths': ['깔끔한 디자인', '직관적 UX', '빠른 로딩'],
-                    'weaknesses': ['특정 브라우저 호환성 이슈'],
-                    'design_patterns': ['미니멀리즘', '카드 레이아웃', '히어로 섹션'],
-                    'color_palette': ['#000000', '#FFFFFF', '#0071E3'],
-                    'typography': 'San Francisco / Pretendard',
-                    'applicable_elements': [
-                        '풀스크린 히어로 배너',
-                        '그리드 기반 제품 갤러리',
-                        '스크롤 기반 스토리텔링',
-                    ],
-                },
+                ai_analysis={'layout': '미니멀', 'strengths': ['깔끔한 디자인', '빠른 로딩'], 'design_patterns': ['미니멀리즘', '카드 레이아웃']},
             )
 
     def _create_project_analysis(self, project, status):
         confirmed_at = timezone.now() if status == 'confirmed' else None
         ProjectAnalysis.objects.create(
-            project=project,
-            status=status,
-            ai_provider='claude',
-            requirements_summary=(
-                f'{project.client_name}의 웹사이트 리뉴얼 프로젝트입니다. '
-                '모바일 퍼스트 디자인, 사용자 경험 개선, 브랜드 이미지 강화가 핵심 목표입니다.'
-            ),
-            existing_site_analysis={
-                'current_state': '기존 사이트는 데스크톱 중심 레이아웃으로 모바일 대응이 부족합니다.',
-                'improvement_areas': ['반응형 디자인', '성능 최적화', '접근성 개선'],
-                'content_audit': '콘텐츠는 풍부하나 구조화가 필요합니다.',
-            },
-            reference_sites_analysis={
-                'common_patterns': ['미니멀 디자인', '대형 비주얼', '직관적 네비게이션'],
-                'best_practices': ['모바일 퍼스트', '성능 최적화', '마이크로 인터랙션'],
-                'applicable_insights': [
-                    '풀스크린 히어로 섹션으로 브랜드 임팩트 극대화',
-                    '카드 기반 UI로 콘텐츠 탐색 용이성 확보',
-                    '스크롤 기반 스토리텔링으로 제품 특징 전달',
-                ],
-            },
-            combined_insights={
-                'design_direction': '프리미엄 미니멀리즘 + 대담한 타이포그래피',
-                'key_features': ['반응형 레이아웃', '인터랙티브 제품 뷰어', '빠른 검색'],
-                'technology_stack': ['Next.js', 'Tailwind CSS', 'Framer Motion'],
-                'estimated_pages': 15,
-                'priority_pages': ['메인', '제품 상세', '회사 소개', '고객 지원'],
-            },
+            project=project, status=status, ai_provider='claude',
+            requirements_summary=f'{project.client_name}의 웹사이트 리뉴얼 프로젝트입니다. 모바일 퍼스트 디자인, 사용자 경험 개선, 브랜드 이미지 강화가 핵심 목표입니다.',
+            existing_site_analysis={'layout': '데스크톱 중심 레이아웃', 'navigation': '복잡한 메가 메뉴 구조', 'color_scheme': '브랜드 블루 + 화이트', 'typography': '고딕 계열', 'strengths': ['브랜드 인지도 높음', '풍부한 콘텐츠'], 'weaknesses': ['모바일 최적화 부족', '느린 로딩 속도', '구식 디자인']},
+            reference_sites_analysis=[
+                {'url': 'https://www.apple.com/', 'layout': '풀스크린 히어로 + 그리드', 'standout_features': ['미니멀 디자인', '제품 중심 UI'], 'design_patterns': ['히어로 섹션', '카드 레이아웃'], 'relevant_to_requirements': '모바일 퍼스트, 프리미엄 이미지에 적합'},
+                {'url': 'https://www.tesla.com/', 'layout': '풀스크린 비주얼 중심', 'standout_features': ['임팩트 있는 비주얼', '직관적 구매 플로우'], 'design_patterns': ['스크롤 스토리텔링'], 'relevant_to_requirements': 'EV 브랜드 참고'},
+            ],
+            combined_insights={'recommended_direction': '프리미엄 미니멀리즘 + 대담한 타이포그래피', 'key_patterns_to_adopt': ['풀스크린 히어로', '카드 기반 UI', '스크롤 스토리텔링'], 'gaps_to_address': ['모바일 네비게이션 재설계', '로딩 속도 최적화'], 'risk_areas': ['다국어 지원 복잡도', '레거시 시스템 연동']},
             confirmed_at=confirmed_at,
-            raw_ai_response={'model': 'claude-3-sonnet', 'usage': {'input_tokens': 5000, 'output_tokens': 3000}},
+            raw_ai_response={'model': 'claude-sonnet-4', 'usage': {'input_tokens': 5000, 'output_tokens': 3000}},
         )
 
     def _create_questionnaire(self, project):
@@ -522,57 +438,48 @@ class Command(BaseCommand):
             ai_provider='claude',
         )
 
-    def _create_position_categories(self, questionnaire):
-        categories = {}
-        for i, name in enumerate(POSITION_CATEGORIES_DATA):
-            cat = PositionCategory.objects.create(
-                questionnaire=questionnaire,
-                name=name,
-                order=i,
-            )
-            categories[name] = cat
-        return categories
-
-    def _create_questions(self, questionnaire, position_categories):
+    def _create_sections_and_questions(self, questionnaire, pos_objs, dept_objs):
+        sections = []
         questions = []
-        for i, q_data in enumerate(QUESTIONS_DATA):
-            question = Question.objects.create(
+        q_order = 0
+        for s_idx, s_data in enumerate(SECTIONS_DATA):
+            section = QuestionSection.objects.create(
                 questionnaire=questionnaire,
-                text=q_data['text'],
-                question_type=q_data['question_type'],
-                importance=q_data['importance'],
-                purpose=q_data.get('purpose', ''),
-                order=i,
-                options=q_data.get('options', []),
+                title=s_data['title'],
+                description=s_data['description'],
+                importance=s_data['importance'],
+                target_area=s_data['target_area'],
+                order=s_idx,
             )
-            for cat_name in q_data.get('categories', []):
-                if cat_name in position_categories:
-                    question.position_categories.add(position_categories[cat_name])
-            questions.append(question)
-        return questions
+            sections.append(section)
 
-    def _create_employees(self, project, position_categories):
-        cat_map = {
-            '대표이사': '경영진',
-            '마케팅 팀장': '마케팅/기획',
-            '디자인 팀장': '디자인',
-            '개발 팀장': '개발',
-            '기획자': '마케팅/기획',
-            'UX 디자이너': '디자인',
-            '프론트엔드 개발자': '개발',
-            '콘텐츠 마케터': '마케팅/기획',
-        }
+            for q_data in s_data['questions']:
+                question = Question.objects.create(
+                    questionnaire=questionnaire,
+                    section=section,
+                    text=q_data['text'],
+                    question_type=q_data['question_type'],
+                    importance=q_data['importance'],
+                    sub_category=q_data.get('sub_category', ''),
+                    purpose=q_data.get('purpose', ''),
+                    order=q_order,
+                    options=q_data.get('options', []),
+                )
+                questions.append(question)
+                q_order += 1
+
+        return sections, questions
+
+    def _create_employees(self, project, dept_objs, pos_objs):
         employees = []
         for emp_data in EMPLOYEES_DATA:
-            cat_name = cat_map.get(emp_data['position'])
-            pos_cat = position_categories.get(cat_name)
             emp = Employee.objects.create(
                 project=project,
                 name=emp_data['name'],
                 email=emp_data['email'],
                 position=emp_data['position'],
                 department=emp_data.get('department', ''),
-                position_category=pos_cat,
+                phone=emp_data.get('phone', ''),
             )
             employees.append(emp)
         return employees
@@ -590,12 +497,8 @@ class Command(BaseCommand):
                 status = 'sent'
 
             inv = SurveyInvitation.objects.create(
-                employee=emp,
-                project=project,
-                password_hash=make_password('survey1234'),
-                status=status,
-                expires_at=now + timedelta(days=14),
-                sent_at=now - timedelta(days=7),
+                employee=emp, project=project, password_hash=make_password(emp.phone[-4:] if len(emp.phone) >= 4 else '1234'),
+                status=status, expires_at=now + timedelta(days=14), sent_at=now - timedelta(days=7),
                 opened_at=now - timedelta(days=5) if status in ('opened', 'completed') else None,
                 completed_at=now - timedelta(days=3) if status == 'completed' else None,
             )
@@ -607,174 +510,80 @@ class Command(BaseCommand):
         for emp, inv in zip(employees, invitations):
             if inv.status != 'completed' and not all_completed:
                 continue
-
             response = SurveyResponse.objects.create(
-                invitation=inv,
-                project=project,
-                employee=emp,
-                completed_at=inv.completed_at or timezone.now(),
+                invitation=inv, project=project, employee=emp, completed_at=inv.completed_at or timezone.now(),
             )
-
             for question in questions:
                 self._create_answer(response, question, random)
 
     def _create_answer(self, response, question, random):
-        text_value = ''
-        choice_values = []
-        rating_value = None
+        text_value, choice_values, rating_value = '', [], None
 
         if question.question_type == 'textarea':
-            samples = ANSWER_SAMPLES['textarea']
-            text_value = random.choice(samples)
+            text_value = random.choice(ANSWER_SAMPLES['textarea'])
         elif question.question_type == 'text':
-            samples = ANSWER_SAMPLES['text']
-            text_value = random.choice(samples)
-        elif question.question_type == 'single_choice':
-            if question.options:
-                choice_values = [random.choice(question.options)]
-        elif question.question_type == 'multiple_choice':
-            if question.options:
-                count = random.randint(1, min(3, len(question.options)))
-                choice_values = random.sample(question.options, count)
+            text_value = random.choice(ANSWER_SAMPLES['text'])
+        elif question.question_type == 'single_choice' and question.options:
+            choice_values = [random.choice(question.options)]
+        elif question.question_type == 'multiple_choice' and question.options:
+            choice_values = random.sample(question.options, random.randint(1, min(3, len(question.options))))
         elif question.question_type == 'rating':
             rating_value = random.randint(1, 5)
-        elif question.question_type == 'ranking':
-            if question.options:
-                shuffled = list(question.options)
-                random.shuffle(shuffled)
-                choice_values = shuffled
+        elif question.question_type == 'ranking' and question.options:
+            shuffled = list(question.options)
+            random.shuffle(shuffled)
+            choice_values = shuffled
 
-        Answer.objects.create(
-            response=response,
-            question=question,
-            text_value=text_value,
-            choice_values=choice_values,
-            rating_value=rating_value,
-        )
+        Answer.objects.create(response=response, question=question, text_value=text_value, choice_values=choice_values, rating_value=rating_value)
 
     def _create_aggregation(self, project, questions, status):
         aggregation = Aggregation.objects.create(
-            project=project,
-            status=status,
-            ai_provider='claude',
-            version=1,
-            summary=(
-                f'{project.client_name} 웹사이트 리뉴얼에 대한 내부 인터뷰 결과, '
-                '모바일 최적화, 사용자 경험 개선, 브랜드 이미지 강화가 '
-                '가장 높은 우선순위로 나타났습니다.'
-            ),
-            company_direction=(
-                '디지털 트랜스포메이션을 통한 글로벌 시장 확대와 '
-                '프리미엄 브랜드 이미지 강화를 목표로 하고 있습니다.'
-            ),
+            project=project, status=status, ai_provider='claude', version=1,
+            summary=f'{project.client_name} 웹사이트 리뉴얼에 대한 내부 인터뷰 결과, 모바일 최적화, 사용자 경험 개선, 브랜드 이미지 강화가 가장 높은 우선순위로 나타났습니다.',
+            section_summaries=[
+                {'section_title': 'Project Overview', 'summary': '전반적으로 현재 사이트의 모바일 대응 부족과 네비게이션 복잡도가 주요 문제로 지적됨.', 'key_quotes': ['김철수 대표: \'모바일 사용성이 최우선\'', '정민호 기획자: \'검색 기능 부족\'']},
+                {'section_title': 'Service Image', 'summary': '프리미엄/혁신적 이미지를 원하며, 미니멀 모던 스타일에 대한 선호가 높음.', 'key_quotes': ['이영희 팀장: \'브랜드 프리미엄 이미지 일관성\'']},
+                {'section_title': 'UX/UI Design', 'summary': '반응형 디자인, 빠른 로딩, 접근성이 기능적 핵심 요구사항. 사용 편의성 > 시각적 임팩트 우선순위.', 'key_quotes': ['박지성 팀장: \'3클릭 내 접근\'', '최수연 팀장: \'3초 이내 로딩\'']},
+            ],
+            company_direction='디지털 트랜스포메이션을 통한 글로벌 시장 확대와 프리미엄 브랜드 이미지 강화를 목표로 하고 있습니다.',
             desired_changes=[
-                '모바일 퍼스트 디자인으로 전환',
-                '직관적인 네비게이션 구조',
-                '빠른 로딩 속도',
-                '브랜드 아이덴티티 강화',
-                '글로벌 다국어 지원',
+                {'category': 'UX', 'items': ['직관적인 네비게이션 구조', '3클릭 내 정보 접근']},
+                {'category': '디자인', 'items': ['프리미엄 미니멀리즘', '브랜드 아이덴티티 강화']},
+                {'category': '기술', 'items': ['모바일 퍼스트 반응형', '3초 이내 로딩 속도']},
+                {'category': '비즈니스', 'items': ['글로벌 다국어 지원', 'SEO 최적화']},
             ],
-            company_values=[
-                '혁신', '신뢰', '고객 중심', '지속가능성',
-            ],
-            raw_ai_response={'model': 'claude-3-sonnet', 'usage': {'input_tokens': 8000, 'output_tokens': 4000}},
+            company_values=['혁신', '신뢰', '고객 중심', '지속가능성'],
+            raw_ai_response={'model': 'claude-sonnet-4'},
         )
 
-        # 키워드 생성
         for i, kw in enumerate(KEYWORDS_DATA):
-            ExtractedKeyword.objects.create(
-                aggregation=aggregation,
-                text=kw['text'],
-                category=kw['category'],
-                weight=kw['weight'],
-                order=i,
-            )
-
-        # 핵심 문장 생성
+            ExtractedKeyword.objects.create(aggregation=aggregation, text=kw['text'], category=kw['category'], weight=kw['weight'], order=i)
         for i, sent in enumerate(SENTENCES_DATA):
             source_q = questions[i % len(questions)] if questions else None
-            ExtractedSentence.objects.create(
-                aggregation=aggregation,
-                text=sent['text'],
-                category=sent['category'],
-                source_question=source_q,
-                order=i,
-            )
+            ExtractedSentence.objects.create(aggregation=aggregation, text=sent['text'], category=sent['category'], source_question=source_q, order=i)
 
         return aggregation
 
     def _create_design_brief(self, project, aggregation):
         return DesignBrief.objects.create(
-            project=project,
-            aggregation=aggregation,
+            project=project, aggregation=aggregation,
             title=f'{project.client_name} 웹사이트 디자인 브리프',
-            summary=(
-                f'{project.client_name}의 웹사이트 리뉴얼을 위한 디자인 브리프입니다. '
-                '모바일 퍼스트, 프리미엄 미니멀리즘을 기본 방향으로 설정합니다.'
-            ),
+            summary=f'{project.client_name}의 웹사이트 리뉴얼을 위한 디자인 브리프입니다. 모바일 퍼스트, 프리미엄 미니멀리즘을 기본 방향으로 설정합니다.',
             target_audience='30-40대 전문직 종사자 및 기업 의사결정자',
-            design_direction=(
-                '프리미엄 미니멀리즘을 기반으로 대담한 타이포그래피와 '
-                '여백을 활용한 세련된 디자인. '
-                '브랜드 컬러를 효과적으로 활용하며, '
-                '인터랙티브 요소로 몰입감을 높입니다.'
-            ),
-            key_requirements=[
-                '반응형 디자인 (모바일 퍼스트)',
-                '3초 이내 로딩 속도',
-                '직관적 네비게이션',
-                '접근성 WCAG 2.1 AA 준수',
-                '다국어 지원 (한/영/중/일)',
-            ],
+            design_direction='프리미엄 미니멀리즘을 기반으로 대담한 타이포그래피와 여백을 활용한 세련된 디자인.',
+            key_requirements=['반응형 디자인 (모바일 퍼스트)', '3초 이내 로딩 속도', '직관적 네비게이션', '접근성 WCAG 2.1 AA 준수', '다국어 지원 (한/영/중/일)'],
             selected_keywords=['모바일 퍼스트', '프리미엄', '혁신', '미니멀', '사용자 경험'],
-            selected_sentences=[
-                '모바일 환경에서의 사용성이 가장 중요합니다.',
-                '브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.',
-                '사용자가 원하는 정보에 3클릭 이내로 접근할 수 있어야 합니다.',
-            ],
-            tone_and_mood={
-                'primary': '프리미엄/세련된',
-                'secondary': '혁신적/미래지향적',
-                'keywords': ['elegant', 'bold', 'innovative', 'trustworthy'],
-            },
-            color_preferences={
-                'primary': '#0A1628',
-                'secondary': '#0071E3',
-                'accent': '#FF6B35',
-                'background': '#FAFAFA',
-                'text': '#1A1A1A',
-            },
-            design_md=(
-                '# 디자인 브리프\n\n'
-                '## 프로젝트 개요\n'
-                f'{project.client_name} 웹사이트 전면 리뉴얼\n\n'
-                '## 디자인 방향\n'
-                '- 프리미엄 미니멀리즘\n'
-                '- 대담한 타이포그래피\n'
-                '- 모바일 퍼스트\n\n'
-                '## 핵심 키워드\n'
-                '모바일 퍼스트, 프리미엄, 혁신, 미니멀, 사용자 경험\n\n'
-                '## 컬러 팔레트\n'
-                '- Primary: #0A1628\n'
-                '- Secondary: #0071E3\n'
-                '- Accent: #FF6B35\n'
-            ),
+            selected_sentences=['김철수 대표: \'모바일 환경에서의 사용성이 가장 중요합니다.\'', '이영희 팀장: \'브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.\''],
+            tone_and_mood={'primary': '프리미엄/세련된', 'secondary': '혁신적/미래지향적', 'keywords': ['elegant', 'bold', 'innovative']},
+            color_preferences={'primary': '#0A1628', 'secondary': '#0071E3', 'accent': '#FF6B35', 'background': '#FAFAFA'},
+            design_md=f'# {project.client_name} Design Brief\n\n## Visual Theme\nPremium Minimalism\n\n## Color Palette\n- Primary: #0A1628\n- Secondary: #0071E3\n- Accent: #FF6B35\n\n## Typography\nPretendard / Inter\n\n## Key Principles\n- Mobile First\n- 3-Click Rule\n- Sub-3s Loading\n',
         )
 
     def _create_stitch_generation(self, brief):
         StitchGeneration.objects.create(
-            design_brief=brief,
-            prompt_text=f'{brief.title}에 대한 디자인을 생성합니다.',
-            design_md_snapshot=brief.design_md,
-            reference_images=[],
-            stitch_project_id='stitch_dummy_001',
-            stitch_project_url='https://stitch.example.com/project/dummy_001',
-            generated_html_url='https://stitch.example.com/preview/dummy_001',
-            generated_screenshot_url='',
-            generated_html_content=(
-                '<html><head><title>Generated Design</title></head>'
-                '<body><h1>Generated Design Preview</h1></body></html>'
-            ),
-            version=1,
-            status='completed',
+            design_brief=brief, status='completed',
+            design_md_snapshot=brief.design_md or '',
+            stitch_project_id='stitch-demo-001',
+            stitch_project_url='https://stitch.withgoogle.com/projects/demo-001',
+            generated_html_content='<div style="padding:40px;font-family:sans-serif"><h1>Demo Home</h1><p>Generated by Stitch</p></div>',
         )

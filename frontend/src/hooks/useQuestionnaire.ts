@@ -7,15 +7,10 @@ import type {
   Question,
   QuestionCreateRequest,
   QuestionUpdateRequest,
-  QuestionReorderRequest,
-  PositionCategory,
-  PositionCategoryCreateRequest,
-  PositionCategoryUpdateRequest,
 } from '@/types/questionnaire';
 
 const questionnaireKey = (projectId: number) => ['questionnaire', projectId];
 const questionnaireStatusKey = (projectId: number) => ['questionnaire', projectId, 'status'];
-const categoriesKey = (projectId: number) => ['questionnaire', projectId, 'categories'];
 
 export function useQuestionnaire(projectId: number | undefined) {
   return useQuery<Questionnaire>({
@@ -46,9 +41,10 @@ export function useQuestionnaireStatus(projectId: number | undefined, enabled: b
 export function useGenerateQuestionnaire() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, ai_provider }: { projectId: number; ai_provider?: string }) => {
+    mutationFn: async ({ projectId, ai_provider, reference_project_ids }: { projectId: number; ai_provider?: string; reference_project_ids?: number[] }) => {
       const res = await apiClient.post<Questionnaire>(API_PATHS.QUESTIONNAIRE_GENERATE(projectId), {
         ai_provider,
+        reference_project_ids,
       });
       return res.data;
     },
@@ -170,66 +166,40 @@ export function useGenerateSectionQuestions() {
   });
 }
 
-// --- Position Category hooks ---
+// --- Template / Import hooks ---
 
-export function usePositionCategories(projectId: number | undefined) {
-  return useQuery<PositionCategory[]>({
-    queryKey: categoriesKey(projectId!),
+export interface QuestionnaireTemplate {
+  project_id: number;
+  project_title: string;
+  client_name: string;
+  questionnaire_id: number;
+  title: string;
+  status: string;
+  section_count: number;
+  question_count: number;
+}
+
+export function useQuestionnaireTemplates(projectId: number | undefined) {
+  return useQuery<QuestionnaireTemplate[]>({
+    queryKey: ['questionnaire-templates', projectId],
     queryFn: async () => {
-      const res = await apiClient.get<PositionCategory[]>(API_PATHS.POSITION_CATEGORIES(projectId!));
+      const res = await apiClient.get(API_PATHS.QUESTIONNAIRE_TEMPLATES(projectId!));
       return res.data;
     },
     enabled: !!projectId,
   });
 }
 
-export function useCreatePositionCategory() {
+export function useImportQuestionnaire() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, data }: { projectId: number; data: PositionCategoryCreateRequest }) => {
-      const res = await apiClient.post<PositionCategory>(API_PATHS.POSITION_CATEGORIES(projectId), data);
+    mutationFn: async ({ projectId, sourceProjectId }: { projectId: number; sourceProjectId: number }) => {
+      const res = await apiClient.post(API_PATHS.QUESTIONNAIRE_IMPORT(projectId), { source_project_id: sourceProjectId });
       return res.data;
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: categoriesKey(variables.projectId) });
       queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
     },
   });
 }
 
-export function useUpdatePositionCategory() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      projectId,
-      categoryId,
-      data,
-    }: {
-      projectId: number;
-      categoryId: number;
-      data: PositionCategoryUpdateRequest;
-    }) => {
-      const res = await apiClient.patch<PositionCategory>(
-        API_PATHS.POSITION_CATEGORY(projectId, categoryId),
-        data,
-      );
-      return res.data;
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: categoriesKey(variables.projectId) });
-    },
-  });
-}
-
-export function useDeletePositionCategory() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ projectId, categoryId }: { projectId: number; categoryId: number }) => {
-      await apiClient.delete(API_PATHS.POSITION_CATEGORY(projectId, categoryId));
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: categoriesKey(variables.projectId) });
-      queryClient.invalidateQueries({ queryKey: questionnaireKey(variables.projectId) });
-    },
-  });
-}

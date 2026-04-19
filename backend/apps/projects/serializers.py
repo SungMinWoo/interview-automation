@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile
+from .models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
 
 
 class ReferenceSiteSerializer(serializers.ModelSerializer):
@@ -32,6 +32,13 @@ class ProjectFileSerializer(serializers.ModelSerializer):
         model = ProjectFile
         fields = ['id', 'file', 'original_name', 'file_type', 'file_size', 'extracted_text', 'ai_summary', 'created_at']
         read_only_fields = ['id', 'original_name', 'file_type', 'file_size', 'extracted_text', 'ai_summary', 'created_at']
+
+
+class ProjectActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectActivity
+        fields = ['id', 'user_id', 'user_name', 'action', 'detail', 'created_at']
+        read_only_fields = fields
 
 
 class ProjectListSerializer(serializers.ModelSerializer):

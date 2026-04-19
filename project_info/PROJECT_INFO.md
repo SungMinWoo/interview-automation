@@ -4,10 +4,10 @@
 SI(System Integration) 회사에서 클라이언트 UXUI 디자인 전 단계로 임직원 인터뷰를 관리하는 웹 애플리케이션.
 
 ## 비즈니스 워크플로우
-1. **프로젝트 생성** — 클라이언트 정보, 요구사항, 기존 사이트 URL, 레퍼런스 사이트 등록
-2. **AI 사이트 분석** — Claude/Gemini API로 클라이언트 요구사항 + 사이트들 자동 분석 (AI 선택 가능)
-3. **유저 컨펌** — AI 분석 결과를 유저가 검토/수정 후 확인 (확인 후 잠금)
-4. **AI 질문지 생성** — 확인된 분석 결과 기반으로 직급별 인터뷰 질문지 자동 생성 (중요도 + 의도 포함)
+1. **프로젝트 생성** — 클라이언트 정보, 요구사항, 요구사항 파일 업로드, 기존 사이트 URL, 레퍼런스 사이트 등록
+2. **AI 사이트 분석** — Claude/Gemini API로 요구사항(텍스트+파일) + 사이트들 자동 분석 (AI 선택 가능). 요구사항 파일 내용이 분석에 포함됨
+3. **유저 컨펌** — AI 분석 결과를 섹션별로 개별 AI 재생성 또는 수동 수정 후 확인 (확인 후 잠금)
+4. **AI 질문지 생성** — 확인된 분석 결과 기반으로 섹션별 인터뷰 질문지 자동 생성 (중요도 + 의도 + 대상 부서/직급 포함)
 5. **질문지 편집/확정** — 섹션별 관리, 질문 수정 (선택지/대상 부서·직급 설정 포함), 순서 변경, 직접 추가, 섹션별 AI 추가 생성. 확정 시 잠금
 6. **배포** — 질문지 확정 필수 → 임직원 정보 입력 → 일회용 URL 생성 (비밀번호: 폰번호 뒷4자리 또는 랜덤) → 이메일 발송, 개별 링크 관리/재생성
 7. **응답 수집** — 온라인 설문 (부분 답변 허용) + 대면 인터뷰 수동 입력, 수집 마감
@@ -89,7 +89,8 @@ interview_tool/
 - `POST /api/v1/auth/login/` — JWT 로그인
 
 ### 프로젝트
-- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성
+- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**전체 공개 — 로그인 유저 모두 접근 가능**)
+- `GET /api/v1/projects/{id}/activities/` — 작업 히스토리 목록 (최근 50건)
 - `GET/POST /api/v1/projects/{id}/departments/` — 부서 목록/생성
 - `DELETE /api/v1/projects/{id}/departments/{deptId}/` — 부서 삭제
 - `GET/POST /api/v1/projects/{id}/positions/` — 직급 목록/생성 (weight 가중치 포함)
@@ -99,11 +100,16 @@ interview_tool/
 - `POST /api/v1/projects/{id}/files/{fileId}/analyze/` — AI 파일 분석
 
 ### 분석
-- `POST /api/v1/projects/{id}/analysis/trigger/` — AI 분석 시작 (ai_provider 선택)
+- `POST /api/v1/projects/{id}/analysis/trigger/` — AI 분석 시작 (요구사항 파일 포함, ai_provider 선택)
+- `GET/PATCH /api/v1/projects/{id}/analysis/` — 분석 결과 조회/수정
+- `POST /api/v1/projects/{id}/analysis/regenerate-section/` — 섹션별 AI 재생성 (section, ai_provider)
 - `POST /api/v1/projects/{id}/analysis/confirm/` — 분석 확인
+- `GET /api/v1/projects/{id}/analysis/status/` — 분석 상태 폴링
 
 ### 질문지
-- `POST /api/v1/projects/{id}/questionnaire/generate/` — AI 질문지 생성 (섹션 기반, ai_provider 선택)
+- `POST /api/v1/projects/{id}/questionnaire/generate/` — AI 질문지 생성 (섹션 기반, ai_provider, reference_project_ids 선택)
+- `GET /api/v1/projects/{id}/questionnaire/templates/` — 불러올 수 있는 이전 질문지 목록
+- `POST /api/v1/projects/{id}/questionnaire/import/` — 이전 질문지 복사 (source_project_id)
 - `POST /api/v1/projects/{id}/questionnaire/confirm/` — 질문지 확정 (잠금)
 - `GET /api/v1/projects/{id}/questionnaire/status/` — 생성 상태 폴링
 - `GET/POST/DELETE /api/v1/projects/{id}/questionnaire/sections/` — 질문 섹션 CRUD
@@ -158,3 +164,51 @@ interview_tool/
 | frontend | 3000 | React + Vite dev server |
 | stitch_bridge | 3001 | Node.js Stitch SDK 브릿지 |
 | nginx | 80 | 리버스 프록시 |
+
+---
+
+## 향후 작업
+
+### BX(브랜딩) 업무 지원 확장
+현재 UX/UI 디자인 전용 파이프라인을 BX 업무에도 대응하도록 확장.
+`Project.project_type` 필드 추가 (`uxui` / `bx` / `integrated`), 타입에 따라 각 단계의 내용이 달라짐.
+
+**BX일 때 달라지는 단계:**
+
+| 단계 | UX/UI (현재) | BX |
+|------|-------------|-----|
+| **프로젝트 정보** | 기존 사이트 URL, 레퍼런스 사이트 | 기존 CI/BI 파일 업로드, 경쟁 브랜드, 타겟 시장 정보 |
+| **AI 분석** | 사이트 크롤링 + UX/UI 분석 | 브랜드 자산 분석 + 시장 포지셔닝 분석 |
+| **질문지** | 사용성/디자인/기능 중심 | 비전·미션/핵심 가치/브랜드 퍼스널리티/타겟 인식 중심 |
+| **취합** | 디자인 방향, UX 패턴, 컬러/타이포 | 브랜드 DNA, 포지셔닝 맵, 톤앤매너, 키 메시지 |
+| **산출물** | 디자인 브리프 → DESIGN.md → Stitch | 브랜드 가이드라인 → BRAND.md |
+
+**BX 질문지 섹션 예시:**
+1. Brand Vision & Mission — 회사의 비전, 미션, 존재 이유
+2. Brand Values — 핵심 가치, 조직 문화, 차별화 요소
+3. Brand Personality — 브랜드 성격, 톤앤매너, 감성 키워드
+4. Target & Market — 타겟 고객, 시장 포지셔닝, 경쟁 구도
+5. Brand Experience — 고객 접점, 브랜드 경험, 개선 방향
+
+**BX 취합 결과 구조:**
+- `brand_identity`: vision, mission, core_values
+- `brand_personality`: archetypes, tone_of_voice, keywords
+- `positioning`: target_audience, competitive_advantage, brand_promise
+- `visual_direction`: mood, color_direction, typography_direction
+
+**통합(integrated) 타입**: BX 인터뷰 → 브랜드 방향 확정 → UX/UI 인터뷰 → 브랜드 기반 디자인 방향 확정 (순차 진행)
+
+**구현 방침:**
+- 기존 파이프라인 구조(분석→질문지→배포→수집→취합→브리프)는 유지 — 내용만 타입별 분기
+- AI 프롬프트를 타입별 템플릿으로 분리
+- 프론트에서 타입에 따라 입력 필드/라벨/섹션 예시 조건부 표시
+- 최종 산출물: UX/UI → DESIGN.md, BX → BRAND.md
+
+### 기타
+- [ ] SSO 인증 연동
+- [ ] Playwright 스크린샷 서비스 Docker 설정
+- [ ] 프론트엔드 코드 스플리팅 (dynamic import)
+- [ ] E2E 테스트 (Playwright)
+- [ ] 프로덕션 배포 설정 (SSL, 도메인 등)
+- [ ] Stitch 편집(edit_screens) 기능 연동
+- [ ] Stitch variants 생성 기능 연동

@@ -16,7 +16,7 @@ from services.ai_client import validate_ai_provider
 
 def get_user_project(request, project_id):
     """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id, owner=request.user)
+    return get_object_or_404(Project, pk=project_id)
 
 
 class TriggerAnalysisView(APIView):
@@ -50,6 +50,9 @@ class TriggerAnalysisView(APIView):
         # Trigger Celery task
         from .tasks import run_project_analysis
         run_project_analysis.delay(project.id, ai_provider=ai_provider)
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'analysis_triggered', {'ai_provider': ai_provider})
 
         return Response(
             ProjectAnalysisStatusSerializer(analysis).data,
@@ -108,6 +111,9 @@ class AnalysisConfirmView(APIView):
         # Also update the project status
         project.status = Project.Status.ANALYSIS_CONFIRMED
         project.save(update_fields=['status', 'updated_at'])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'analysis_confirmed')
 
         return Response(ProjectAnalysisSerializer(analysis).data)
 
@@ -176,6 +182,9 @@ class RegenerateAnalysisSectionView(APIView):
         if new_value is not None:
             setattr(analysis, section, new_value)
             analysis.save(update_fields=[section, 'updated_at'])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'analysis_section_regenerated', {'section': section, 'ai_provider': ai_provider})
 
         return Response(ProjectAnalysisSerializer(analysis).data)
 

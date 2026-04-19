@@ -12,14 +12,6 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  username: string;
-  password: string;
-  password_confirm: string;
-  company_name?: string;
-}
-
 export interface AuthTokens {
   access: string;
   refresh: string;

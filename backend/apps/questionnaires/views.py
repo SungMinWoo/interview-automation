@@ -19,7 +19,7 @@ from .serializers import (
 
 def get_user_project(request, project_id):
     """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id, owner=request.user)
+    return get_object_or_404(Project, pk=project_id)
 
 
 def get_user_questionnaire(request, project_id):
@@ -63,8 +63,12 @@ class GenerateQuestionnaireView(APIView):
             questionnaire.save(update_fields=['ai_provider', 'status', 'error_message', 'updated_at'])
 
         # Trigger async generation
+        reference_project_ids = request.data.get('reference_project_ids', [])
         from .tasks import generate_questionnaire
-        generate_questionnaire.delay(questionnaire.id, ai_provider=ai_provider)
+        generate_questionnaire.delay(questionnaire.id, ai_provider=ai_provider, reference_project_ids=reference_project_ids)
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'questionnaire_generate_triggered', {'ai_provider': ai_provider, 'reference_count': len(reference_project_ids)})
 
         return Response(
             QuestionnaireSerializer(questionnaire).data,
@@ -93,6 +97,9 @@ class QuestionnaireConfirmView(APIView):
         project = questionnaire.project
         project.status = Project.Status.DISTRIBUTING
         project.save(update_fields=['status', 'updated_at'])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'questionnaire_confirmed')
 
         return Response(QuestionnaireSerializer(questionnaire).data)
 
@@ -301,6 +308,123 @@ class GenerateSectionQuestionsView(APIView):
         return Response({
             'detail': f'{len(created_questions)}개 질문이 생성되었습니다.',
             'questions': QuestionSerializer(created_questions, many=True).data,
+        }, status=status.HTTP_201_CREATED)
+
+
+class QuestionnaireTemplatesView(APIView):
+    """GET - List other projects' questionnaires that can be used as templates."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, project_id):
+        project = get_user_project(request, project_id)
+        # Find questionnaires from other projects owned by this user that have questions
+        questionnaires = Questionnaire.objects.exclude(
+            project=project,
+        ).select_related('project').prefetch_related('sections', 'questions')
+
+        templates = []
+        for q in questionnaires:
+            section_count = q.sections.count()
+            question_count = q.questions.count()
+            if question_count == 0 and section_count == 0:
+                continue
+            templates.append({
+                'project_id': q.project.id,
+                'project_title': q.project.title,
+                'client_name': q.project.client_name,
+                'questionnaire_id': q.id,
+                'title': q.title,
+                'status': q.status,
+                'section_count': section_count,
+                'question_count': question_count,
+            })
+
+        return Response(templates)
+
+
+class ImportQuestionnaireView(APIView):
+    """POST - Copy sections and questions from another project's questionnaire."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, project_id):
+        project = get_user_project(request, project_id)
+        source_project_id = request.data.get('source_project_id')
+        if not source_project_id:
+            return Response({'detail': 'source_project_id가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        source_project = get_object_or_404(Project, pk=source_project_id)
+        source_questionnaire = get_object_or_404(Questionnaire, project=source_project)
+
+        # Get or create target questionnaire
+        questionnaire, _ = Questionnaire.objects.get_or_create(
+            project=project,
+            defaults={'title': f'{project.title} 질문지', 'status': Questionnaire.Status.PENDING},
+        )
+
+        if questionnaire.status == Questionnaire.Status.CONFIRMED:
+            return Response({'detail': '질문지가 확정되어 불러올 수 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Copy sections and questions
+        from django.db import models as db_models
+        existing_section_order = questionnaire.sections.aggregate(max_order=db_models.Max('order'))['max_order'] or -1
+        existing_q_order = questionnaire.questions.aggregate(max_order=db_models.Max('order'))['max_order'] or -1
+
+        copied_sections = 0
+        copied_questions = 0
+
+        with transaction.atomic():
+            for src_section in source_questionnaire.sections.order_by('order'):
+                existing_section_order += 1
+                new_section = QuestionSection.objects.create(
+                    questionnaire=questionnaire,
+                    title=src_section.title,
+                    description=src_section.description,
+                    importance=src_section.importance,
+                    target_area=src_section.target_area,
+                    order=existing_section_order,
+                )
+                copied_sections += 1
+
+                for src_q in src_section.questions.order_by('order'):
+                    existing_q_order += 1
+                    Question.objects.create(
+                        questionnaire=questionnaire,
+                        section=new_section,
+                        text=src_q.text,
+                        description=src_q.description,
+                        question_type=src_q.question_type,
+                        sub_category=src_q.sub_category,
+                        importance=src_q.importance,
+                        purpose=src_q.purpose,
+                        options=src_q.options,
+                        order=existing_q_order,
+                    )
+                    copied_questions += 1
+
+            # Copy unsectioned questions
+            for src_q in source_questionnaire.questions.filter(section__isnull=True).order_by('order'):
+                existing_q_order += 1
+                Question.objects.create(
+                    questionnaire=questionnaire,
+                    text=src_q.text,
+                    description=src_q.description,
+                    question_type=src_q.question_type,
+                    sub_category=src_q.sub_category,
+                    importance=src_q.importance,
+                    purpose=src_q.purpose,
+                    options=src_q.options,
+                    order=existing_q_order,
+                )
+                copied_questions += 1
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'questionnaire_imported', {'source_project': source_project.title, 'sections': copied_sections, 'questions': copied_questions})
+
+        return Response({
+            'detail': f'{copied_sections}개 섹션, {copied_questions}개 질문을 불러왔습니다.',
+            'questionnaire': QuestionnaireSerializer(questionnaire).data,
         }, status=status.HTTP_201_CREATED)
 
 

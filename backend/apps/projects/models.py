@@ -101,3 +101,31 @@ class ProjectFile(models.Model):
 
     def __str__(self):
         return self.original_name
+
+
+class ProjectActivity(models.Model):
+    """작업 히스토리 — 누가 무엇을 했는지 기록."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='activities')
+    user_id = models.IntegerField(null=True, blank=True, help_text='작업자 User ID (참고용, FK 아님)')
+    user_name = models.CharField(max_length=100, blank=True, help_text='작업자 이름 (퇴사해도 유지)')
+    action = models.CharField(max_length=100, help_text='액션 코드 (e.g., analysis_triggered)')
+    detail = models.JSONField(default=dict, blank=True, help_text='부가 정보')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'projects_projectactivity'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user_name}: {self.action}'
+
+
+def log_activity(project, user, action: str, detail: dict | None = None):
+    """프로젝트 활동 기록 유틸."""
+    ProjectActivity.objects.create(
+        project=project,
+        user_id=user.id if user else None,
+        user_name=getattr(user, 'first_name', '') or getattr(user, 'username', '') or str(user),
+        action=action,
+        detail=detail or {},
+    )

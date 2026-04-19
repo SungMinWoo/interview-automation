@@ -16,5 +16,7 @@ urlpatterns = [
     path('', views.QuestionnaireDetailView.as_view(), name='detail'),
     path('questions/reorder/', views.QuestionReorderView.as_view(), name='question-reorder'),
     path('sections/<int:section_id>/generate/', views.GenerateSectionQuestionsView.as_view(), name='section-generate'),
+    path('templates/', views.QuestionnaireTemplatesView.as_view(), name='templates'),
+    path('import/', views.ImportQuestionnaireView.as_view(), name='import'),
     path('', include(router.urls)),
 ]

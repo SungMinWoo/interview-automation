@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import * as authApi from '@/api/auth';
-import type { RegisterRequest } from '@/types/auth';
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -10,14 +9,6 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       authApi.login(email, password),
-    onSuccess: (data) => {
-      storeLogin(data.tokens, data.user);
-      queryClient.clear();
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: (data) => {
       storeLogin(data.tokens, data.user);
       queryClient.clear();
@@ -40,10 +31,8 @@ export function useAuth() {
     user,
     isAuthenticated,
     login: loginMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
     logout: logoutMutation.mutate,
-    isLoading: loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
+    isLoading: loginMutation.isPending || logoutMutation.isPending,
     loginError: loginMutation.error,
-    registerError: registerMutation.error,
   };
 }

@@ -49,6 +49,19 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 22. **AI 질문 생성 흐름**: 초기에만 상단 "AI 질문지 생성" 버튼 표시 (전체 섹션+질문 한번에 생성). 이후에는 각 섹션의 "AI 추가" 버튼으로 해당 섹션에만 질문 추가 (1~10개 지정)
 23. **QuestionSerializer M2M 필드**: PrimaryKeyRelatedField를 `queryset=[]`로 선언하면 `list.get()` 에러 발생. 반드시 `__init__`에서 필드 자체를 재생성해야 함 (`self.fields['target_departments'] = PrimaryKeyRelatedField(...)`)
 24. **QuestionnaireSerializer.questions**: `section__isnull=True`로 필터하여 섹션 없는 질문만 반환 (섹션 소속 질문은 sections → questions 중첩으로 제공, 중복 방지)
+25. **분석에 요구사항 파일 포함**: `run_project_analysis` 태스크에서 ProjectFile의 extracted_text/ai_summary를 수집하여 AI 프롬프트에 `file_contents` 파라미터로 전달. analyze_project() 시그니처에 `file_contents: list[dict] | None = None` 추가
+26. **분석 섹션별 재생성**: `POST analysis/regenerate-section/` — section 파라미터(requirements_summary/existing_site_analysis/reference_sites_analysis/combined_insights)로 특정 섹션만 AI 재생성. 확인(confirmed) 상태에서는 불가. `regenerate_analysis_section()` 메서드가 Claude/Gemini 클라이언트에 추가됨
+27. **프로젝트 생성 시 파일 첨부**: ProjectCreatePage에서 파일을 선택(pendingFiles 상태)하면, 프로젝트 생성 후 순차적으로 파일 업로드 API 호출
+28. **ProjectFileSerializer**: original_name, file_type, file_size는 read_only (perform_create에서 서버가 설정)
+29. **LoginPage**: 회원가입 폼 제거됨 — 로그인만 가능
+30. **Header 로그아웃**: useAuth().logout + navigate('/login') — onClick 핸들러 연결됨
+31. **seed_data**: 현재 모델 구조에 맞게 전면 재작성 — ProjectDepartment/ProjectPosition/QuestionSection/ProjectActivity 포함, importance 문자열, is_required 제거, section_summaries/categorized desired_changes, 질문지 확정(distributing 이상), 문장에 화자 포함, 단계별 활동 기록(타임스탬프 역순)
+32. **프로젝트 전체 공개**: 모든 앱의 `get_user_project`에서 `owner=request.user` 필터 제거. ProjectViewSet.get_queryset → `Project.objects.all()`. owner는 생성자 기록용으로만 유지. 같은 회사 전제
+33. **작업 히스토리 (ProjectActivity)**: project FK + user_id(IntegerField, FK 아님) + user_name(CharField) + action + detail(JSONField) + created_at. `log_activity(project, user, action, detail)` 유틸 함수. 퇴사/SSO 전환 대비 FK 없이 값 저장
+34. **Activity 기록 위치**: analysis(trigger/confirm/section_regenerated), questionnaire(generate/confirm/import), distribution(invitations_generated), responses(collection_closed), aggregation(trigger). 각 뷰에서 `log_activity()` 호출
+35. **Activity API**: `GET /projects/{id}/activities/` — 최근 50건. ProjectDetailPage 하단에 타임라인 UI (아바타+이름+한국어 액션 라벨+상대시간)
+36. **이전 질문지 불러오기**: `GET questionnaire/templates/` (다른 프로젝트 질문지 목록), `POST questionnaire/import/` (source_project_id로 섹션+질문 복사). 프론트에 모달 UI
+37. **이전 질문지 참고 AI 생성**: generate 요청 시 reference_project_ids 파라미터. Celery 태스크에서 참고 질문지 구조를 AI 프롬프트에 포함 ("구조만 참고, 그대로 복사 금지")
 
 ---
 
@@ -69,6 +82,8 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 | `STITCH_GENERATE` | `/projects/{id}/design-brief/stitch/generate/` |
 | `STITCH_LIST` | `/projects/{id}/design-brief/stitch/` |
 | `MANUAL_ENTRY_START` | `/projects/{id}/manual-entry/start/` (responses/manual 아님!) |
+| `PROJECT_ACTIVITIES` | `/projects/{id}/activities/` |
+| `ANALYSIS_REGENERATE_SECTION` | `/projects/{id}/analysis/regenerate-section/` |
 | `AGGREGATION_TRIGGER` | `/projects/{id}/aggregation/trigger/` |
 | `QUESTIONNAIRE_SECTIONS` | `/projects/{id}/questionnaire/sections/` |
 | `QUESTIONNAIRE_SECTION` | `/projects/{id}/questionnaire/sections/{sectionId}/` |
@@ -77,3 +92,5 @@ SI 회사의 UXUI 디자인 전 임직원 인터뷰 관리 웹 앱.
 | `POSITIONS` | `/projects/{id}/positions/` |
 | `PROJECT_FILES` | `/projects/{id}/files/` |
 | `PROJECT_FILE_ANALYZE` | `/projects/{id}/files/{fileId}/analyze/` |
+| `QUESTIONNAIRE_TEMPLATES` | `/projects/{id}/questionnaire/templates/` |
+| `QUESTIONNAIRE_IMPORT` | `/projects/{id}/questionnaire/import/` |
