@@ -58,6 +58,7 @@ STAGE_LABELS = {
 PROJECT_CONFIGS = [
     {
         'title': '산더미 전자 리뉴얼 프로젝트',
+        'project_type': 'uxui',
         'client_name': '산더미 전자',
         'client_contact_email': 'contact@electronics.example.com',
         'client_contact_phone': '02-1234-5678',
@@ -73,6 +74,7 @@ PROJECT_CONFIGS = [
     },
     {
         'title': '산더미 커머스 플랫폼',
+        'project_type': 'uxui',
         'client_name': '산더미 커머스',
         'client_contact_email': 'biz@commerce.example.com',
         'client_contact_phone': '031-9876-5432',
@@ -86,18 +88,19 @@ PROJECT_CONFIGS = [
         'positions': ['PM', '리드', '시니어', '주니어'],
     },
     {
-        'title': '산더미 모터스 브랜드 사이트',
+        'title': '산더미 모터스 브랜드 리뉴얼',
+        'project_type': 'bx',
         'client_name': '산더미 모터스',
-        'client_contact_email': 'web@motors.example.com',
+        'client_contact_email': 'brand@motors.example.com',
         'client_contact_phone': '02-3456-7890',
         'requirements_text': (
-            '산더미 모터스 브랜드 사이트를 EV 중심으로 재편합니다. '
-            '3D 차량 뷰어, 온라인 견적 시스템, '
-            '딜러 연결 기능이 핵심입니다. '
-            '프리미엄 브랜드 이미지를 강조하는 디자인을 원합니다.'
+            '산더미 모터스의 EV 전환에 맞춘 브랜드 아이덴티티 리뉴얼을 원합니다. '
+            '기존 자동차 제조사 이미지에서 모빌리티 혁신 기업으로의 전환, '
+            '젊은 세대를 타겟으로 한 브랜드 포지셔닝 재정립, '
+            '브랜드 슬로건/톤앤매너/비주얼 아이덴티티 전면 재정비가 핵심입니다.'
         ),
         'existing_site_url': 'https://motors.example.com/',
-        'departments': ['브랜드전략', 'UX', '개발', '영업'],
+        'departments': ['브랜드전략', '마케팅', '디자인', '커뮤니케이션'],
         'positions': ['임원', '팀장', '매니저', '사원'],
     },
 ]
@@ -157,6 +160,78 @@ SECTIONS_DATA = [
     },
 ]
 
+# BX 프로젝트용 섹션/질문 데이터
+BX_SECTIONS_DATA = [
+    {
+        'title': 'Brand Overview',
+        'description': '현재 브랜드에 대한 인식과 현황을 파악합니다.',
+        'importance': 'high',
+        'target_area': '공통',
+        'questions': [
+            {'text': '현재 브랜드를 한 단어로 표현한다면 무엇인가요?', 'question_type': 'text', 'importance': 'required', 'sub_category': '브랜드 인식', 'purpose': '내부 브랜드 인식 현황 파악'},
+            {'text': '우리 브랜드의 가장 큰 강점은 무엇이라고 생각하시나요?', 'question_type': 'textarea', 'importance': 'required', 'sub_category': '브랜드 가치', 'purpose': '브랜드 핵심 가치 도출'},
+            {'text': '고객이 우리 브랜드를 선택하는 이유는 무엇이라고 생각하시나요?', 'question_type': 'textarea', 'importance': 'important', 'sub_category': '고객 가치', 'purpose': '고객 관점 브랜드 가치 파악'},
+        ],
+    },
+    {
+        'title': 'Brand Identity',
+        'description': '원하는 브랜드 이미지와 퍼소나에 대한 질문입니다.',
+        'importance': 'high',
+        'target_area': '공통',
+        'questions': [
+            {'text': '브랜드가 사람이라면 어떤 성격을 가졌으면 하나요?', 'question_type': 'single_choice', 'importance': 'required', 'sub_category': '브랜드 퍼소나', 'purpose': '브랜드 퍼소나 정의', 'options': ['혁신적이고 도전적인', '신뢰감 있고 안정적인', '친근하고 따뜻한', '세련되고 프리미엄한', '역동적이고 에너지 넘치는']},
+            {'text': '브랜드 톤앤매너는 어떤 방향이 적합하다고 생각하시나요?', 'question_type': 'textarea', 'importance': 'important', 'sub_category': '톤앤매너', 'purpose': '커뮤니케이션 톤 설정'},
+        ],
+    },
+    {
+        'title': 'Competitive Landscape',
+        'description': '경쟁사 브랜드와의 비교 및 차별화 전략입니다.',
+        'importance': 'medium',
+        'target_area': '공통',
+        'questions': [
+            {'text': '가장 강력한 경쟁 브랜드는 어디이며, 그 이유는 무엇인가요?', 'question_type': 'textarea', 'importance': 'required', 'sub_category': '경쟁 분석', 'purpose': '경쟁 포지셔닝 파악'},
+            {'text': '경쟁 브랜드 대비 우리 브랜드의 차별점은 무엇인가요?', 'question_type': 'textarea', 'importance': 'important', 'sub_category': '차별화', 'purpose': '차별화 포인트 도출'},
+            {'text': '벤치마킹하고 싶은 브랜드가 있다면 어디인가요? (타 업종 포함)', 'question_type': 'textarea', 'importance': 'optional', 'sub_category': '벤치마킹', 'purpose': '브랜드 방향 레퍼런스 수집'},
+        ],
+    },
+]
+
+BX_ANSWER_SAMPLES = {
+    'textarea': [
+        'EV 전환 시대에 맞는 혁신적이고 미래지향적인 이미지가 필요합니다.',
+        '기존 자동차 제조사 느낌에서 벗어나 모빌리티 혁신 기업으로 인식되었으면 합니다.',
+        '젊은 세대에게 어필할 수 있는 대담하고 에너지 넘치는 브랜드가 되어야 합니다.',
+        '테슬라처럼 기술 혁신의 아이콘으로 포지셔닝하고 싶습니다.',
+        '환경에 대한 책임감과 지속가능성이 브랜드 핵심 가치가 되어야 합니다.',
+        '글로벌 시장에서 프리미엄 이미지를 확보하는 것이 중요합니다.',
+    ],
+    'text': [
+        '혁신', '미래', '전환', '프리미엄', '지속가능', '도전', '연결', '자유',
+    ],
+}
+
+BX_KEYWORDS_DATA = [
+    {'text': 'EV 혁신', 'category': 'identity', 'weight': 0.95, 'is_user_added': False},
+    {'text': '모빌리티', 'category': 'positioning', 'weight': 0.92, 'is_user_added': False},
+    {'text': '미래지향', 'category': 'personality', 'weight': 0.88, 'is_user_added': False},
+    {'text': '프리미엄', 'category': 'value', 'weight': 0.85, 'is_user_added': False},
+    {'text': '지속가능성', 'category': 'value', 'weight': 0.82, 'is_user_added': False},
+    {'text': '대담한', 'category': 'personality', 'weight': 0.78, 'is_user_added': False},
+    {'text': '글로벌', 'category': 'positioning', 'weight': 0.75, 'is_user_added': False},
+    {'text': '친환경', 'category': 'identity', 'weight': 0.72, 'is_user_added': False},
+    {'text': '젊은 감성', 'category': 'personality', 'weight': 0.68, 'is_user_added': True},
+    {'text': '기술 리더십', 'category': 'positioning', 'weight': 0.65, 'is_user_added': True},
+]
+
+BX_SENTENCES_DATA = [
+    {'text': '김철수 대표이사: \'EV 시대에 맞는 새로운 브랜드 아이덴티티가 필요합니다.\'', 'category': '브랜드 인식', 'is_user_added': False},
+    {'text': '이영희 팀장: \'테슬라와 경쟁하려면 기술 혁신 이미지를 강화해야 합니다.\'', 'category': '경쟁 포지셔닝', 'is_user_added': False},
+    {'text': '박지성 팀장: \'젊은 세대가 공감할 수 있는 대담한 브랜드 언어가 필요합니다.\'', 'category': '톤앤매너', 'is_user_added': False},
+    {'text': '최수연 팀장: \'지속가능성을 브랜드 핵심 가치로 내세워야 합니다.\'', 'category': '브랜드 가치', 'is_user_added': False},
+    {'text': '정민호 기획자: \'모빌리티 기업으로의 전환을 슬로건에 반영해야 합니다.\'', 'category': '브랜드 인식', 'is_user_added': False},
+    {'text': '내부 논의: 기존 Heritage를 완전히 버리지 않되 미래 지향적 요소를 강조', 'category': '브랜드 가치', 'is_user_added': True},
+]
+
 ANSWER_SAMPLES = {
     'textarea': [
         '네비게이션이 복잡하고 원하는 정보를 찾기 어렵습니다. 모바일에서 특히 불편합니다.',
@@ -174,25 +249,28 @@ ANSWER_SAMPLES = {
 }
 
 KEYWORDS_DATA = [
-    {'text': '모바일 퍼스트', 'category': 'feature', 'weight': 0.95},
-    {'text': '사용자 경험', 'category': 'value', 'weight': 0.92},
-    {'text': '프리미엄', 'category': 'tone', 'weight': 0.88},
-    {'text': '혁신', 'category': 'value', 'weight': 0.85},
-    {'text': '접근성', 'category': 'feature', 'weight': 0.80},
-    {'text': '빠른 로딩', 'category': 'feature', 'weight': 0.78},
-    {'text': '반응형', 'category': 'feature', 'weight': 0.75},
-    {'text': '미니멀', 'category': 'tone', 'weight': 0.72},
-    {'text': '글로벌', 'category': 'value', 'weight': 0.70},
-    {'text': '신뢰', 'category': 'emotion', 'weight': 0.68},
+    {'text': '모바일 퍼스트', 'category': 'feature', 'weight': 0.95, 'is_user_added': False},
+    {'text': '사용자 경험', 'category': 'value', 'weight': 0.92, 'is_user_added': False},
+    {'text': '프리미엄', 'category': 'tone', 'weight': 0.88, 'is_user_added': False},
+    {'text': '혁신', 'category': 'value', 'weight': 0.85, 'is_user_added': False},
+    {'text': '접근성', 'category': 'feature', 'weight': 0.80, 'is_user_added': False},
+    {'text': '빠른 로딩', 'category': 'feature', 'weight': 0.78, 'is_user_added': False},
+    {'text': '반응형', 'category': 'feature', 'weight': 0.75, 'is_user_added': False},
+    {'text': '미니멀', 'category': 'tone', 'weight': 0.72, 'is_user_added': False},
+    {'text': '글로벌', 'category': 'value', 'weight': 0.70, 'is_user_added': True},
+    {'text': '신뢰', 'category': 'emotion', 'weight': 0.68, 'is_user_added': True},
+    {'text': '고객 중심', 'category': 'value', 'weight': 0.65, 'is_user_added': True},
 ]
 
 SENTENCES_DATA = [
-    {'text': '김철수 대표이사: \'모바일 환경에서의 사용성이 가장 중요합니다.\'', 'category': 'UX'},
-    {'text': '이영희 팀장: \'브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.\'', 'category': '브랜드'},
-    {'text': '박지성 팀장: \'사용자가 원하는 정보에 3클릭 이내로 접근할 수 있어야 합니다.\'', 'category': 'UX'},
-    {'text': '최수연 팀장: \'경쟁사 대비 차별화된 비주얼 아이덴티티가 필요합니다.\'', 'category': '디자인'},
-    {'text': '정민호 기획자: \'페이지 로딩 속도가 3초 이내여야 합니다.\'', 'category': '기술'},
-    {'text': '강다현 마케터: \'글로벌 시장을 고려한 다국어 지원이 필수입니다.\'', 'category': '비전'},
+    {'text': '김철수 대표이사: \'모바일 환경에서의 사용성이 가장 중요합니다.\'', 'category': 'UX', 'is_user_added': False},
+    {'text': '이영희 팀장: \'브랜드의 프리미엄 이미지를 디지털에서도 일관되게 전달해야 합니다.\'', 'category': '브랜드', 'is_user_added': False},
+    {'text': '박지성 팀장: \'사용자가 원하는 정보에 3클릭 이내로 접근할 수 있어야 합니다.\'', 'category': 'UX', 'is_user_added': False},
+    {'text': '최수연 팀장: \'경쟁사 대비 차별화된 비주얼 아이덴티티가 필요합니다.\'', 'category': '디자인', 'is_user_added': False},
+    {'text': '정민호 기획자: \'페이지 로딩 속도가 3초 이내여야 합니다.\'', 'category': '기술', 'is_user_added': False},
+    {'text': '강다현 마케터: \'글로벌 시장을 고려한 다국어 지원이 필수입니다.\'', 'category': '비전', 'is_user_added': False},
+    {'text': '담당자 메모: 경쟁사 대비 차별화 포인트로 접근성을 강조할 것', 'category': 'UX', 'is_user_added': True},
+    {'text': '내부 논의: EV 중심 라인업 강조 필요', 'category': '비전', 'is_user_added': True},
 ]
 
 
@@ -294,6 +372,7 @@ class Command(BaseCommand):
 
         project = Project.objects.create(
             owner=owner,
+            project_type=config.get('project_type', 'uxui'),
             title=f"[{STAGE_LABELS[stage]}] {config['title']}",
             client_name=config['client_name'],
             client_contact_email=config['client_contact_email'],
@@ -416,9 +495,14 @@ class Command(BaseCommand):
 
     def _create_project_analysis(self, project, status):
         confirmed_at = timezone.now() if status == 'confirmed' else None
+        is_bx = project.project_type == 'bx'
+        if is_bx:
+            req_summary = f'{project.client_name}의 브랜드 아이덴티티 리뉴얼 프로젝트입니다. EV 전환에 맞는 브랜드 포지셔닝, 젊은 세대 타겟팅, 지속가능성 가치 반영이 핵심 목표입니다.'
+        else:
+            req_summary = f'{project.client_name}의 웹사이트 리뉴얼 프로젝트입니다. 모바일 퍼스트 디자인, 사용자 경험 개선, 브랜드 이미지 강화가 핵심 목표입니다.'
         ProjectAnalysis.objects.create(
             project=project, status=status, ai_provider='claude',
-            requirements_summary=f'{project.client_name}의 웹사이트 리뉴얼 프로젝트입니다. 모바일 퍼스트 디자인, 사용자 경험 개선, 브랜드 이미지 강화가 핵심 목표입니다.',
+            requirements_summary=req_summary,
             existing_site_analysis={'layout': '데스크톱 중심 레이아웃', 'navigation': '복잡한 메가 메뉴 구조', 'color_scheme': '브랜드 블루 + 화이트', 'typography': '고딕 계열', 'strengths': ['브랜드 인지도 높음', '풍부한 콘텐츠'], 'weaknesses': ['모바일 최적화 부족', '느린 로딩 속도', '구식 디자인']},
             reference_sites_analysis=[
                 {'url': 'https://www.apple.com/', 'layout': '풀스크린 히어로 + 그리드', 'standout_features': ['미니멀 디자인', '제품 중심 UI'], 'design_patterns': ['히어로 섹션', '카드 레이아웃'], 'relevant_to_requirements': '모바일 퍼스트, 프리미엄 이미지에 적합'},
@@ -430,10 +514,11 @@ class Command(BaseCommand):
         )
 
     def _create_questionnaire(self, project):
+        is_bx = project.project_type == 'bx'
         return Questionnaire.objects.create(
             project=project,
-            title=f'{project.client_name} 웹사이트 리뉴얼 인터뷰',
-            description=f'{project.client_name} 웹사이트 리뉴얼을 위한 내부 인터뷰 설문입니다.',
+            title=f'{project.client_name} {"브랜드 전략" if is_bx else "웹사이트 리뉴얼"} 인터뷰',
+            description=f'{project.client_name} {"브랜드 리뉴얼" if is_bx else "웹사이트 리뉴얼"}을 위한 내부 인터뷰 설문입니다.',
             status='completed',
             ai_provider='claude',
         )
@@ -442,7 +527,8 @@ class Command(BaseCommand):
         sections = []
         questions = []
         q_order = 0
-        for s_idx, s_data in enumerate(SECTIONS_DATA):
+        sections_data = BX_SECTIONS_DATA if questionnaire.project.project_type == 'bx' else SECTIONS_DATA
+        for s_idx, s_data in enumerate(sections_data):
             section = QuestionSection.objects.create(
                 questionnaire=questionnaire,
                 title=s_data['title'],
@@ -518,11 +604,13 @@ class Command(BaseCommand):
 
     def _create_answer(self, response, question, random):
         text_value, choice_values, rating_value = '', [], None
+        is_bx = response.project.project_type == 'bx'
+        samples = BX_ANSWER_SAMPLES if is_bx else ANSWER_SAMPLES
 
         if question.question_type == 'textarea':
-            text_value = random.choice(ANSWER_SAMPLES['textarea'])
+            text_value = random.choice(samples['textarea'])
         elif question.question_type == 'text':
-            text_value = random.choice(ANSWER_SAMPLES['text'])
+            text_value = random.choice(samples['text'])
         elif question.question_type == 'single_choice' and question.options:
             choice_values = [random.choice(question.options)]
         elif question.question_type == 'multiple_choice' and question.options:
@@ -537,13 +625,97 @@ class Command(BaseCommand):
         Answer.objects.create(response=response, question=question, text_value=text_value, choice_values=choice_values, rating_value=rating_value)
 
     def _create_aggregation(self, project, questions, status):
+        is_bx = project.project_type == 'bx'
+        if is_bx:
+            return self._create_bx_aggregation(project, questions, status)
+        return self._create_uxui_aggregation(project, questions, status)
+
+    def _create_bx_aggregation(self, project, questions, status):
+        aggregation = Aggregation.objects.create(
+            project=project, status=status, ai_provider='claude', version=1,
+            summary=f'{project.client_name} 브랜드 리뉴얼에 대한 내부 인터뷰 결과, EV 전환에 맞는 혁신적 브랜드 아이덴티티 구축, 젊은 세대 타겟 포지셔닝, 지속가능성 가치 강화가 핵심 방향으로 도출되었습니다.',
+            section_summaries=[
+                {
+                    'section_title': 'Brand Overview',
+                    'summary': '현재 브랜드는 \'신뢰\'와 \'안정\'으로 인식되나, EV 시대에 맞는 \'혁신\'과 \'미래\' 이미지로 전환이 필요하다는 공감대가 형성됨.',
+                    'key_quotes': ['김철수 대표: \'EV 시대에 맞는 새로운 브랜드 아이덴티티가 필요\'', '정민호 기획자: \'모빌리티 기업으로의 전환을 슬로건에 반영해야\''],
+                    'question_summaries': [
+                        {'question': '현재 브랜드를 한 단어로 표현한다면 무엇인가요?', 'summary': '\'신뢰\', \'안정\', \'전통\' 등 보수적 이미지가 다수. 일부에서 \'혁신\' 언급.', 'key_points': ['신뢰/안정 - 경영진에서 주로 언급', '혁신/도전 - 마케팅/디자인팀에서 선호', '현재 이미지와 희망 이미지 간 갭 존재']},
+                        {'question': '우리 브랜드의 가장 큰 강점은 무엇이라고 생각하시나요?', 'summary': '오랜 역사와 기술력이 공통 강점. EV 기술 투자를 새로운 강점으로 인식.', 'key_points': ['기술력과 품질에 대한 신뢰', 'EV 전환 투자에 대한 기대감', '글로벌 브랜드 인지도']},
+                    ],
+                },
+                {
+                    'section_title': 'Brand Identity',
+                    'summary': '\'혁신적이고 도전적인\' 퍼소나와 \'대담하면서도 세련된\' 톤앤매너에 대한 선호가 높음.',
+                    'key_quotes': ['박지성 팀장: \'젊은 세대가 공감할 수 있는 대담한 브랜드 언어가 필요\''],
+                    'question_summaries': [
+                        {'question': '브랜드가 사람이라면 어떤 성격을 가졌으면 하나요?', 'summary': '\'혁신적이고 도전적인\' 45%, \'세련되고 프리미엄한\' 30%.', 'key_points': ['혁신/도전 - 전 직군 과반', '프리미엄 - 경영진 선호', '친근함보다 전문성 중시']},
+                        {'question': '브랜드 톤앤매너는 어떤 방향이 적합하다고 생각하시나요?', 'summary': '대담하고 자신감 있는 톤, 미래지향적 언어 사용에 공감.', 'key_points': ['대담하고 자신감 있는 표현', '기술적 전문성을 쉽게 전달', '환경/지속가능성 메시지 통합']},
+                    ],
+                },
+                {
+                    'section_title': 'Competitive Landscape',
+                    'summary': '테슬라가 가장 강력한 경쟁자로 인식. 기술 혁신 이미지에서의 차별화가 핵심 과제.',
+                    'key_quotes': ['이영희 팀장: \'테슬라와 경쟁하려면 기술 혁신 이미지를 강화해야\'', '최수연 팀장: \'지속가능성을 브랜드 핵심 가치로 내세워야\''],
+                    'question_summaries': [
+                        {'question': '가장 강력한 경쟁 브랜드는 어디이며, 그 이유는 무엇인가요?', 'summary': '테슬라가 1순위 경쟁자. 기술 혁신 이미지와 팬덤 문화에서 차이.', 'key_points': ['테슬라 - 기술 혁신/브랜드 팬덤', 'BMW - 프리미엄 포지셔닝', '중국 EV - 가격 경쟁력']},
+                        {'question': '경쟁 브랜드 대비 우리 브랜드의 차별점은 무엇인가요?', 'summary': '제조 품질/신뢰도에서 우위, 소프트웨어/감성 브랜딩에서 열위.', 'key_points': ['강점: 품질, 글로벌 네트워크, AS', '약점: 소프트웨어 이미지, 젊은 감성 부족']},
+                    ],
+                },
+            ],
+            company_direction='EV 중심 모빌리티 혁신 기업으로의 브랜드 전환. 기존 제조 신뢰를 기반으로 미래지향적/지속가능한 브랜드 이미지를 구축합니다.',
+            desired_changes=[
+                {'category': '브랜드 전략', 'items': ['EV 중심 포지셔닝 재정립', '모빌리티 혁신 기업으로의 내러티브 전환']},
+                {'category': '브랜드 커뮤니케이션', 'items': ['대담하고 미래지향적 톤앤매너', '젊은 세대 타겟 언어 개발']},
+                {'category': '비주얼 아이덴티티', 'items': ['로고/심볼 현대화', 'EV 감성 컬러 팔레트']},
+                {'category': '브랜드 경험', 'items': ['디지털 터치포인트 통합', '지속가능성 가치 체험 설계']},
+            ],
+            company_values=['혁신', '지속가능성', '고객 중심', '기술 리더십'],
+            raw_ai_response={'model': 'claude-sonnet-4'},
+        )
+
+        for i, kw in enumerate(BX_KEYWORDS_DATA):
+            ExtractedKeyword.objects.create(aggregation=aggregation, text=kw['text'], category=kw['category'], weight=kw['weight'], is_user_added=kw.get('is_user_added', False), order=i)
+        for i, sent in enumerate(BX_SENTENCES_DATA):
+            source_q = questions[i % len(questions)] if questions and not sent.get('is_user_added') else None
+            ExtractedSentence.objects.create(aggregation=aggregation, text=sent['text'], category=sent['category'], source_question=source_q, is_user_added=sent.get('is_user_added', False), order=i)
+
+        return aggregation
+
+    def _create_uxui_aggregation(self, project, questions, status):
         aggregation = Aggregation.objects.create(
             project=project, status=status, ai_provider='claude', version=1,
             summary=f'{project.client_name} 웹사이트 리뉴얼에 대한 내부 인터뷰 결과, 모바일 최적화, 사용자 경험 개선, 브랜드 이미지 강화가 가장 높은 우선순위로 나타났습니다.',
             section_summaries=[
-                {'section_title': 'Project Overview', 'summary': '전반적으로 현재 사이트의 모바일 대응 부족과 네비게이션 복잡도가 주요 문제로 지적됨.', 'key_quotes': ['김철수 대표: \'모바일 사용성이 최우선\'', '정민호 기획자: \'검색 기능 부족\'']},
-                {'section_title': 'Service Image', 'summary': '프리미엄/혁신적 이미지를 원하며, 미니멀 모던 스타일에 대한 선호가 높음.', 'key_quotes': ['이영희 팀장: \'브랜드 프리미엄 이미지 일관성\'']},
-                {'section_title': 'UX/UI Design', 'summary': '반응형 디자인, 빠른 로딩, 접근성이 기능적 핵심 요구사항. 사용 편의성 > 시각적 임팩트 우선순위.', 'key_quotes': ['박지성 팀장: \'3클릭 내 접근\'', '최수연 팀장: \'3초 이내 로딩\'']},
+                {
+                    'section_title': 'Project Overview',
+                    'summary': '전반적으로 현재 사이트의 모바일 대응 부족과 네비게이션 복잡도가 주요 문제로 지적됨.',
+                    'key_quotes': ['김철수 대표: \'모바일 사용성이 최우선\'', '정민호 기획자: \'검색 기능 부족\''],
+                    'question_summaries': [
+                        {'question': '현재 웹사이트에서 가장 불편하다고 느끼는 점은 무엇인가요?', 'summary': '네비게이션 복잡도, 모바일 최적화 부족, 느린 로딩 속도가 공통적으로 지적됨.', 'key_points': ['네비게이션이 복잡하여 원하는 정보 탐색이 어려움', '모바일 환경에서의 사용성 저하', '페이지 로딩 속도 개선 필요']},
+                        {'question': '웹사이트의 주요 타겟 사용자층은 누구라고 생각하시나요?', 'summary': '30-40대 직장인과 기업 고객(B2B)이 주요 타겟으로 인식됨.', 'key_points': ['30-40대 직장인 의견이 과반수', 'B2B 고객 비중도 상당', '글로벌 사용자 고려 필요']},
+                        {'question': '리뉴얼 후 가장 기대하는 변화는 무엇인가요?', 'summary': '모바일 친화적 디자인과 빠른 정보 접근성이 가장 높은 기대치.', 'key_points': ['모바일 퍼스트 디자인 전환', '검색 및 필터 기능 강화', '브랜드 이미지와 일관된 디지털 경험']},
+                    ],
+                },
+                {
+                    'section_title': 'Service Image',
+                    'summary': '프리미엄/혁신적 이미지를 원하며, 미니멀 모던 스타일에 대한 선호가 높음.',
+                    'key_quotes': ['이영희 팀장: \'브랜드 프리미엄 이미지 일관성\''],
+                    'question_summaries': [
+                        {'question': '브랜드 이미지를 한 단어로 표현한다면?', 'summary': '\'혁신\', \'프리미엄\', \'신뢰\'가 가장 많이 언급됨.', 'key_points': ['혁신 - 경영진/기획 직군에서 주로 선택', '프리미엄 - 디자인/마케팅 직군에서 선호', '신뢰 - 전 직군에서 고르게 언급']},
+                        {'question': '디자인 방향성에 대해 선호하는 스타일을 선택해주세요.', 'summary': '미니멀/모던 스타일이 압도적 선호, 테크/미래지향적이 차순위.', 'key_points': ['미니멀/모던 62.5%', '테크/미래지향적 25%', '화려하고 역동적 12.5%']},
+                    ],
+                },
+                {
+                    'section_title': 'UX/UI Design',
+                    'summary': '반응형 디자인, 빠른 로딩, 접근성이 기능적 핵심 요구사항. 사용 편의성 > 시각적 임팩트 우선순위.',
+                    'key_quotes': ['박지성 팀장: \'3클릭 내 접근\'', '최수연 팀장: \'3초 이내 로딩\''],
+                    'question_summaries': [
+                        {'question': '새 웹사이트에서 가장 중요하게 생각하는 기능을 선택해주세요.', 'summary': '반응형 디자인과 빠른 로딩 속도가 1, 2위를 차지함.', 'key_points': ['반응형 디자인 - 전원 선택', '빠른 로딩 속도 - 87.5% 선택', '접근성과 SEO 최적화도 과반수 선택']},
+                        {'question': '컬러 톤에 대한 선호도를 평가해주세요.', 'summary': '평균 2.8점으로 약간 차가운 톤 선호. 프리미엄 이미지와 부합.', 'key_points': ['차가운 톤 선호 경향 (평균 2.8/5)', '디자인팀은 중립 톤 선호', '경영진은 차가운 톤 강하게 선호']},
+                        {'question': '아래 항목을 중요도 순으로 정렬해주세요.', 'summary': '사용 편의성이 1순위, 정보 전달력과 브랜드 일관성이 그 뒤를 이음.', 'key_points': ['1순위: 사용 편의성', '2순위: 정보 전달력', '3순위: 브랜드 일관성']},
+                    ],
+                },
             ],
             company_direction='디지털 트랜스포메이션을 통한 글로벌 시장 확대와 프리미엄 브랜드 이미지 강화를 목표로 하고 있습니다.',
             desired_changes=[
@@ -557,14 +729,29 @@ class Command(BaseCommand):
         )
 
         for i, kw in enumerate(KEYWORDS_DATA):
-            ExtractedKeyword.objects.create(aggregation=aggregation, text=kw['text'], category=kw['category'], weight=kw['weight'], order=i)
+            ExtractedKeyword.objects.create(aggregation=aggregation, text=kw['text'], category=kw['category'], weight=kw['weight'], is_user_added=kw.get('is_user_added', False), order=i)
         for i, sent in enumerate(SENTENCES_DATA):
-            source_q = questions[i % len(questions)] if questions else None
-            ExtractedSentence.objects.create(aggregation=aggregation, text=sent['text'], category=sent['category'], source_question=source_q, order=i)
+            source_q = questions[i % len(questions)] if questions and not sent.get('is_user_added') else None
+            ExtractedSentence.objects.create(aggregation=aggregation, text=sent['text'], category=sent['category'], source_question=source_q, is_user_added=sent.get('is_user_added', False), order=i)
 
         return aggregation
 
     def _create_design_brief(self, project, aggregation):
+        is_bx = project.project_type == 'bx'
+        if is_bx:
+            return DesignBrief.objects.create(
+                project=project, aggregation=aggregation,
+                title=f'{project.client_name} 브랜드 전략 브리프',
+                summary=f'{project.client_name}의 브랜드 리뉴얼을 위한 전략 브리프입니다. EV 혁신 기업 포지셔닝, 대담한 톤앤매너, 지속가능성 가치를 기본 방향으로 설정합니다.',
+                target_audience='20-40대 EV 관심 소비자 및 글로벌 오피니언 리더',
+                design_direction='대담하고 미래지향적인 브랜드 아이덴티티. 기존 Heritage를 존중하되 혁신적 전환을 시각적으로 표현.',
+                key_requirements=['브랜드 포지셔닝 재정립', '슬로건/태그라인 개발', '비주얼 아이덴티티 시스템', '브랜드 가이드라인', '디지털 터치포인트 통합'],
+                selected_keywords=['EV 혁신', '모빌리티', '미래지향', '프리미엄', '지속가능성'],
+                selected_sentences=['김철수 대표: \'EV 시대에 맞는 새로운 브랜드 아이덴티티가 필요합니다.\'', '이영희 팀장: \'테슬라와 경쟁하려면 기술 혁신 이미지를 강화해야 합니다.\''],
+                tone_and_mood={'primary': '대담한/혁신적', 'secondary': '미래지향적/지속가능한', 'keywords': ['bold', 'innovative', 'sustainable', 'premium']},
+                color_preferences={'primary': '#002C5F', 'secondary': '#00AAD2', 'accent': '#E63312', 'background': '#F8F9FA'},
+                design_md=f'# {project.client_name} Brand Strategy Brief\n\n## Brand Essence\nMobility Innovation for Sustainable Future\n\n## Brand Personality\nBold / Innovative / Trustworthy\n\n## Color Palette\n- Primary: #002C5F (Heritage Blue)\n- Secondary: #00AAD2 (Electric Blue)\n- Accent: #E63312 (Energy Red)\n\n## Tone of Voice\nConfident, Forward-looking, Human\n\n## Key Principles\n- Heritage meets Innovation\n- Sustainability First\n- Human-centered Technology\n',
+            )
         return DesignBrief.objects.create(
             project=project, aggregation=aggregation,
             title=f'{project.client_name} 웹사이트 디자인 브리프',

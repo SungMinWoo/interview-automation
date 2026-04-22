@@ -4,7 +4,7 @@ import { Plus, Search, FolderOpen, Calendar } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS } from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';
-import type { ProjectStatus } from '@/types/project';
+import type { ProjectStatus, ProjectType } from '@/types/project';
 
 const STATUS_FILTERS: Array<{ value: ProjectStatus | 'all'; label: string }> = [
   { value: 'all', label: '전체' },
@@ -22,13 +22,18 @@ const STATUS_FILTERS: Array<{ value: ProjectStatus | 'all'; label: string }> = [
   { value: 'completed', label: '완료' },
 ];
 
+const TABS: Array<{ value: ProjectType; label: string; desc: string }> = [
+  { value: 'uxui', label: 'UX/UI', desc: '웹사이트/앱 디자인 프로젝트' },
+  { value: 'bx', label: 'BX', desc: '브랜드 전략 프로젝트' },
+];
+
 export default function ProjectListPage() {
+  const [activeTab, setActiveTab] = useState<ProjectType>('uxui');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
-  const { data: projectsData, isLoading } = useProjects();
-
-  const projects = projectsData?.results ?? [];
-  const filtered = projects.filter((p) => {
+  const { data: projects = [], isLoading } = useProjects();
+  const tabProjects = projects.filter((p) => (p.project_type || 'uxui') === activeTab);
+  const filtered = tabProjects.filter((p) => {
     const matchSearch =
       !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -36,6 +41,10 @@ export default function ProjectListPage() {
     const matchStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const uxuiCount = projects.filter((p) => (p.project_type || 'uxui') === 'uxui').length;
+  const bxCount = projects.filter((p) => p.project_type === 'bx').length;
+  const tabCounts: Record<ProjectType, number> = { uxui: uxuiCount, bx: bxCount };
 
   return (
     <div className="space-y-6">
@@ -56,9 +65,44 @@ export default function ProjectListPage() {
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
+      {/* Tabs */}
+      <div className="border-b border-line">
+        <div className="flex">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => {
+                setActiveTab(tab.value);
+                setStatusFilter('all');
+                setSearch('');
+              }}
+              className={`relative px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.value
+                  ? 'text-content-primary'
+                  : 'text-content-muted hover:text-content-secondary'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {tab.label}
+                <span className={`inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                  activeTab === tab.value
+                    ? 'bg-accent text-accent-text'
+                    : 'bg-surface-hover text-content-tertiary'
+                }`}>
+                  {tabCounts[tab.value]}
+                </span>
+              </span>
+              {activeTab === tab.value && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-content-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Search + Status filters */}
+      <div className="space-y-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-tertiary" />
           <input
             type="text"
@@ -73,10 +117,10 @@ export default function ProjectListPage() {
             <button
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                 statusFilter === f.value
                   ? 'bg-accent text-accent-text'
-                  : 'bg-surface-hover text-content-secondary hover:bg-surface-hover'
+                  : 'bg-surface-hover text-content-secondary hover:text-content-primary'
               }`}
             >
               {f.label}
@@ -94,7 +138,7 @@ export default function ProjectListPage() {
           <p className="text-content-tertiary">
             {search || statusFilter !== 'all'
               ? '검색 결과가 없습니다'
-              : '아직 프로젝트가 없습니다'}
+              : `${TABS.find((t) => t.value === activeTab)?.label} 프로젝트가 없습니다`}
           </p>
           {!search && statusFilter === 'all' && (
             <Link
@@ -102,7 +146,7 @@ export default function ProjectListPage() {
               className="mt-4 inline-flex items-center gap-2 text-sm text-accent hover:text-accent"
             >
               <Plus className="h-4 w-4" />
-              첫 프로젝트 만들기
+              새 프로젝트 만들기
             </Link>
           )}
         </div>
@@ -124,7 +168,7 @@ export default function ProjectListPage() {
                   </p>
                 </div>
                 <span
-                  className={`ml-2 inline-flex flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  className={`ml-2 flex-shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     PROJECT_STATUS_COLORS[project.status]
                   }`}
                 >

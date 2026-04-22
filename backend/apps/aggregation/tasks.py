@@ -80,6 +80,7 @@ def run_aggregation(self, aggregation_id: int, ai_provider: str | None = None) -
         result = ai_client.aggregate_responses(
             questions_with_answers=formatted_data,
             analysis_context=analysis_context,
+            project_type=project.project_type,
         )
 
         # Save aggregation results

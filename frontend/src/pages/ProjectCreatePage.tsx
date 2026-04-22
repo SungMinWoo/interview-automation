@@ -7,6 +7,7 @@ import { useCreateProject } from '@/hooks/useProjects';
 import { useUploadFile } from '@/hooks/useProjectFiles';
 import { projectSchema } from '@/utils/validators';
 import type { ProjectFormValues } from '@/utils/validators';
+import { PROJECT_TYPE_LABELS } from '@/utils/constants';
 import toast from 'react-hot-toast';
 
 export default function ProjectCreatePage() {
@@ -20,10 +21,13 @@ export default function ProjectCreatePage() {
     register,
     handleSubmit,
     control,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
+      project_type: 'uxui',
       title: '',
       client_name: '',
       client_contact_email: '',
@@ -42,6 +46,7 @@ export default function ProjectCreatePage() {
   const onSubmit = async (data: ProjectFormValues) => {
     try {
       const payload = {
+        project_type: data.project_type,
         title: data.title,
         client_name: data.client_name,
         client_contact_email: data.client_contact_email || '',
@@ -96,6 +101,28 @@ export default function ProjectCreatePage() {
         <div className="border border-line bg-surface-secondary p-6">
           <h2 className="mb-4 text-lg font-semibold text-content-primary">기본 정보</h2>
           <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">
+                프로젝트 타입 <span className="text-danger">*</span>
+              </label>
+              <div className="flex gap-2">
+                {(['uxui', 'bx'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setValue('project_type', type)}
+                    className={`px-4 py-2 text-sm font-medium border transition-colors ${
+                      watch('project_type') === type
+                        ? 'bg-accent text-accent-text border-accent'
+                        : 'bg-transparent text-content-secondary border-line hover:bg-surface-hover'
+                    }`}
+                  >
+                    {PROJECT_TYPE_LABELS[type]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="mb-1.5 block text-sm font-medium text-content-secondary">
                 프로젝트명 <span className="text-danger">*</span>

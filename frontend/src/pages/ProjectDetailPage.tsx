@@ -24,7 +24,7 @@ import {
   useDeletePosition,
 } from '@/hooks/useProjectStructure';
 import { useProjectFiles, useUploadFile, useDeleteFile, useAnalyzeFile } from '@/hooks/useProjectFiles';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_PHASES, DEFAULT_AI_PROVIDER } from '@/utils/constants';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_TYPE_LABELS, PROJECT_TYPE_COLORS, PROJECT_PHASES, DEFAULT_AI_PROVIDER } from '@/utils/constants';
 import type { AiProvider } from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus } from '@/types/project';
@@ -319,6 +319,11 @@ export default function ProjectDetailPage() {
           <div className="space-y-3 flex-1">
             {/* Status + Meta */}
             <div className="flex flex-wrap items-center gap-3">
+              <span
+                className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${PROJECT_TYPE_COLORS[project.project_type || 'uxui']}`}
+              >
+                {PROJECT_TYPE_LABELS[project.project_type || 'uxui']}
+              </span>
               <span
                 className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   PROJECT_STATUS_COLORS[project.status]

@@ -3,6 +3,7 @@ export interface User {
   email: string;
   username: string;
   company_name?: string;
+  sso_id?: string;
   created_at?: string;
   updated_at?: string;
 }

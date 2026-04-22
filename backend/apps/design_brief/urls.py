@@ -14,4 +14,5 @@ urlpatterns = [
     path('export/', views.ExportBriefView.as_view(), name='export'),
     path('design-md/generate/', views.GenerateDesignMdView.as_view(), name='design-md-generate'),
     path('design-md/download/', views.DownloadDesignMdView.as_view(), name='design-md-download'),
+    path('complete/', views.CompleteProjectView.as_view(), name='complete-project'),
 ]

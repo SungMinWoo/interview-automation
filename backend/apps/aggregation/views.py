@@ -143,7 +143,7 @@ class KeywordViewSet(viewsets.ModelViewSet):
         if not aggregation:
             from rest_framework.exceptions import NotFound
             raise NotFound('No aggregation found.')
-        serializer.save(aggregation=aggregation)
+        serializer.save(aggregation=aggregation, is_user_added=True)
 
 
 class SentenceViewSet(viewsets.ModelViewSet):
@@ -170,4 +170,4 @@ class SentenceViewSet(viewsets.ModelViewSet):
         if not aggregation:
             from rest_framework.exceptions import NotFound
             raise NotFound('No aggregation found.')
-        serializer.save(aggregation=aggregation)
+        serializer.save(aggregation=aggregation, is_user_added=True)

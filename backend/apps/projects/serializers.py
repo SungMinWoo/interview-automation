@@ -49,7 +49,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'client_name', 'status',
+            'id', 'project_type', 'title', 'client_name', 'status',
             'reference_sites_count', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
@@ -64,7 +64,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'client_name', 'client_contact_email',
+            'id', 'project_type', 'title', 'client_name', 'client_contact_email',
             'client_contact_phone', 'requirements_text', 'existing_site_url',
             'status', 'reference_sites', 'departments', 'positions', 'files',
             'created_at', 'updated_at',
@@ -80,7 +80,7 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'client_name', 'client_contact_email',
+            'id', 'project_type', 'title', 'client_name', 'client_contact_email',
             'client_contact_phone', 'requirements_text', 'existing_site_url',
             'reference_sites', 'departments', 'positions',
         ]
@@ -107,7 +107,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'title', 'client_name', 'client_contact_email',
+            'id', 'project_type', 'title', 'client_name', 'client_contact_email',
             'client_contact_phone', 'requirements_text', 'existing_site_url',
         ]
         read_only_fields = ['id']

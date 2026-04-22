@@ -25,7 +25,8 @@ import {
   downloadDesignMd,
 } from '@/hooks/useDesignBrief';
 import { AiProviderSelect } from '@/components/common';
-import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
+import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, PROJECT_TYPE_LABELS, API_PATHS, type AiProvider } from '@/utils/constants';
+import apiClient from '@/api/client';
 import { formatDateTime } from '@/utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -39,7 +40,7 @@ const STITCH_STATUS_LABELS: Record<string, string> = {
 export default function DesignBriefPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = projectId ? Number(projectId) : undefined;
-  const { data: project } = useProject(id);
+  const { data: project, refetch: refetchProject } = useProject(id);
   const { data: brief, isLoading: briefLoading } = useDesignBrief(id);
   const compileBrief = useCompileBrief();
   const updateBrief = useUpdateBrief();
@@ -178,7 +179,9 @@ export default function DesignBriefPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-content-primary">디자인 브리프</h1>
+            <h1 className="text-2xl font-bold text-content-primary">
+              {project?.project_type === 'bx' ? '브랜드 전략 브리프' : '디자인 브리프'}
+            </h1>
             <p className="text-sm text-content-tertiary">{project?.title}</p>
           </div>
         </div>
@@ -191,6 +194,23 @@ export default function DesignBriefPage() {
             >
               {exportBrief.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               내보내기
+            </button>
+          )}
+          {briefData && project?.status === 'brief_ready' && (
+            <button
+              onClick={async () => {
+                if (!id) return;
+                try {
+                  await apiClient.post(API_PATHS.PROJECT_COMPLETE(id));
+                  refetchProject();
+                  toast.success('프로젝트가 완료되었습니다.');
+                } catch {
+                  toast.error('프로젝트 완료 처리에 실패했습니다.');
+                }
+              }}
+              className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
+            >
+              프로젝트 완료
             </button>
           )}
         </div>

@@ -1,16 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
 import { API_PATHS } from '@/utils/constants';
-import type { Project, ProjectCreateRequest, ProjectUpdateRequest, ProjectListResponse } from '@/types/project';
+import type { Project, ProjectCreateRequest, ProjectUpdateRequest } from '@/types/project';
 
 const PROJECTS_KEY = ['projects'];
 
 export function useProjects() {
-  return useQuery<ProjectListResponse>({
+  return useQuery<Project[]>({
     queryKey: PROJECTS_KEY,
     queryFn: async () => {
-      const res = await apiClient.get<ProjectListResponse>(API_PATHS.PROJECTS);
-      return res.data;
+      const res = await apiClient.get(API_PATHS.PROJECTS);
+      // pagination 비활성화 시 배열 직접 반환, 활성화 시 results 안에 있음
+      if (Array.isArray(res.data)) return res.data;
+      return res.data.results ?? [];
     },
   });
 }

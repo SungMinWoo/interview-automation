@@ -173,6 +173,7 @@ class RegenerateAnalysisSectionView(APIView):
                 section=section,
                 current_analysis=current_analysis,
                 context=context,
+                project_type=project.project_type,
             )
         except Exception as e:
             return Response({'detail': f'AI 재생성 실패: {str(e)}'}, status=status.HTTP_502_BAD_GATEWAY)

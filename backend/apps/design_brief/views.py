@@ -41,11 +41,14 @@ class CompileDesignBriefView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        is_bx = project.project_type == 'bx'
+        brief_title = f'{project.title} {"Brand Strategy Brief" if is_bx else "Design Brief"}'
+
         brief, created = DesignBrief.objects.update_or_create(
             project=project,
             defaults={
                 'aggregation': aggregation,
-                'title': f'{project.title} Design Brief',
+                'title': brief_title,
                 'summary': aggregation.summary,
                 'design_direction': aggregation.company_direction,
                 'selected_keywords': [
@@ -58,6 +61,11 @@ class CompileDesignBriefView(APIView):
                 ],
             },
         )
+
+        # 브리프 컴파일 시 상태 전환
+        if project.status in (Project.Status.AGGREGATION_READY, Project.Status.AGGREGATING):
+            project.status = Project.Status.BRIEF_READY
+            project.save(update_fields=['status', 'updated_at'])
 
         resp_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(DesignBriefSerializer(brief).data, status=resp_status)
@@ -271,7 +279,8 @@ class GenerateDesignMdView(APIView):
         }
 
         ai_client = get_ai_client(ai_provider)
-        design_md = ai_client.generate_design_md(brief_data)
+        project = brief.project
+        design_md = ai_client.generate_design_md(brief_data, project_type=project.project_type)
 
         brief.design_md = design_md
         brief.save(update_fields=['design_md', 'updated_at'])
@@ -300,3 +309,22 @@ class DownloadDesignMdView(APIView):
         response = HttpResponse(brief.design_md, content_type='text/markdown; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="DESIGN.md"'
         return response
+
+
+class CompleteProjectView(APIView):
+    """POST - Mark project as completed."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, project_id):
+        project = get_user_project(request, project_id)
+        if project.status != Project.Status.BRIEF_READY:
+            return Response(
+                {'detail': '브리프 완료 상태에서만 프로젝트를 완료할 수 있습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        project.status = Project.Status.COMPLETED
+        project.save(update_fields=['status', 'updated_at'])
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'project_completed')
+        return Response({'status': project.status})

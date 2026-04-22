@@ -13,10 +13,16 @@ class GeminiClient:
         genai.configure(api_key=settings.GEMINI_API_KEY)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None) -> dict:
+    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None, project_type: str = 'uxui') -> dict:
         """Phase 1: Analyze client requirements and sites."""
+        if project_type == 'bx':
+            role = "SI 회사의 브랜드 전략(BX) 분석 전문가"
+            focus_instruction = "분석 시 브랜드 포지셔닝, 브랜드 에셋(로고/컬러/슬로건), 경쟁사 브랜드 비교, 브랜드 인식도, 타겟 오디언스 분석에 중점을 두세요.\n"
+        else:
+            role = "SI 회사의 UX/UI 분석 전문가"
+            focus_instruction = ""
         prompt_parts = [
-            "당신은 SI 회사의 UX/UI 분석 전문가입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n",
+            f"당신은 {role}입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n{focus_instruction}",
             f"## 클라이언트 요구사항\n{requirements_text}\n",
         ]
 
@@ -82,9 +88,13 @@ class GeminiClient:
             logger.error(f"Gemini analysis failed: {e}")
             raise
 
-    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict) -> dict:
+    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict, project_type: str = 'uxui') -> dict:
         """Regenerate a specific section of the analysis."""
-        prompt = f"""현재 분석: {json.dumps(current_analysis, ensure_ascii=False)}
+        if project_type == 'bx':
+            role_context = "브랜드 전략(BX) 분석 전문가로서 "
+        else:
+            role_context = ""
+        prompt = f"""{role_context}현재 분석: {json.dumps(current_analysis, ensure_ascii=False)}
 컨텍스트: {json.dumps(context, ensure_ascii=False)}
 
 "{section}" 섹션을 더 깊이 있고 구체적으로 다시 작성하세요. JSON: {{"{section}": ...}}"""
@@ -95,7 +105,7 @@ class GeminiClient:
             logger.error(f"Gemini section regeneration failed: {e}")
             raise
 
-    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str], reference_questionnaires: list[dict] | None = None) -> dict:
+    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str], reference_questionnaires: list[dict] | None = None, project_type: str = 'uxui') -> dict:
         """Phase 2: Generate interview questions organized by sections."""
         ref_section = ''
         if reference_questionnaires:
@@ -103,7 +113,14 @@ class GeminiClient:
             for ref in reference_questionnaires:
                 ref_section += f'### {ref["project_title"]} ({ref["client_name"]})\n{json.dumps(ref["sections"], ensure_ascii=False)}\n'
 
-        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
+        if project_type == 'bx':
+            role = "브랜드 전략(BX) 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            extra_instruction = "\n질문은 브랜드 인식, 브랜드 가치, 브랜드 퍼소나, 경쟁사 브랜드 인식, 원하는 브랜드 이미지, 톤앤매너에 초점을 맞추세요."
+        else:
+            role = "UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            extra_instruction = ""
+
+        prompt = f"""당신은 SI 회사의 {role}입니다.
 
 ## 분석 결과
 {json.dumps(confirmed_analysis, ensure_ascii=False, indent=2)}
@@ -112,7 +129,7 @@ class GeminiClient:
 {', '.join(position_categories) if position_categories else '전체 (직급 구분 없음)'}
 {ref_section}
 ## 지시사항
-구분(section)별로 질문지를 생성하세요. 각 구분에 4~8개 질문. 질문마다 sub_category, importance, purpose 필수.
+구분(section)별로 질문지를 생성하세요. 각 구분에 4~8개 질문. 질문마다 sub_category, importance, purpose 필수.{extra_instruction}
 
 ## 출력 형식 (JSON)
 {{
@@ -152,10 +169,14 @@ class GeminiClient:
             logger.error(f"Gemini questionnaire generation failed: {e}")
             raise
 
-    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str]) -> dict:
+    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str], project_type: str = 'uxui') -> dict:
         """Generate additional questions for a specific section."""
         existing = chr(10).join(f'- {q}' for q in existing_questions) if existing_questions else '(없음)'
-        prompt = f"""섹션 "{section_title}" ({section_description})에 추가할 질문을 정확히 {count}개 생성하세요. 기존 질문과 중복 금지.
+        if project_type == 'bx':
+            bx_context = " 브랜드 전략 관점에서"
+        else:
+            bx_context = ""
+        prompt = f"""섹션 "{section_title}" ({section_description})에{bx_context} 추가할 질문을 정확히 {count}개 생성하세요. 기존 질문과 중복 금지.
 
 ## 컨텍스트
 {json.dumps(analysis_context, ensure_ascii=False, indent=2)}
@@ -172,17 +193,34 @@ class GeminiClient:
             logger.error(f"Gemini section question generation failed: {e}")
             raise
 
-    def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict) -> dict:
+    def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict, project_type: str = 'uxui') -> dict:
         """Phase 3: Aggregate all survey responses.
 
         Args:
             questions_with_answers: [{question_text, answers: [{employee_name, position, text_value, ...}]}]
             analysis_context: Original confirmed analysis for context
+            project_type: 'uxui' or 'bx'
 
         Returns:
             {summary, company_direction, desired_changes, company_values, keywords, sentences}
         """
-        prompt = f"""인터뷰 응답을 파트별로 요약하세요. 원문 워딩을 최대한 유지하고, 변화사항은 카테고리(UX, 디자인, 기술 등)로 분류하세요.
+        if project_type == 'bx':
+            role_intro = "브랜드 전략(BX) 프로젝트 관점에서 인터뷰 응답을 파트별로 요약하세요."
+            keyword_categories = "identity|positioning|personality|value"
+            sentence_categories = "브랜드 인식|브랜드 가치|경쟁 포지셔닝|톤앤매너"
+            change_example = """        {{"category": "브랜드 전략", "items": ["변화1"]}},
+        {{"category": "브랜드 커뮤니케이션", "items": ["변화2"]}},
+        {{"category": "비주얼 아이덴티티", "items": ["변화3"]}}"""
+            change_instruction = "변화사항은 카테고리(브랜드 전략, 브랜드 커뮤니케이션, 비주얼 아이덴티티, 브랜드 경험 등)로 분류하세요."
+        else:
+            role_intro = "인터뷰 응답을 파트별로 요약하세요."
+            keyword_categories = "tone|feature|value|emotion"
+            sentence_categories = "비전|브랜드|UX"
+            change_example = """        {{"category": "UX", "items": ["변화1"]}},
+        {{"category": "디자인", "items": ["변화2"]}}"""
+            change_instruction = "원문 워딩을 최대한 유지하고, 변화사항은 카테고리(UX, 디자인, 기술 등)로 분류하세요."
+
+        prompt = f"""{role_intro} {change_instruction}
 
 ## 컨텍스트
 {json.dumps(analysis_context, ensure_ascii=False, indent=2)}
@@ -194,16 +232,15 @@ class GeminiClient:
 {{
     "summary": "전체 종합 요약",
     "section_summaries": [
-        {{"section_title": "파트명", "summary": "파트 요약", "key_quotes": ["화자: '원문'"]}}
+        {{"section_title": "파트명", "summary": "파트 요약", "key_quotes": ["화자: '원문'"], "question_summaries": [{{"question": "질문 원문", "summary": "질문별 응답 요약", "key_points": ["핵심1", "핵심2"]}}]}}
     ],
     "company_direction": "회사 방향성",
     "desired_changes": [
-        {{"category": "UX", "items": ["변화1"]}},
-        {{"category": "디자인", "items": ["변화2"]}}
+{change_example}
     ],
     "company_values": ["가치1"],
-    "keywords": [{{"text": "키워드", "category": "tone|feature|value|emotion", "weight": 0.9}}],
-    "sentences": [{{"text": "화자: '원문 인용'", "category": "비전|브랜드|UX"}}]
+    "keywords": [{{"text": "키워드", "category": "{keyword_categories}", "weight": 0.9}}],
+    "sentences": [{{"text": "화자: '원문 인용'", "category": "{sentence_categories}"}}]
 }}
 """
         try:
@@ -239,13 +276,17 @@ class GeminiClient:
             logger.error(f"Gemini file analysis failed: {e}")
             raise
 
-    def generate_additional_keywords(self, existing_keywords: list[str], context: dict) -> list[dict]:
+    def generate_additional_keywords(self, existing_keywords: list[str], context: dict, project_type: str = 'uxui') -> list[dict]:
         """Generate additional keywords based on existing ones and context."""
+        if project_type == 'bx':
+            category_hint = "identity|positioning|personality|value"
+        else:
+            category_hint = "카테고리"
         prompt = f"""기존 키워드: {', '.join(existing_keywords)}
 컨텍스트: {json.dumps(context, ensure_ascii=False)}
 
 위 키워드와 컨텍스트를 바탕으로 추가 키워드 5개를 제안하세요.
-JSON 배열로 출력: [{{"text": "키워드", "category": "카테고리", "weight": 0.8}}]
+JSON 배열로 출력: [{{"text": "키워드", "category": "{category_hint}", "weight": 0.8}}]
 """
         try:
             response = self.model.generate_content(
@@ -257,7 +298,7 @@ JSON 배열로 출력: [{{"text": "키워드", "category": "카테고리", "weig
             logger.error(f"Gemini additional keywords failed: {e}")
             raise
 
-    def build_stitch_prompt(self, design_brief_data: dict) -> str:
+    def build_stitch_prompt(self, design_brief_data: dict, project_type: str = 'uxui') -> str:
         """Convert design brief data into an optimized prompt for Google Stitch."""
         # Build structured context
         parts = []
@@ -296,7 +337,25 @@ JSON 배열로 출력: [{{"text": "키워드", "category": "카테고리", "weig
 
         context = '\n'.join(parts)
 
-        prompt = f"""You are a web design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional website design.
+        if project_type == 'bx':
+            prompt = f"""You are a brand identity design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional brand identity design.
+
+## Design Brief
+{context}
+
+## Requirements
+1. Specify brand deliverable type and purpose
+2. Describe brand personality, tone, aesthetic in detail
+3. If brand colors provided, specify exact hex values
+4. List brand elements: logo usage, color palette, typography, iconography, imagery
+5. Typography reflecting brand personality
+6. Brand application examples (business cards, digital assets, etc.)
+7. Reflect brand keywords and key messages
+8. Consistent brand expression across touchpoints
+
+Output ONLY the English prompt. No JSON, no explanation."""
+        else:
+            prompt = f"""You are a web design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional website design.
 
 ## Design Brief
 {context}
@@ -320,8 +379,8 @@ Output ONLY the English prompt. No JSON, no explanation."""
             logger.error(f"Gemini stitch prompt generation failed: {e}")
             raise
 
-    def generate_design_md(self, design_brief_data: dict) -> str:
-        """Generate a DESIGN.md file content from design brief data."""
+    def generate_design_md(self, design_brief_data: dict, project_type: str = 'uxui') -> str:
+        """Generate a DESIGN.md file content from design brief data or brand guidelines."""
         import json as _json
         context_parts = []
         for key in ['title', 'summary', 'design_direction', 'target_audience', 'additional_notes']:
@@ -334,7 +393,23 @@ Output ONLY the English prompt. No JSON, no explanation."""
         if colors and isinstance(colors, dict):
             context_parts.append(f"Colors: {_json.dumps(colors)}")
 
-        prompt = f"""Create a comprehensive DESIGN.md for Google Stitch based on this brief:
+        if project_type == 'bx':
+            prompt = f"""Create comprehensive Brand Guidelines based on this brief:
+
+{chr(10).join(context_parts)}
+
+Include these 6 sections:
+1. Brand Essence & Positioning
+2. Color Palette & Brand Colors (with hex codes)
+3. Typography & Voice
+4. Brand Asset Stylings
+5. Brand Application Principles
+6. Brand System Notes for Implementation
+
+Use descriptive language with hex codes. Start with "# Brand Guidelines: [title]".
+Output ONLY the markdown content."""
+        else:
+            prompt = f"""Create a comprehensive DESIGN.md for Google Stitch based on this brief:
 
 {chr(10).join(context_parts)}
 

@@ -68,6 +68,7 @@ def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None 
             confirmed_analysis=analysis_data,
             position_categories=position_names,
             reference_questionnaires=reference_questionnaires if reference_questionnaires else None,
+            project_type=project.project_type,
         )
 
         # Update questionnaire metadata

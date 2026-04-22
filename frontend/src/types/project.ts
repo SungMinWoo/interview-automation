@@ -46,8 +46,11 @@ export interface ProjectFile {
   created_at: string;
 }
 
+export type ProjectType = 'uxui' | 'bx';
+
 export interface Project {
   id: number;
+  project_type: ProjectType;
   title: string;
   client_name: string;
   client_contact_email: string;
@@ -80,6 +83,7 @@ export type ProjectStatus =
 
 export interface ProjectCreateRequest {
   title: string;
+  project_type?: ProjectType;
   client_name: string;
   client_contact_email?: string;
   client_contact_phone?: string;

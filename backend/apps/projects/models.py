@@ -4,6 +4,10 @@ from django.db import models
 
 
 class Project(models.Model):
+    class ProjectType(models.TextChoices):
+        UXUI = 'uxui', 'UX/UI'
+        BX = 'bx', 'BX'
+
     class Status(models.TextChoices):
         CREATED = 'created', '생성됨'
         ANALYZING = 'analyzing', '분석중'
@@ -19,6 +23,7 @@ class Project(models.Model):
         COMPLETED = 'completed', '완료'
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='projects')
+    project_type = models.CharField(max_length=10, choices=ProjectType.choices, default=ProjectType.UXUI)
     title = models.CharField(max_length=255)
     client_name = models.CharField(max_length=255)
     client_contact_email = models.EmailField(blank=True)

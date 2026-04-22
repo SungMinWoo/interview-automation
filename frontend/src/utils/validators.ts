@@ -14,6 +14,7 @@ export const loginSchema = z.object({
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const projectSchema = z.object({
+  project_type: z.enum(['uxui', 'bx']).default('uxui'),
   title: z.string().min(1, '프로젝트명을 입력해주세요.').max(200, '프로젝트명은 200자 이내로 입력해주세요.'),
   client_name: z.string().min(1, '클라이언트 회사명을 입력해주세요.'),
   client_contact_email: z.string().email('올바른 이메일 형식을 입력해주세요.').optional().or(z.literal('')),

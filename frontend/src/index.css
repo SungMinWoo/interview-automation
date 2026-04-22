@@ -9,9 +9,9 @@
   }
   /* ========== DARK (default) ========== */
   :root {
-    --bg-primary: #161616;
-    --bg-secondary: #242424;
-    --bg-glass: rgba(15, 15, 15, .7);
+    --bg-primary: #1a1919;
+    --bg-secondary: black;
+    --bg-glass: rgba(26, 25, 25, .7);
     --bg-hover: rgba(255, 255, 255, .08);
     --bg-active: rgba(255, 255, 255, .2);
     --bg-input: rgba(255, 255, 255, .08);
@@ -57,9 +57,9 @@
     --border-hover: rgba(0, 0, 0, .15);
     --border-focus: rgba(0, 0, 0, .4);
 
-    --accent-bg: #161616;
+    --accent-bg: #1a1919;
     --accent-text: #fff;
-    --accent-hover: #242424;
+    --accent-hover: black;
 
     --danger: #e8362d;
     --danger-bg: rgba(232, 54, 45, .06);

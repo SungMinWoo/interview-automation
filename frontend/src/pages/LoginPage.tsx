@@ -1,20 +1,45 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loginSchema } from '@/utils/validators';
 import type { LoginFormValues } from '@/utils/validators';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
+const SSO_PROVIDER_URL = import.meta.env.VITE_SSO_PROVIDER_URL || '';
+const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '';
+const SSO_ENABLED = !!(SSO_PROVIDER_URL && SSO_CLIENT_ID);
+
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { login, isLoading, loginError } = useAuth();
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+
+  // SSO 에러 메시지
+  const ssoError = searchParams.get('error');
+  const ssoErrorMessage = ssoError
+    ? ssoError === 'sso_failed'
+      ? 'SSO 인증에 실패했습니다. 다시 시도해주세요.'
+      : ssoError === 'auth_code_missing' || ssoError === 'pkce_missing'
+        ? '잘못된 접근입니다. 다시 시도해주세요.'
+        : 'SSO 인증 중 오류가 발생했습니다.'
+    : null;
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,9 +81,9 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="border border-line bg-surface-secondary p-8">
-          {apiErrorMessage && (
+          {(apiErrorMessage || ssoErrorMessage) && (
             <div className="mb-4 bg-danger-bg p-3 text-sm text-danger">
-              {apiErrorMessage}
+              {apiErrorMessage || ssoErrorMessage}
             </div>
           )}
 
@@ -115,6 +140,41 @@ export default function LoginPage() {
               로그인
             </button>
           </form>
+
+          {SSO_ENABLED && (
+            <>
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-line" />
+                <span className="text-xs text-content-muted">또는</span>
+                <div className="h-px flex-1 bg-line" />
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const codeVerifier = crypto.randomUUID();
+                  localStorage.setItem('pkce_code_verifier', codeVerifier);
+                  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+                  const callbackUrl = `${window.location.origin}/oauth/callback`;
+                  const params = new URLSearchParams({
+                    client_id: SSO_CLIENT_ID,
+                    redirect_uri: callbackUrl,
+                    response_type: 'code',
+                    scope: 'openid profile',
+                    code_challenge: codeChallenge,
+                    code_challenge_method: 'S256',
+                  });
+
+                  window.location.href = `${SSO_PROVIDER_URL}/o/oauth2/authorize?${params.toString()}`;
+                }}
+                className="flex w-full items-center justify-center gap-2 border border-line px-4 py-2.5 text-sm font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+              >
+                <LogIn className="h-4 w-4" />
+                그룹웨어 SSO 로그인
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

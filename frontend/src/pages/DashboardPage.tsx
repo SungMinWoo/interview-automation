@@ -7,9 +7,7 @@ import { formatRelativeTime } from '@/utils/formatters';
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const { data: projectsData, isLoading } = useProjects();
-
-  const projects = projectsData?.results ?? [];
+  const { data: projects = [], isLoading } = useProjects();
   const totalProjects = projects.length;
   const activeProjects = projects.filter(
     (p) => !['created', 'completed'].includes(p.status),

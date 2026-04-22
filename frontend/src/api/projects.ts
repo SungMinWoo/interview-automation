@@ -3,16 +3,16 @@ import type {
   Project,
   ProjectCreateRequest,
   ProjectUpdateRequest,
-  ProjectListResponse,
   ReferenceSite,
   ReferenceSiteCreateRequest,
   ReferenceSiteUpdateRequest,
 } from '../types/project';
 
 // Projects
-export const getProjects = async (): Promise<ProjectListResponse> => {
-  const response = await apiClient.get<ProjectListResponse>('/projects/');
-  return response.data;
+export const getProjects = async (): Promise<Project[]> => {
+  const response = await apiClient.get('/projects/');
+  if (Array.isArray(response.data)) return response.data;
+  return response.data.results ?? [];
 };
 
 export const getProject = async (id: number): Promise<Project> => {

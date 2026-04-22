@@ -180,3 +180,13 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 # Survey
 SURVEY_URL_EXPIRY_DAYS = env.int('SURVEY_URL_EXPIRY_DAYS', default=7)
+
+# SSO / OAuth2
+OAUTH2_CLIENT_ID = env('OAUTH2_CLIENT_ID', default='')
+OAUTH2_CLIENT_SECRET = env('OAUTH2_CLIENT_SECRET', default='')
+OAUTH2_REDIRECT_CALLBACK_URI = env('OAUTH2_REDIRECT_CALLBACK_URI', default='http://localhost:3000/oauth/callback')
+OAUTH2_PROVIDER_URL = env('OAUTH2_PROVIDER_URL', default='')
+
+OAUTH2_AUTHORIZE_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/authorize' if OAUTH2_PROVIDER_URL else ''
+OAUTH2_TOKEN_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/token' if OAUTH2_PROVIDER_URL else ''
+OAUTH2_WELL_KNOWN_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/.well-known/openid-configuration' if OAUTH2_PROVIDER_URL else ''

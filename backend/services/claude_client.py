@@ -62,10 +62,16 @@ class ClaudeClient:
                 else:
                     raise
 
-    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None) -> dict:
+    def analyze_project(self, requirements_text: str, existing_site_data: dict | None, reference_sites_data: list[dict], file_contents: list[dict] | None = None, project_type: str = 'uxui') -> dict:
         """Phase 1: Analyze client requirements and sites."""
+        if project_type == 'bx':
+            role = "SI 회사의 브랜드 전략(BX) 분석 전문가"
+            focus_instruction = "분석 시 브랜드 포지셔닝, 브랜드 에셋(로고/컬러/슬로건), 경쟁사 브랜드 비교, 브랜드 인식도, 타겟 오디언스 분석에 중점을 두세요.\n"
+        else:
+            role = "SI 회사의 UX/UI 분석 전문가"
+            focus_instruction = ""
         prompt_parts = [
-            "당신은 SI 회사의 UX/UI 분석 전문가입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n",
+            f"당신은 {role}입니다. 다음 정보를 분석하여 JSON 형식으로 결과를 제공하세요.\n{focus_instruction}",
             f"## 클라이언트 요구사항\n{requirements_text}\n",
         ]
 
@@ -125,7 +131,7 @@ class ClaudeClient:
             logger.error(f"Claude analysis failed: {e}")
             raise
 
-    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict) -> dict:
+    def regenerate_analysis_section(self, section: str, current_analysis: dict, context: dict, project_type: str = 'uxui') -> dict:
         """Regenerate a specific section of the analysis."""
         section_prompts = {
             'requirements_summary': '클라이언트 요구사항을 다시 분석하여 요약해주세요. 첨부 파일 내용도 반영하세요.',
@@ -135,7 +141,12 @@ class ClaudeClient:
         }
         instruction = section_prompts.get(section, f'{section} 섹션을 다시 분석해주세요.')
 
-        prompt = f"""당신은 SI 회사의 UX/UI 분석 전문가입니다.
+        if project_type == 'bx':
+            role = "SI 회사의 브랜드 전략(BX) 분석 전문가"
+        else:
+            role = "SI 회사의 UX/UI 분석 전문가"
+
+        prompt = f"""당신은 {role}입니다.
 
 ## 현재 분석 결과
 {json.dumps(current_analysis, ensure_ascii=False, indent=2)}
@@ -157,7 +168,7 @@ class ClaudeClient:
             logger.error(f"Claude section regeneration failed: {e}")
             raise
 
-    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str], reference_questionnaires: list[dict] | None = None) -> dict:
+    def generate_questionnaire(self, confirmed_analysis: dict, position_categories: list[str], reference_questionnaires: list[dict] | None = None, project_type: str = 'uxui') -> dict:
         """Phase 2: Generate interview questions organized by sections with sub-categories."""
         ref_section = ''
         if reference_questionnaires:
@@ -166,7 +177,24 @@ class ClaudeClient:
                 ref_section += f'\n### {ref["project_title"]} ({ref["client_name"]})\n'
                 ref_section += json.dumps(ref['sections'], ensure_ascii=False, indent=2) + '\n'
 
-        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
+        if project_type == 'bx':
+            role = "브랜드 전략(BX) 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            section_examples = """### 구분 예시 (분석 결과에 맞게 적절히 변경)
+1. Brand Overview — 브랜드 현황 및 인식 (브랜드 인식, 브랜드 가치)
+2. Brand Identity — 브랜드 퍼소나, 톤앤매너, 원하는 브랜드 이미지
+3. Competitive Landscape — 경쟁사 브랜드 인식, 차별화 포인트
+4. Brand Strategy — 브랜드 포지셔닝, 커뮤니케이션 방향"""
+            question_focus = "- 질문은 브랜드 인식, 브랜드 가치, 브랜드 퍼소나, 경쟁사 브랜드 인식, 원하는 브랜드 이미지, 톤앤매너에 초점"
+        else:
+            role = "UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            section_examples = """### 구분 예시 (분석 결과에 맞게 적절히 변경)
+1. Project Overview — 기본 소개 및 프로젝트 전반 (직무/포지션, 전략/로드맵, 트렌드, 업의 본질)
+2. Service Image — 서비스 이미지/브랜드 인식
+3. Target / Business — 고객유치, 강점/약점, 리뉴얼 방향
+4. UX/UI Design — 벤치마킹, 디자인 방향, 사용자 경험"""
+            question_focus = ""
+
+        prompt = f"""당신은 SI 회사의 {role}입니다.
 
 ## 분석 결과
 {json.dumps(confirmed_analysis, ensure_ascii=False, indent=2)}
@@ -182,13 +210,10 @@ class ClaudeClient:
 - **세부구분 (sub_category)**: 각 질문의 소주제 분류
 - **질문**: 실제 인터뷰에서 물어볼 질문. 각 질문에 중요도와 의도를 포함
 
-### 구분 예시 (분석 결과에 맞게 적절히 변경)
-1. Project Overview — 기본 소개 및 프로젝트 전반 (직무/포지션, 전략/로드맵, 트렌드, 업의 본질)
-2. Service Image — 서비스 이미지/브랜드 인식
-3. Target / Business — 고객유치, 강점/약점, 리뉴얼 방향
-4. UX/UI Design — 벤치마킹, 디자인 방향, 사용자 경험
+{section_examples}
 
 ### 질문 작성 원칙
+{question_focus}
 - 주로 서술형(textarea) 질문
 - 구체적이고 답변하기 쉬운 질문 (예시를 괄호로 추가)
 - 각 구분에 4~8개 질문
@@ -226,9 +251,15 @@ class ClaudeClient:
             logger.error(f"Claude questionnaire generation failed: {e}")
             raise
 
-    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str]) -> dict:
+    def generate_section_questions(self, section_title: str, section_description: str, count: int, analysis_context: dict, existing_questions: list[str], project_type: str = 'uxui') -> dict:
         """Generate additional questions for a specific section."""
-        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가입니다.
+        if project_type == 'bx':
+            role = "브랜드 전략(BX) 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            extra_context = "\n- 질문은 브랜드 전략 관점에서 작성하세요 (브랜드 인식, 가치, 퍼소나, 포지셔닝 등)"
+        else:
+            role = "UX/UI 프로젝트를 위한 임직원 인터뷰 질문지 전문가"
+            extra_context = ""
+        prompt = f"""당신은 SI 회사의 {role}입니다.
 
 ## 분석 컨텍스트
 {json.dumps(analysis_context, ensure_ascii=False, indent=2)}
@@ -245,7 +276,7 @@ class ClaudeClient:
 - 이미 있는 질문과 중복되지 않는 새로운 질문
 - 주로 서술형(textarea) 질문
 - 구체적이고 답변하기 쉬운 질문
-- 각 질문에 세부구분(sub_category)과 의도(purpose)를 반드시 포함
+- 각 질문에 세부구분(sub_category)과 의도(purpose)를 반드시 포함{extra_context}
 
 ## 출력 형식 (JSON)
 반드시 아래 JSON 형식으로만 응답하세요.
@@ -268,9 +299,27 @@ class ClaudeClient:
             logger.error(f"Claude section question generation failed: {e}")
             raise
 
-    def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict) -> dict:
+    def aggregate_responses(self, questions_with_answers: list[dict], analysis_context: dict, project_type: str = 'uxui') -> dict:
         """Phase 3: Aggregate all survey responses by section with preserved wording."""
-        prompt = f"""당신은 SI 회사의 UX/UI 프로젝트를 위한 인터뷰 응답 분석 전문가입니다.
+        if project_type == 'bx':
+            role = "브랜드 전략(BX) 프로젝트를 위한 인터뷰 응답 분석 전문가"
+            keyword_categories = "identity|positioning|personality|value"
+            sentence_categories = "브랜드 인식|브랜드 가치|경쟁 포지셔닝|톤앤매너"
+            change_categories = """        {{"category": "브랜드 전략", "items": ["변화1", "변화2"]}},
+        {{"category": "브랜드 커뮤니케이션", "items": ["변화3"]}},
+        {{"category": "비주얼 아이덴티티", "items": ["변화4"]}},
+        {{"category": "브랜드 경험", "items": ["변화5"]}}"""
+            change_instruction = "- 단순 리스트가 아닌 카테고리별 분류: 브랜드 전략, 브랜드 커뮤니케이션, 비주얼 아이덴티티, 브랜드 경험 등"
+        else:
+            role = "UX/UI 프로젝트를 위한 인터뷰 응답 분석 전문가"
+            keyword_categories = "tone|feature|value|emotion"
+            sentence_categories = "비전|브랜드|UX|기술"
+            change_categories = """        {{"category": "UX", "items": ["변화1", "변화2"]}},
+        {{"category": "디자인", "items": ["변화3"]}},
+        {{"category": "기술", "items": ["변화4"]}}"""
+            change_instruction = "- 단순 리스트가 아닌 카테고리별 분류: UX, 디자인, 기술, 조직/문화, 서비스 등"
+
+        prompt = f"""당신은 SI 회사의 {role}입니다.
 
 ## 원래 분석 컨텍스트
 {json.dumps(analysis_context, ensure_ascii=False, indent=2)}
@@ -285,6 +334,7 @@ class ClaudeClient:
 - 질문 데이터에 section 정보가 있으면 파트별로 구분하여 요약
 - 각 파트별로 핵심 내용을 정리
 - section 정보가 없으면 질문 주제별로 자연스럽게 그룹핑
+- 각 파트 안에 question_summaries로 개별 질문별 요약도 포함
 
 ### 2. 원문 워딩 유지 (sentences)
 - 응답자의 원래 표현을 최대한 살려서 인용
@@ -292,7 +342,7 @@ class ClaudeClient:
 - 임원의 발언은 특히 중요하게 다룰 것
 
 ### 3. 변화사항 카테고라이징 (desired_changes)
-- 단순 리스트가 아닌 카테고리별 분류: UX, 디자인, 기술, 조직/문화, 서비스 등
+{change_instruction}
 
 ### 4. 키워드는 디자인 방향에 활용할 것들 위주
 
@@ -304,21 +354,26 @@ class ClaudeClient:
         {{
             "section_title": "파트명 (예: 회사 비전/방향성)",
             "summary": "이 파트의 응답 요약",
-            "key_quotes": ["화자: '원문 인용'", ...]
+            "key_quotes": ["화자: '원문 인용'", ...],
+            "question_summaries": [
+                {{
+                    "question": "질문 원문",
+                    "summary": "이 질문에 대한 응답 요약",
+                    "key_points": ["핵심 포인트1", "핵심 포인트2"]
+                }}
+            ]
         }}
     ],
     "company_direction": "회사 방향성 서술",
     "desired_changes": [
-        {{"category": "UX", "items": ["변화1", "변화2"]}},
-        {{"category": "디자인", "items": ["변화3"]}},
-        {{"category": "기술", "items": ["변화4"]}}
+{change_categories}
     ],
     "company_values": ["가치1", "가치2"],
     "keywords": [
-        {{"text": "키워드", "category": "tone|feature|value|emotion", "weight": 0.9}}
+        {{"text": "키워드", "category": "{keyword_categories}", "weight": 0.9}}
     ],
     "sentences": [
-        {{"text": "화자: '원문 인용 문장'", "category": "비전|브랜드|UX|기술"}}
+        {{"text": "화자: '원문 인용 문장'", "category": "{sentence_categories}"}}
     ]
 }}
 """
@@ -387,14 +442,18 @@ URL: {url}
             logger.error(f"Claude file analysis failed: {e}")
             raise
 
-    def generate_additional_keywords(self, existing_keywords: list[str], context: dict) -> list[dict]:
+    def generate_additional_keywords(self, existing_keywords: list[str], context: dict, project_type: str = 'uxui') -> list[dict]:
         """Generate additional keywords based on existing ones and context."""
+        if project_type == 'bx':
+            category_hint = "identity|positioning|personality|value"
+        else:
+            category_hint = "카테고리"
         prompt = f"""기존 키워드: {', '.join(existing_keywords)}
 컨텍스트: {json.dumps(context, ensure_ascii=False)}
 
 위 키워드와 컨텍스트를 바탕으로 추가 키워드 5개를 제안하세요.
 반드시 아래 JSON 배열 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요.
-[{{"text": "키워드", "category": "카테고리", "weight": 0.8}}]
+[{{"text": "키워드", "category": "{category_hint}", "weight": 0.8}}]
 """
         try:
             return self._request_json(prompt, temperature=0.8)
@@ -402,7 +461,7 @@ URL: {url}
             logger.error(f"Claude additional keywords failed: {e}")
             raise
 
-    def build_stitch_prompt(self, design_brief_data: dict) -> str:
+    def build_stitch_prompt(self, design_brief_data: dict, project_type: str = 'uxui') -> str:
         """Convert design brief data into an optimized prompt for Google Stitch."""
         # Build structured context
         parts = []
@@ -448,7 +507,25 @@ URL: {url}
 
         context = '\n'.join(parts)
 
-        prompt = f"""You are a web design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional website design.
+        if project_type == 'bx':
+            stitch_instruction = f"""You are a brand identity design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional brand identity design system.
+
+## Design Brief
+{context}
+
+## Requirements for the prompt
+1. Specify the type of brand deliverable (brand guidelines, visual identity system, etc.) and its purpose
+2. Describe the brand personality, tone, and overall aesthetic in detail
+3. If brand colors are provided, specify exact color values (e.g., "Use #2563EB as primary brand color")
+4. List the major brand elements: logo usage, color palette, typography system, iconography, imagery style
+5. Describe typography preferences reflecting brand personality
+6. Include brand application examples (business cards, letterhead, digital assets, etc.)
+7. Reflect the brand keywords and key messages in the design direction
+8. Specify consistent brand expression across all touchpoints
+
+Output ONLY the English prompt for Stitch. No JSON, no explanation, just the prompt text."""
+        else:
+            stitch_instruction = f"""You are a web design prompt engineer. Based on the following design brief, create a detailed English prompt for Google Stitch AI to generate a professional website design.
 
 ## Design Brief
 {context}
@@ -465,16 +542,18 @@ URL: {url}
 
 Output ONLY the English prompt for Stitch. No JSON, no explanation, just the prompt text."""
 
+        prompt = stitch_instruction
+
         try:
             return self._request_text(prompt, temperature=0.7)
         except Exception as e:
             logger.error(f"Claude stitch prompt generation failed: {e}")
             raise
 
-    def generate_design_md(self, design_brief_data: dict) -> str:
+    def generate_design_md(self, design_brief_data: dict, project_type: str = 'uxui') -> str:
         """Generate a DESIGN.md file content from design brief data.
 
-        Returns Stitch-compatible Design MD markdown content.
+        Returns Stitch-compatible Design MD markdown content or brand guidelines.
         """
         # Build context from brief
         parts = []
@@ -515,7 +594,33 @@ Output ONLY the English prompt for Stitch. No JSON, no explanation, just the pro
 
         context = '\n'.join(parts)
 
-        prompt = f"""You are a Design Systems Lead creating a DESIGN.md file for Google Stitch.
+        if project_type == 'bx':
+            prompt = f"""You are a Brand Strategy Lead creating a Brand Guidelines document.
+Based on the following design brief, generate comprehensive brand guidelines.
+
+## Design Brief
+{context}
+
+## Brand Guidelines Format Requirements
+The file MUST follow this exact structure with these 6 sections:
+
+1. **Brand Essence & Positioning** - Brand mission, vision, values, positioning statement, brand personality, tone of voice
+2. **Color Palette & Brand Colors** - Every color with: Descriptive Name + Hex Code + Usage Context. Include Primary Brand Color, Secondary Palette, Accent Colors, Functional States. If brand colors are provided, use those exact hex values.
+3. **Typography & Voice** - Font family, hierarchy (Headlines, Body, Captions), weights, brand voice guidelines, messaging framework
+4. **Brand Asset Stylings** - Logo usage (clear space, minimum size, color variations), Iconography style, Photography/Imagery direction, Pattern/Texture guidelines
+5. **Brand Application Principles** - Print materials, Digital touchpoints, Environmental/Signage, Social media guidelines, Brand consistency rules
+6. **Brand System Notes for Implementation** - Brand do's and don'ts, approval process notes, brand evolution guidelines
+
+## Important Rules
+- Use descriptive, natural language (e.g., "Ocean-deep Cerulean #0077B6" not just "blue")
+- Include hex codes alongside every color description
+- Use brand-strategist-friendly language
+- Make it readable by both humans and AI agents
+- Start with "# Brand Guidelines: [Project Title]"
+
+Output ONLY the brand guidelines content in markdown format. No wrapping code blocks."""
+        else:
+            prompt = f"""You are a Design Systems Lead creating a DESIGN.md file for Google Stitch.
 Based on the following design brief, generate a comprehensive DESIGN.md file.
 
 ## Design Brief

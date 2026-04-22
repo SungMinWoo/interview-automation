@@ -43,10 +43,17 @@ export interface SentenceUpdateRequest {
   category?: string;
 }
 
+export interface QuestionSummary {
+  question: string;
+  summary: string;
+  key_points?: string[];
+}
+
 export interface SectionSummary {
   section_title: string;
   summary: string;
   key_quotes?: string[];
+  question_summaries?: QuestionSummary[];
 }
 
 export interface DesiredChangeCategory {

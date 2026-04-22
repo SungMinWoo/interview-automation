@@ -37,6 +37,19 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   completed: 'bg-success-bg text-success',
 };
 
+// --- Project Type ---
+export type ProjectTypeKey = 'uxui' | 'bx';
+
+export const PROJECT_TYPE_LABELS: Record<ProjectTypeKey, string> = {
+  uxui: 'UX/UI',
+  bx: 'BX',
+};
+
+export const PROJECT_TYPE_COLORS: Record<ProjectTypeKey, string> = {
+  uxui: 'bg-surface-hover text-content-primary',
+  bx: 'bg-accent/10 text-accent',
+};
+
 export const ANALYSIS_STATUS_LABELS: Record<AnalysisStatus, string> = {
   pending: '대기 중',
   processing: '분석 중',
@@ -249,6 +262,7 @@ export const API_PATHS = {
   BRIEF_EXPORT: (projectId: number) => `/projects/${projectId}/design-brief/export/`,
   DESIGN_MD_GENERATE: (projectId: number) => `/projects/${projectId}/design-brief/design-md/generate/`,
   DESIGN_MD_DOWNLOAD: (projectId: number) => `/projects/${projectId}/design-brief/design-md/download/`,
+  PROJECT_COMPLETE: (projectId: number) => `/projects/${projectId}/design-brief/complete/`,
   SURVEY: (token: string) => `/survey/${token}/`,
   SURVEY_VERIFY: (token: string) => `/survey/${token}/verify/`,
   SURVEY_SUBMIT: (token: string) => `/survey/${token}/submit/`,

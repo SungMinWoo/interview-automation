@@ -84,6 +84,7 @@ def run_project_analysis(self, project_id: int, ai_provider: str | None = None) 
             existing_site_data=existing_site_data,
             reference_sites_data=reference_sites_data,
             file_contents=file_contents,
+            project_type=project.project_type,
         )
 
         analysis.requirements_summary = result.get('requirements_summary', '')

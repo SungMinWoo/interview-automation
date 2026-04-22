@@ -17,6 +17,7 @@ import ManualEntryPage from '@/pages/ManualEntryPage';
 import AggregationPage from '@/pages/AggregationPage';
 import DesignBriefPage from '@/pages/DesignBriefPage';
 import SurveyPage from '@/pages/SurveyPage';
+import OAuthCallbackPage from '@/pages/OAuthCallbackPage';
 import ToolsPage from '@/pages/ToolsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
@@ -33,6 +34,10 @@ export const router = createBrowserRouter([
   {
     path: '/survey/:token',
     element: <SurveyPage />,
+  },
+  {
+    path: '/oauth/callback',
+    element: <OAuthCallbackPage />,
   },
 
   // Protected routes with AppLayout

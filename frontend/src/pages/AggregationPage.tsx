@@ -9,6 +9,8 @@ import {
   Trash2,
   Sparkles,
   X,
+  Copy,
+  FileText,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import {
@@ -47,7 +49,10 @@ export default function AggregationPage() {
 
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [newKeyword, setNewKeyword] = useState('');
+  const [newKeywordCategory, setNewKeywordCategory] = useState('');
+  const [newKeywordWeight, setNewKeywordWeight] = useState('');
   const [newSentence, setNewSentence] = useState('');
+  const [newSentenceCategory, setNewSentenceCategory] = useState('');
 
   useEffect(() => {
     if (statusData && statusData.status !== 'processing') {
@@ -82,8 +87,16 @@ export default function AggregationPage() {
   const handleAddKeyword = async () => {
     if (!id || !newKeyword.trim()) return;
     try {
-      await createKeyword.mutateAsync({ projectId: id, data: { text: newKeyword.trim() } });
+      const data: { text: string; category?: string; weight?: number } = { text: newKeyword.trim() };
+      if (newKeywordCategory.trim()) data.category = newKeywordCategory.trim();
+      if (newKeywordWeight.trim()) {
+        const w = parseFloat(newKeywordWeight.trim());
+        if (!isNaN(w) && w >= 0 && w <= 1) data.weight = w;
+      }
+      await createKeyword.mutateAsync({ projectId: id, data });
       setNewKeyword('');
+      setNewKeywordCategory('');
+      setNewKeywordWeight('');
       toast.success('키워드가 추가되었습니다.');
     } catch {
       toast.error('키워드 추가에 실패했습니다.');
@@ -112,8 +125,11 @@ export default function AggregationPage() {
   const handleAddSentence = async () => {
     if (!id || !newSentence.trim()) return;
     try {
-      await createSentence.mutateAsync({ projectId: id, data: { text: newSentence.trim() } });
+      const data: { text: string; category?: string } = { text: newSentence.trim() };
+      if (newSentenceCategory.trim()) data.category = newSentenceCategory.trim();
+      await createSentence.mutateAsync({ projectId: id, data });
       setNewSentence('');
+      setNewSentenceCategory('');
       toast.success('문장이 추가되었습니다.');
     } catch {
       toast.error('문장 추가에 실패했습니다.');
@@ -131,6 +147,153 @@ export default function AggregationPage() {
 
   const isProcessing = aggregation?.status === 'processing';
   const isCompleted = aggregation?.status === 'completed';
+
+  const allKeywords = keywords ?? aggregation?.keywords ?? [];
+  const allSentences = sentences ?? aggregation?.sentences ?? [];
+
+  const buildPlainText = () => {
+    if (!aggregation) return '';
+    const lines: string[] = [];
+    if (aggregation.summary) {
+      lines.push('[ 종합 요약 ]', aggregation.summary, '');
+    }
+    if (Array.isArray(aggregation.section_summaries)) {
+      lines.push('[ 파트별 요약 ]');
+      aggregation.section_summaries.forEach((s: Record<string, unknown>) => {
+        lines.push(`\n■ ${(s.section_title as string) || (s.title as string) || ''}`);
+        if (s.summary) lines.push(s.summary as string);
+        if (Array.isArray(s.key_quotes)) {
+          s.key_quotes.forEach((q: string) => lines.push(`  "${q}"`));
+        }
+      });
+      lines.push('');
+      lines.push('[ 질문별 요약 ]');
+      aggregation.section_summaries.forEach((s: Record<string, unknown>) => {
+        const qs = s.question_summaries as { question: string; summary: string; key_points?: string[] }[] | undefined;
+        if (!Array.isArray(qs) || qs.length === 0) return;
+        lines.push(`\n■ ${(s.section_title as string) || (s.title as string) || ''}`);
+        qs.forEach((q) => {
+          lines.push(`  Q. ${q.question}`);
+          lines.push(`     ${q.summary}`);
+          if (Array.isArray(q.key_points)) q.key_points.forEach((p) => lines.push(`     - ${p}`));
+        });
+      });
+      lines.push('');
+    }
+    if (aggregation.company_direction) {
+      lines.push('[ 회사 방향성 ]', aggregation.company_direction, '');
+    }
+    if (aggregation.company_values?.length) {
+      lines.push('[ 추구하는 가치 ]', aggregation.company_values.join(', '), '');
+    }
+    if (aggregation.desired_changes?.length) {
+      lines.push('[ 변화하고 싶은 것들 ]');
+      aggregation.desired_changes.forEach((c: unknown) => {
+        if (typeof c === 'object' && c !== null && 'category' in c) {
+          const g = c as { category: string; items?: string[] };
+          lines.push(`  ${g.category}: ${(g.items ?? []).join(', ')}`);
+        } else {
+          lines.push(`  - ${c}`);
+        }
+      });
+      lines.push('');
+    }
+    if (allKeywords.length) {
+      lines.push('[ 키워드 ]');
+      allKeywords.forEach((kw) => {
+        const parts = [kw.text];
+        if (kw.category) parts.push(`(${kw.category})`);
+        if (kw.weight && kw.weight !== 1) parts.push(kw.weight.toFixed(1));
+        lines.push(`  ${parts.join(' ')}${kw.is_user_added ? ' [직접 추가]' : ''}`);
+      });
+      lines.push('');
+    }
+    if (allSentences.length) {
+      lines.push('[ 핵심 문장 ]');
+      allSentences.forEach((s) => {
+        const cat = s.category ? ` [${s.category}]` : '';
+        lines.push(`  ${s.text}${cat}${s.is_user_added ? ' [직접 추가]' : ''}`);
+      });
+    }
+    return lines.join('\n');
+  };
+
+  const buildMarkdown = () => {
+    if (!aggregation) return '';
+    const lines: string[] = ['# AI 취합 결과', ''];
+    if (aggregation.summary) {
+      lines.push('## 종합 요약', '', aggregation.summary, '');
+    }
+    if (Array.isArray(aggregation.section_summaries)) {
+      lines.push('## 파트별 요약', '');
+      aggregation.section_summaries.forEach((s: Record<string, unknown>) => {
+        lines.push(`### ${(s.section_title as string) || (s.title as string) || ''}`, '');
+        if (s.summary) lines.push(s.summary as string, '');
+        if (Array.isArray(s.key_quotes) && s.key_quotes.length > 0) {
+          s.key_quotes.forEach((q: string) => lines.push(`> "${q}"`, ''));
+        }
+      });
+      lines.push('## 질문별 요약', '');
+      aggregation.section_summaries.forEach((s: Record<string, unknown>) => {
+        const qs = s.question_summaries as { question: string; summary: string; key_points?: string[] }[] | undefined;
+        if (!Array.isArray(qs) || qs.length === 0) return;
+        lines.push(`### ${(s.section_title as string) || (s.title as string) || ''}`, '');
+        qs.forEach((q) => {
+          lines.push(`**Q. ${q.question}**`, '', q.summary, '');
+          if (Array.isArray(q.key_points) && q.key_points.length > 0) {
+            q.key_points.forEach((p) => lines.push(`- ${p}`));
+            lines.push('');
+          }
+        });
+      });
+    }
+    if (aggregation.company_direction) {
+      lines.push('## 회사 방향성', '', aggregation.company_direction, '');
+    }
+    if (aggregation.company_values?.length) {
+      lines.push('## 추구하는 가치', '', aggregation.company_values.map((v) => `\`${v}\``).join(' · '), '');
+    }
+    if (aggregation.desired_changes?.length) {
+      lines.push('## 변화하고 싶은 것들', '');
+      aggregation.desired_changes.forEach((c: unknown) => {
+        if (typeof c === 'object' && c !== null && 'category' in c) {
+          const g = c as { category: string; items?: string[] };
+          lines.push(`**${g.category}**`);
+          (g.items ?? []).forEach((item) => lines.push(`- ${item}`));
+          lines.push('');
+        } else {
+          lines.push(`- ${c}`);
+        }
+      });
+      lines.push('');
+    }
+    if (allKeywords.length) {
+      lines.push('## 키워드', '', '| 키워드 | 카테고리 | 가중치 | 출처 |', '|--------|----------|--------|------|');
+      allKeywords.forEach((kw) => {
+        lines.push(`| ${kw.text} | ${kw.category || '-'} | ${kw.weight && kw.weight !== 1 ? kw.weight.toFixed(1) : '-'} | ${kw.is_user_added ? '직접 추가' : 'AI'} |`);
+      });
+      lines.push('');
+    }
+    if (allSentences.length) {
+      lines.push('## 핵심 문장', '');
+      allSentences.forEach((s) => {
+        const tag = s.is_user_added ? ' `직접 추가`' : '';
+        const cat = s.category ? ` _${s.category}_` : '';
+        lines.push(`- ${s.text}${cat}${tag}`);
+      });
+    }
+    return lines.join('\n');
+  };
+
+  const handleCopyText = async () => {
+    await navigator.clipboard.writeText(buildPlainText());
+    toast.success('텍스트로 복사되었습니다.');
+  };
+
+  const handleCopyMarkdown = async () => {
+    await navigator.clipboard.writeText(buildMarkdown());
+    toast.success('마크다운으로 복사되었습니다.');
+  };
 
   return (
     <div className="space-y-6">
@@ -222,6 +385,24 @@ export default function AggregationPage() {
       {/* Results */}
       {isCompleted && aggregation && (
         <div className="space-y-6">
+          {/* Copy Buttons */}
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={handleCopyText}
+              className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              텍스트 복사
+            </button>
+            <button
+              onClick={handleCopyMarkdown}
+              className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              마크다운 복사
+            </button>
+          </div>
+
           {/* Summary */}
           {aggregation.summary && (
             <div className="border border-line bg-surface-secondary p-6">
@@ -230,14 +411,14 @@ export default function AggregationPage() {
             </div>
           )}
 
-          {/* Section Summaries */}
+          {/* Section Summaries (파트별) */}
           {Array.isArray(aggregation.section_summaries) && aggregation.section_summaries.length > 0 && (
             <div>
               <h3 className="mb-3 text-base font-semibold text-content-primary">파트별 요약</h3>
-              {aggregation.section_summaries.map((section: { title?: string; summary?: string; key_quotes?: string[] }, idx: number) => (
+              {aggregation.section_summaries.map((section: { title?: string; section_title?: string; summary?: string; key_quotes?: string[] }, idx: number) => (
                 <div key={idx} className="border border-line bg-surface-secondary p-6 mb-4">
-                  {section.title && (
-                    <h4 className="mb-2 text-sm font-bold text-content-primary">{section.title}</h4>
+                  {(section.section_title || section.title) && (
+                    <h4 className="mb-2 text-sm font-bold text-content-primary">{section.section_title || section.title}</h4>
                   )}
                   {section.summary && (
                     <p className="whitespace-pre-wrap text-sm text-content-secondary">{section.summary}</p>
@@ -251,6 +432,38 @@ export default function AggregationPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Question Summaries (질문별) */}
+          {Array.isArray(aggregation.section_summaries) && aggregation.section_summaries.some((s: Record<string, unknown>) => Array.isArray(s.question_summaries) && (s.question_summaries as unknown[]).length > 0) && (
+            <div>
+              <h3 className="mb-3 text-base font-semibold text-content-primary">질문별 요약</h3>
+              {aggregation.section_summaries.map((section: { title?: string; section_title?: string; question_summaries?: { question: string; summary: string; key_points?: string[] }[] }, idx: number) => {
+                if (!Array.isArray(section.question_summaries) || section.question_summaries.length === 0) return null;
+                return (
+                  <div key={idx} className="border border-line bg-surface-secondary p-6 mb-4">
+                    {(section.section_title || section.title) && (
+                      <h4 className="mb-3 text-sm font-bold text-content-primary">{section.section_title || section.title}</h4>
+                    )}
+                    <div className="space-y-3">
+                      {section.question_summaries.map((qs, qi: number) => (
+                        <div key={qi} className="border-l-2 border-line pl-3">
+                          <p className="text-xs font-medium text-content-primary">{qs.question}</p>
+                          <p className="mt-1 text-xs text-content-secondary">{qs.summary}</p>
+                          {Array.isArray(qs.key_points) && qs.key_points.length > 0 && (
+                            <ul className="mt-1 space-y-0.5">
+                              {qs.key_points.map((point: string, pi: number) => (
+                                <li key={pi} className="text-xs text-content-tertiary">- {point}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -308,18 +521,23 @@ export default function AggregationPage() {
             <h3 className="mb-4 text-base font-semibold text-content-primary">핵심 문장</h3>
 
             <div className="mb-4 space-y-2">
-              {(sentences ?? aggregation.sentences ?? []).map((s) => (
+              {allSentences.map((s) => (
                 <div
                   key={s.id}
                   className="group flex items-start justify-between border border-line p-3"
                 >
                   <div className="flex-1">
-                    <p className="text-sm text-content-secondary">{s.text}</p>
-                    {s.category && (
-                      <span className="mt-1 inline-block bg-surface-hover px-2 py-0.5 text-xs text-content-tertiary">
-                        {s.category}
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium ${s.is_user_added ? 'bg-surface-hover text-content-tertiary' : 'bg-surface-hover text-accent'}`}>
+                        {s.is_user_added ? '직접 추가' : 'AI'}
                       </span>
-                    )}
+                      {s.category && (
+                        <span className="bg-surface-hover px-2 py-0.5 text-xs text-content-tertiary">
+                          {s.category}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-content-secondary">{s.text}</p>
                   </div>
                   <button
                     onClick={() => handleDeleteSentence(s.id)}
@@ -337,7 +555,15 @@ export default function AggregationPage() {
                 value={newSentence}
                 onChange={(e) => setNewSentence(e.target.value)}
                 placeholder="새 핵심 문장..."
-                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
+                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm text-content-primary placeholder-content-tertiary"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSentence()}
+              />
+              <input
+                type="text"
+                value={newSentenceCategory}
+                onChange={(e) => setNewSentenceCategory(e.target.value)}
+                placeholder="카테고리"
+                className="w-24 border border-line bg-surface-secondary px-3 py-1.5 text-sm text-content-primary placeholder-content-tertiary"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddSentence()}
               />
               <button
@@ -369,11 +595,16 @@ export default function AggregationPage() {
             </div>
 
             <div className="mb-3 flex flex-wrap gap-2">
-              {(keywords ?? aggregation.keywords ?? []).map((kw) => (
+              {allKeywords.map((kw) => (
                 <span
                   key={kw.id}
-                  className="group inline-flex items-center gap-1 rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-content-secondary"
+                  className={`group inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${kw.is_user_added ? 'border border-line bg-transparent text-content-secondary' : 'bg-surface-hover text-content-secondary'}`}
                 >
+                  {kw.is_user_added ? (
+                    <span className="text-content-tertiary">+</span>
+                  ) : (
+                    <Sparkles className="h-2.5 w-2.5 opacity-50" />
+                  )}
                   {kw.text}
                   {kw.category && (
                     <span className="opacity-60">({kw.category})</span>
@@ -397,7 +628,23 @@ export default function AggregationPage() {
                 value={newKeyword}
                 onChange={(e) => setNewKeyword(e.target.value)}
                 placeholder="새 키워드..."
-                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm"
+                className="flex-1 border border-line bg-surface-secondary px-3 py-1.5 text-sm text-content-primary placeholder-content-tertiary"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
+              />
+              <input
+                type="text"
+                value={newKeywordCategory}
+                onChange={(e) => setNewKeywordCategory(e.target.value)}
+                placeholder="카테고리"
+                className="w-24 border border-line bg-surface-secondary px-3 py-1.5 text-sm text-content-primary placeholder-content-tertiary"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
+              />
+              <input
+                type="text"
+                value={newKeywordWeight}
+                onChange={(e) => setNewKeywordWeight(e.target.value)}
+                placeholder="가중치"
+                className="w-16 border border-line bg-surface-secondary px-3 py-1.5 text-sm text-content-primary placeholder-content-tertiary"
                 onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
               />
               <button
