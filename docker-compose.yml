@@ -104,12 +104,23 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
       - frontend
     volumes:
       - media_data:/media:ro
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
 
 volumes:
   postgres_data:
   media_data:
+  certbot_conf:
+  certbot_www:
