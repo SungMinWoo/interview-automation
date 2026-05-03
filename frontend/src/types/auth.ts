@@ -26,3 +26,11 @@ export interface LoginResponse {
 export interface TokenRefreshResponse {
   access: string;
 }
+
+export interface UserSearchResult {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  company_name: string;
+}

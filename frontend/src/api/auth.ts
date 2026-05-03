@@ -1,9 +1,11 @@
 import apiClient from './client';
+import { API_PATHS } from '@/utils/constants';
 import type {
   LoginRequest,
   LoginResponse,
   TokenRefreshResponse,
   User,
+  UserSearchResult,
 } from '../types/auth';
 
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
@@ -30,5 +32,10 @@ export const ssoTokenExchange = async (code: string, codeVerifier: string): Prom
     code,
     code_verifier: codeVerifier,
   });
+  return response.data;
+};
+
+export const searchUsers = async (q: string): Promise<UserSearchResult[]> => {
+  const response = await apiClient.get<UserSearchResult[]>(API_PATHS.AUTH.USER_SEARCH, { params: { q } });
   return response.data;
 };

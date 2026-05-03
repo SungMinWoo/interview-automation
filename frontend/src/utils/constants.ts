@@ -1,3 +1,4 @@
+import type { MemberRole } from '@/types/member';
 import type { ProjectStatus } from '@/types/project';
 import type { AnalysisStatus } from '@/types/analysis';
 import type { InvitationStatus } from '@/types/distribution';
@@ -121,6 +122,28 @@ export const SENTIMENT_COLORS: Record<string, string> = {
   neutral: 'bg-surface-hover text-content-secondary',
 };
 
+// --- Member Roles ---
+
+export const MEMBER_ROLE_LABELS: Record<MemberRole, string> = {
+  owner: '소유자',
+  admin: '관리자',
+  editor: '편집자',
+  viewer: '뷰어',
+};
+
+export const MEMBER_ROLE_COLORS: Record<MemberRole, string> = {
+  owner: 'bg-accent/10 text-accent',
+  admin: 'bg-warning-bg text-warning',
+  editor: 'bg-success-bg text-success',
+  viewer: 'bg-surface-hover text-content-secondary',
+};
+
+export const ASSIGNABLE_ROLES: { value: MemberRole; label: string }[] = [
+  { value: 'admin', label: '관리자' },
+  { value: 'editor', label: '편집자' },
+  { value: 'viewer', label: '뷰어' },
+];
+
 // --- AI Provider ---
 
 export type AiProvider = 'claude' | 'gemini';
@@ -202,6 +225,7 @@ export const API_PATHS = {
     LOGOUT: '/auth/logout/',
     ME: '/auth/me/',
     REFRESH: '/auth/token/refresh/',
+    USER_SEARCH: '/auth/users/search/',
   },
   PROJECTS: '/projects/',
   project: (id: number) => `/projects/${id}/`,
@@ -267,6 +291,15 @@ export const API_PATHS = {
   SURVEY_VERIFY: (token: string) => `/survey/${token}/verify/`,
   SURVEY_SUBMIT: (token: string) => `/survey/${token}/submit/`,
   SURVEY_DRAFT: (token: string) => `/survey/${token}/draft/`,
+  // Members
+  MEMBERS: (projectId: number) => `/projects/${projectId}/members/`,
+  MEMBER: (projectId: number, memberId: number) => `/projects/${projectId}/members/${memberId}/`,
+  TRANSFER_OWNERSHIP: (projectId: number) => `/projects/${projectId}/transfer-ownership/`,
+  // Notifications
+  NOTIFICATIONS: '/notifications/',
+  NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count/',
+  NOTIFICATION_READ: (id: number) => `/notifications/${id}/read/`,
+  NOTIFICATIONS_READ_ALL: '/notifications/read-all/',
   // Tools (project-independent)
   TOOLS_ANALYZE_SITE: '/tools/analyze-site/',
   TOOLS_ANALYZE_FILE: '/tools/analyze-file/',

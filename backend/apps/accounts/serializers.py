@@ -55,3 +55,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'email', 'created_at', 'updated_at']
+
+
+class UserSearchSerializer(serializers.ModelSerializer):
+    """유저 검색 결과용 — 멤버 추가 시 사용."""
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'first_name', 'company_name']
+        read_only_fields = fields

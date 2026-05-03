@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.access import get_accessible_project as get_user_project
 from .models import ProjectAnalysis
 from .serializers import (
     ProjectAnalysisSerializer,
@@ -12,11 +13,6 @@ from .serializers import (
     ProjectAnalysisUpdateSerializer,
 )
 from services.ai_client import validate_ai_provider
-
-
-def get_user_project(request, project_id):
-    """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id)
 
 
 class TriggerAnalysisView(APIView):
@@ -114,6 +110,15 @@ class AnalysisConfirmView(APIView):
 
         from apps.projects.models import log_activity
         log_activity(project, request.user, 'analysis_confirmed')
+
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='analysis_confirmed',
+            title=f'{project.title} — 분석이 확인되었습니다',
+            exclude_user_id=request.user.id,
+            actor_id=request.user.id,
+        )
 
         return Response(ProjectAnalysisSerializer(analysis).data)
 

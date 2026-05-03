@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginResponseSerializer, RegisterSerializer, UserProfileSerializer
+from .serializers import LoginResponseSerializer, RegisterSerializer, UserProfileSerializer, UserSearchSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,25 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserSearchView(APIView):
+    """GET /auth/users/search/?q=keyword — 유저 검색 (이메일, 이름, username)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        q = request.query_params.get('q', '').strip()
+        if not q:
+            return Response([])
+
+        from django.db.models import Q
+        users = User.objects.filter(
+            Q(email__icontains=q) | Q(username__icontains=q)
+            | Q(first_name__icontains=q) | Q(company_name__icontains=q),
+            is_active=True,
+        ).exclude(id=request.user.id)[:10]
+
+        return Response(UserSearchSerializer(users, many=True).data)
 
 
 class SSOTokenExchangeView(APIView):

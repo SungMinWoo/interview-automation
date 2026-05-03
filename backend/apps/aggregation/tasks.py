@@ -115,6 +115,13 @@ def run_aggregation(self, aggregation_id: int, ai_provider: str | None = None) -
         project.status = Project.Status.AGGREGATION_READY
         project.save(update_fields=['status', 'updated_at'])
 
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='aggregation_completed',
+            title=f'{project.title} — 취합이 완료되었습니다',
+        )
+
         logger.info(f"Aggregation completed for project {project.id}")
 
     except Aggregation.DoesNotExist:

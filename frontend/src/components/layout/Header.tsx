@@ -1,8 +1,9 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Menu, MenuButton, MenuItems, MenuItem, Transition } from '@headlessui/react';
-import { Bell, ChevronRight, User, LogOut, Settings } from 'lucide-react';
+import { ChevronRight, User, LogOut, Settings } from 'lucide-react';
 import { Fragment } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationBell } from './NotificationBell';
 import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
@@ -73,12 +74,7 @@ export function Header({ className = '' }: HeaderProps) {
         <ThemeToggle />
 
         {/* Notifications */}
-        <button
-          className="relative p-2 text-content-tertiary transition-colors hover:bg-surface-hover hover:text-content-secondary"
-          aria-label="알림"
-        >
-          <Bell className="h-5 w-5" />
-        </button>
+        <NotificationBell />
 
         {/* User Menu */}
         <Menu as="div" className="relative">

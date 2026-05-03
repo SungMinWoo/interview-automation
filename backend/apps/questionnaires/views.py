@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.access import get_accessible_project as get_user_project
 from services.ai_client import validate_ai_provider
 from .models import Questionnaire, QuestionSection, Question, PositionCategory
 from .serializers import (
@@ -15,11 +16,6 @@ from .serializers import (
     PositionCategorySerializer,
     QuestionReorderSerializer,
 )
-
-
-def get_user_project(request, project_id):
-    """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id)
 
 
 def get_user_questionnaire(request, project_id):
@@ -100,6 +96,15 @@ class QuestionnaireConfirmView(APIView):
 
         from apps.projects.models import log_activity
         log_activity(project, request.user, 'questionnaire_confirmed')
+
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='questionnaire_confirmed',
+            title=f'{project.title} — 질문지가 확정되었습니다',
+            exclude_user_id=request.user.id,
+            actor_id=request.user.id,
+        )
 
         return Response(QuestionnaireSerializer(questionnaire).data)
 

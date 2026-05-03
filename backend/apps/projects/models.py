@@ -42,6 +42,48 @@ class Project(models.Model):
         return f"{self.title} - {self.client_name}"
 
 
+class ProjectMember(models.Model):
+    """프로젝트 참여 멤버 — 역할 기반 접근 제어."""
+    class Role(models.TextChoices):
+        OWNER = 'owner', '소유자'
+        ADMIN = 'admin', '관리자'
+        EDITOR = 'editor', '편집자'
+        VIEWER = 'viewer', '뷰어'
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='project_memberships',
+    )
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.VIEWER)
+    user_name = models.CharField(max_length=100, blank=True, help_text='비정규화 — 유저 삭제 후 이력 유지')
+    user_email = models.EmailField(blank=True, help_text='비정규화 — 유저 삭제 후 이력 유지')
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'projects_projectmember'
+        unique_together = [('project', 'user')]
+        ordering = ['role', 'created_at']
+
+    def __str__(self):
+        return f'{self.user_name or self.user_email} ({self.get_role_display()}) - {self.project}'
+
+    def save(self, *args, **kwargs):
+        if self.user_id and not self.user_name:
+            self.user_name = self.user.first_name or self.user.username or ''
+        if self.user_id and not self.user_email:
+            self.user_email = self.user.email or ''
+        super().save(*args, **kwargs)
+
+
 class ProjectDepartment(models.Model):
     """Team/department structure defined at project level."""
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='departments')

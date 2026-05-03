@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
-from .models import Project, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
+from django.contrib.auth import get_user_model
+
+from .models import Project, ProjectMember, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
+
+User = get_user_model()
 
 
 class ReferenceSiteSerializer(serializers.ModelSerializer):
@@ -111,3 +115,61 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
             'client_contact_phone', 'requirements_text', 'existing_site_url',
         ]
         read_only_fields = ['id']
+
+
+# ── 멤버 관리 ──
+
+class ProjectMemberSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectMember
+        fields = ['id', 'user', 'user_email', 'user_name', 'role', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+    def get_user_name(self, obj):
+        if obj.user_id:
+            return obj.user.first_name or obj.user.username or obj.user.email
+        return obj.user_name
+
+
+class AddMemberSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(
+        choices=[('admin', '관리자'), ('editor', '편집자'), ('viewer', '뷰어')],
+        default='viewer',
+    )
+
+    def validate_email(self, value):
+        try:
+            self._target_user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('해당 이메일의 유저를 찾을 수 없습니다.')
+        return value
+
+    def validate(self, attrs):
+        project = self.context['project']
+        if ProjectMember.objects.filter(project=project, user=self._target_user).exists():
+            raise serializers.ValidationError({'email': '이미 프로젝트 멤버입니다.'})
+        return attrs
+
+
+class UpdateMemberRoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=[('admin', '관리자'), ('editor', '편집자'), ('viewer', '뷰어')],
+    )
+
+
+class TransferOwnershipSerializer(serializers.Serializer):
+    new_owner_id = serializers.IntegerField()
+
+    def validate_new_owner_id(self, value):
+        project = self.context['project']
+        try:
+            membership = ProjectMember.objects.get(project=project, user_id=value)
+        except ProjectMember.DoesNotExist:
+            raise serializers.ValidationError('해당 유저는 프로젝트 멤버가 아닙니다.')
+        if membership.role == ProjectMember.Role.OWNER:
+            raise serializers.ValidationError('이미 소유자입니다.')
+        return value

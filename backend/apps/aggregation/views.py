@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.access import get_accessible_project as get_user_project
 from services.ai_client import validate_ai_provider
 from .models import Aggregation, ExtractedKeyword, ExtractedSentence
 from .serializers import (
@@ -12,11 +13,6 @@ from .serializers import (
     ExtractedKeywordSerializer,
     ExtractedSentenceSerializer,
 )
-
-
-def get_user_project(request, project_id):
-    """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id)
 
 
 def get_latest_aggregation(project):

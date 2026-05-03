@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.access import get_accessible_project as get_user_project
 from apps.aggregation.models import Aggregation
 from services.ai_client import validate_ai_provider
 from .models import DesignBrief, StitchGeneration
@@ -13,11 +14,6 @@ from .serializers import (
     DesignBriefExportSerializer,
     StitchGenerationSerializer,
 )
-
-
-def get_user_project(request, project_id):
-    """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id)
 
 
 def get_user_brief(request, project_id):
@@ -327,4 +323,14 @@ class CompleteProjectView(APIView):
         project.save(update_fields=['status', 'updated_at'])
         from apps.projects.models import log_activity
         log_activity(project, request.user, 'project_completed')
+
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='brief_ready',
+            title=f'{project.title} — 프로젝트가 완료되었습니다',
+            exclude_user_id=request.user.id,
+            actor_id=request.user.id,
+        )
+
         return Response({'status': project.status})

@@ -135,6 +135,13 @@ def generate_questionnaire(self, questionnaire_id: int, ai_provider: str | None 
         project.status = Project.Status.QUESTIONNAIRE_READY
         project.save(update_fields=['status', 'updated_at'])
 
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='questionnaire_ready',
+            title=f'{project.title} — 질문지가 준비되었습니다',
+        )
+
         total_questions = questionnaire.questions.count()
         logger.info(f"Questionnaire generated for project {project.id}: {total_questions} questions")
 

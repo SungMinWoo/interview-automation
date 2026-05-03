@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
+from apps.projects.access import get_accessible_project as get_user_project
 from apps.questionnaires.models import Question
 from apps.responses.models import SurveyResponse, Answer
 from .models import Employee, SurveyInvitation
@@ -26,11 +27,6 @@ from .serializers import (
 )
 
 import uuid
-
-
-def get_user_project(request, project_id):
-    """Return a project owned by the requesting user or 404."""
-    return get_object_or_404(Project, pk=project_id)
 
 
 # ──────────────────────────────────────────────
@@ -128,6 +124,15 @@ class GenerateInvitationsView(APIView):
 
         from apps.projects.models import log_activity
         log_activity(project, request.user, 'invitations_generated', {'count': len(created)})
+
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='invitations_sent',
+            title=f'{project.title} — 설문 초대가 생성되었습니다 ({len(created)}명)',
+            exclude_user_id=request.user.id,
+            actor_id=request.user.id,
+        )
 
         return Response(
             {

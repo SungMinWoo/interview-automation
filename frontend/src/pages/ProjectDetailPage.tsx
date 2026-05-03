@@ -13,8 +13,15 @@ import {
   Upload,
   FileText,
   Sparkles,
+  Users,
+  Crown,
+  Shield,
+  Pencil,
+  EyeIcon,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useProject, useDeleteProject, useProjectActivities } from '@/hooks/useProjects';
+import { useMembers, useAddMember, useUpdateMemberRole, useRemoveMember, useTransferOwnership, useSearchUsers } from '@/hooks/useMembers';
 import {
   useDepartments,
   useCreateDepartment,
@@ -24,13 +31,15 @@ import {
   useDeletePosition,
 } from '@/hooks/useProjectStructure';
 import { useProjectFiles, useUploadFile, useDeleteFile, useAnalyzeFile } from '@/hooks/useProjectFiles';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_TYPE_LABELS, PROJECT_TYPE_COLORS, PROJECT_PHASES, DEFAULT_AI_PROVIDER } from '@/utils/constants';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, PROJECT_TYPE_LABELS, PROJECT_TYPE_COLORS, PROJECT_PHASES, DEFAULT_AI_PROVIDER, MEMBER_ROLE_LABELS, MEMBER_ROLE_COLORS, ASSIGNABLE_ROLES } from '@/utils/constants';
 import type { AiProvider } from '@/utils/constants';
+import type { MemberRole } from '@/types/member';
+import type { UserSearchResult } from '@/types/auth';
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus } from '@/types/project';
 import AiProviderSelect from '@/components/common/AiProviderSelect';
 import toast from 'react-hot-toast';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const ACTION_LABELS: Record<string, string> = {
   project_created: '프로젝트를 생성했습니다',
@@ -43,6 +52,11 @@ const ACTION_LABELS: Record<string, string> = {
   invitations_generated: '초대 링크를 생성했습니다',
   collection_closed: '응답 수집을 마감했습니다',
   aggregation_triggered: 'AI 취합을 시작했습니다',
+  member_added: '멤버를 추가했습니다',
+  member_removed: '멤버를 제거했습니다',
+  member_role_changed: '멤버 역할을 변경했습니다',
+  ownership_transferred: '소유권을 이전했습니다',
+  project_completed: '프로젝트를 완료했습니다',
 };
 
 function formatRelativeTime(dateStr: string): string {
@@ -169,10 +183,109 @@ export default function ProjectDetailPage() {
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Member hooks
+  const { data: members = [] } = useMembers(id);
+  const addMember = useAddMember();
+  const updateMemberRole = useUpdateMemberRole();
+  const removeMember = useRemoveMember();
+  const transferOwnership = useTransferOwnership();
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
+  const [newMemberRole, setNewMemberRole] = useState<MemberRole>('viewer');
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [showTransferConfirm, setShowTransferConfirm] = useState<number | null>(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const { data: searchResults = [] } = useSearchUsers(memberSearchQuery);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close user search dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Current user's role in this project
+  const { user } = useAuth();
+  const myMembership = members.find((m) => m.user === user?.id);
+  const myRole = myMembership?.role;
+  const isAdminOrAbove = myRole === 'owner' || myRole === 'admin';
+
   const [newDeptName, setNewDeptName] = useState('');
   const [newPosName, setNewPosName] = useState('');
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [isAddingPos, setIsAddingPos] = useState(false);
+
+  const handleAddMember = async () => {
+    if (!id || !selectedUser || isAddingMember) return;
+    setIsAddingMember(true);
+    try {
+      await addMember.mutateAsync({ projectId: id, data: { email: selectedUser.email, role: newMemberRole } });
+      setSelectedUser(null);
+      setMemberSearchQuery('');
+      setNewMemberRole('viewer');
+      toast.success('멤버가 추가되었습니다.');
+    } catch (err: any) {
+      const detail = err?.response?.data?.email?.[0] || err?.response?.data?.detail || '멤버 추가에 실패했습니다.';
+      toast.error(detail);
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleSelectUser = (user: UserSearchResult) => {
+    setSelectedUser(user);
+    setMemberSearchQuery('');
+    setShowUserDropdown(false);
+  };
+
+  // 이미 멤버인 유저를 검색 결과에서 제외
+  const memberUserIds = new Set(members.map((m) => m.user));
+  const filteredSearchResults = searchResults.filter((u) => !memberUserIds.has(u.id));
+
+  const handleChangeMemberRole = async (memberId: number, role: MemberRole) => {
+    if (!id) return;
+    try {
+      await updateMemberRole.mutateAsync({ projectId: id, memberId, data: { role } });
+      toast.success('역할이 변경되었습니다.');
+    } catch {
+      toast.error('역할 변경에 실패했습니다.');
+    }
+  };
+
+  const handleRemoveMember = async (memberId: number) => {
+    if (!id) return;
+    try {
+      await removeMember.mutateAsync({ projectId: id, memberId });
+      toast.success('멤버가 제거되었습니다.');
+    } catch {
+      toast.error('멤버 제거에 실패했습니다.');
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId: number) => {
+    if (!id) return;
+    try {
+      await transferOwnership.mutateAsync({ projectId: id, data: { new_owner_id: newOwnerId } });
+      setShowTransferConfirm(null);
+      toast.success('소유권이 이전되었습니다.');
+    } catch {
+      toast.error('소유권 이전에 실패했습니다.');
+    }
+  };
+
+  const getRoleIcon = (role: MemberRole) => {
+    switch (role) {
+      case 'owner': return Crown;
+      case 'admin': return Shield;
+      case 'editor': return Pencil;
+      case 'viewer': return EyeIcon;
+    }
+  };
 
   const handleAddDepartment = async () => {
     if (!id || !newDeptName.trim() || isAddingDept) return;
@@ -391,6 +504,179 @@ export default function ProjectDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* 멤버 관리 */}
+      <div className="border border-line bg-surface-secondary p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-content-secondary" />
+          <h2 className="text-lg font-semibold text-content-primary">프로젝트 멤버</h2>
+          <span className="text-sm text-content-tertiary">({members.length})</span>
+        </div>
+
+        {/* Member list */}
+        <div className="space-y-2 mb-4">
+          {members.map((member) => {
+            const RoleIcon = getRoleIcon(member.role);
+            return (
+              <div key={member.id} className="flex items-center justify-between border border-line p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-sm font-medium text-accent">
+                    {member.user_name?.charAt(0)?.toUpperCase() || member.user_email?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-content-primary">{member.user_name || member.user_email}</p>
+                    <p className="text-xs text-content-tertiary">{member.user_email}</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium ${MEMBER_ROLE_COLORS[member.role]}`}>
+                    <RoleIcon className="h-3 w-3" />
+                    {MEMBER_ROLE_LABELS[member.role]}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                {isAdminOrAbove && member.role !== 'owner' && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={member.role}
+                      onChange={(e) => handleChangeMemberRole(member.id, e.target.value as MemberRole)}
+                      className="border border-line bg-surface-input px-2 py-1 text-xs text-content-primary"
+                    >
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
+                    </select>
+                    {myRole === 'owner' && (
+                      <button
+                        onClick={() => setShowTransferConfirm(member.user)}
+                        className="text-xs text-content-tertiary hover:text-accent"
+                        title="소유권 이전"
+                      >
+                        <Crown className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleRemoveMember(member.id)}
+                      className="text-content-muted hover:text-danger"
+                      title="멤버 제거"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add member form */}
+        {isAdminOrAbove && (
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1" ref={searchRef}>
+              {selectedUser ? (
+                <div className="flex items-center gap-2 border border-line bg-surface-input px-3 py-1.5">
+                  <span className="text-sm text-content-primary">
+                    {selectedUser.first_name || selectedUser.username}
+                  </span>
+                  <span className="text-xs text-content-tertiary">{selectedUser.email}</span>
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="ml-auto text-content-muted hover:text-danger"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={memberSearchQuery}
+                    onChange={(e) => {
+                      setMemberSearchQuery(e.target.value);
+                      setShowUserDropdown(true);
+                    }}
+                    onFocus={() => setShowUserDropdown(true)}
+                    placeholder="이름 또는 이메일로 유저 검색..."
+                    className="w-full border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
+                  />
+                  {showUserDropdown && memberSearchQuery.length >= 1 && (
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto border border-line bg-surface-secondary shadow-lg">
+                      {filteredSearchResults.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-content-tertiary">검색 결과가 없습니다</div>
+                      ) : (
+                        filteredSearchResults.map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => handleSelectUser(u)}
+                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-hover"
+                          >
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/10 text-xs font-medium text-accent">
+                              {(u.first_name || u.username || u.email).charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-content-primary">
+                                {u.first_name || u.username}
+                              </p>
+                              <p className="truncate text-xs text-content-tertiary">{u.email}</p>
+                            </div>
+                            {u.company_name && (
+                              <span className="text-xs text-content-muted">{u.company_name}</span>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <select
+              value={newMemberRole}
+              onChange={(e) => setNewMemberRole(e.target.value as MemberRole)}
+              className="border border-line bg-surface-input px-2 py-1.5 text-sm text-content-primary"
+            >
+              {ASSIGNABLE_ROLES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleAddMember}
+              disabled={!selectedUser || isAddingMember}
+              className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+            >
+              {isAddingMember ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              추가
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Transfer Ownership Confirm Modal */}
+      {showTransferConfirm !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.6)] p-4">
+          <div className="w-full max-w-sm bg-surface-secondary p-6">
+            <h3 className="text-lg font-semibold text-content-primary">소유권 이전</h3>
+            <p className="mt-2 text-sm text-content-tertiary">
+              정말로 소유권을 이전하시겠습니까? 이전 후 관리자 역할로 변경됩니다.
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setShowTransferConfirm(null)}
+                className="border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleTransferOwnership(showTransferConfirm)}
+                disabled={transferOwnership.isPending}
+                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
+              >
+                {transferOwnership.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                이전
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 요구사항 파일 */}
       <div className="border border-line bg-surface-secondary p-6">

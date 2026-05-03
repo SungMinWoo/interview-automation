@@ -1,7 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import ProjectViewSet, ReferenceSiteViewSet, ProjectDepartmentViewSet, ProjectPositionViewSet, ProjectFileViewSet, FileAnalyzeView, ProjectActivityListView
+from .views import (
+    ProjectViewSet, ReferenceSiteViewSet, ProjectDepartmentViewSet,
+    ProjectPositionViewSet, ProjectFileViewSet, FileAnalyzeView,
+    ProjectActivityListView, ProjectMemberViewSet, TransferOwnershipView,
+)
 
 router = DefaultRouter()
 router.register(r'', ProjectViewSet, basename='project')
@@ -17,6 +21,9 @@ position_router.register(r'', ProjectPositionViewSet, basename='position')
 
 file_router = DefaultRouter()
 file_router.register(r'', ProjectFileViewSet, basename='file')
+
+member_router = DefaultRouter()
+member_router.register(r'', ProjectMemberViewSet, basename='member')
 
 urlpatterns = router.urls + [
     path(
@@ -39,6 +46,15 @@ urlpatterns = router.urls + [
         '<int:project_id>/files/<int:pk>/analyze/',
         FileAnalyzeView.as_view({'post': 'create'}),
         name='file-analyze',
+    ),
+    path(
+        '<int:project_id>/members/',
+        include(member_router.urls),
+    ),
+    path(
+        '<int:project_id>/transfer-ownership/',
+        TransferOwnershipView.as_view({'post': 'create'}),
+        name='transfer-ownership',
     ),
     path(
         '<int:project_id>/activities/',

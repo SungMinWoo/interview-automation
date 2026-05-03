@@ -99,6 +99,13 @@ def run_project_analysis(self, project_id: int, ai_provider: str | None = None) 
         project.status = Project.Status.ANALYSIS_READY
         project.save(update_fields=['status', 'updated_at'])
 
+        from apps.notifications.tasks import create_project_notifications
+        create_project_notifications.delay(
+            project_id=project.id,
+            event_type='analysis_completed',
+            title=f'{project.title} — 분석이 완료되었습니다',
+        )
+
         logger.info(f"Analysis completed for project {project_id}")
 
     except (Project.DoesNotExist, ProjectAnalysis.DoesNotExist):

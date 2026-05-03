@@ -45,15 +45,16 @@ interview_tool/
 │   ├── manage.py
 │   ├── config/              # Django 설정 (base/dev/prod/test)
 │   ├── apps/
-│   │   ├── accounts/        # 유저 인증
-│   │   ├── projects/        # 프로젝트 관리, 12단계 상태, 부서/직급 구조, 파일 업로드, 활동 히스토리
+│   │   ├── accounts/        # 유저 인증, 유저 검색
+│   │   ├── projects/        # 프로젝트 관리, 12단계 상태, 부서/직급 구조, 파일 업로드, 멤버 관리, 활동 히스토리
 │   │   ├── analysis/        # AI 사이트 분석 (ai_provider 선택)
 │   │   ├── tools/           # 독립 도구 (사이트 분석, 파일 분석 — 프로젝트 없이 사용)
 │   │   ├── questionnaires/  # 질문지 관리 (섹션/세부구분, 중요도, 의도, 확정 잠금)
 │   │   ├── distribution/    # 직원 관리, 초대 링크 생성/재생성, 이메일 발송
 │   │   ├── responses/       # 응답 수집, 수동 입력, 수집 마감
 │   │   ├── aggregation/     # AI 취합, 파트별 요약, 키워드/문장 추출
-│   │   └── design_brief/    # 디자인 브리프, DESIGN.md 생성, Stitch 연동
+│   │   ├── design_brief/    # 디자인 브리프, DESIGN.md 생성, Stitch 연동
+│   │   └── notifications/   # 인앱 알림 (프로젝트 멤버 대상)
 │   └── services/
 │       ├── ai_client.py         # AI 팩토리 (Claude/Gemini 선택)
 │       ├── claude_client.py     # Anthropic Claude API 래퍼
@@ -68,7 +69,7 @@ interview_tool/
 │   ├── src/
 │   │   ├── api/             # Axios API 클라이언트
 │   │   ├── components/      # layout/ + common/ (AiProviderSelect 포함)
-│   │   ├── hooks/           # TanStack Query 커스텀 훅 (useProjectFiles, useProjectStructure 포함)
+│   │   ├── hooks/           # TanStack Query 커스텀 훅 (useProjectFiles, useProjectStructure, useMembers, useNotifications 포함)
 │   │   ├── pages/           # 14개 페이지 컴포넌트
 │   │   ├── routes/          # React Router 설정
 │   │   ├── store/           # Zustand 스토어
@@ -88,13 +89,14 @@ interview_tool/
 
 ### 인증
 - `POST /api/v1/auth/login/` — JWT 로그인
+- `GET /api/v1/auth/users/search/?q=keyword` — 유저 검색 (이름, 이메일, username, 회사명 — 1글자 이상)
 
 ### 독립 도구
 - `POST /api/v1/tools/analyze-site/` — URL 입력 → 크롤링 + AI 분석 (프로젝트 없이)
 - `POST /api/v1/tools/analyze-file/` — 파일 업로드 → 텍스트 추출 + AI 분석 (프로젝트 없이)
 
 ### 프로젝트
-- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**전체 공개 — 로그인 유저 모두 접근 가능**)
+- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**멤버십 기반 접근 제어** — 자신이 멤버인 프로젝트만 조회)
 - `GET /api/v1/projects/{id}/activities/` — 작업 히스토리 목록 (최근 50건)
 - `GET/POST /api/v1/projects/{id}/departments/` — 부서 목록/생성
 - `DELETE /api/v1/projects/{id}/departments/{deptId}/` — 부서 삭제
@@ -103,6 +105,18 @@ interview_tool/
 - `GET/POST /api/v1/projects/{id}/files/` — 요구사항 파일 목록/업로드 (PDF, DOCX, TXT, 이미지)
 - `DELETE /api/v1/projects/{id}/files/{fileId}/` — 파일 삭제
 - `POST /api/v1/projects/{id}/files/{fileId}/analyze/` — AI 파일 분석
+
+### 멤버 관리
+- `GET/POST /api/v1/projects/{id}/members/` — 멤버 목록/추가 (admin+ 권한, 유저 검색으로 선택)
+- `PATCH /api/v1/projects/{id}/members/{memberId}/` — 멤버 역할 변경 (admin+ 권한)
+- `DELETE /api/v1/projects/{id}/members/{memberId}/` — 멤버 제거 (admin+ 권한, owner 제거 불가)
+- `POST /api/v1/projects/{id}/transfer-ownership/` — 소유권 이전 (owner만)
+
+### 알림
+- `GET /api/v1/notifications/` — 내 알림 목록 (is_read, project 필터)
+- `GET /api/v1/notifications/unread-count/` — 읽지 않은 알림 수
+- `POST /api/v1/notifications/{id}/read/` — 단건 읽음 처리
+- `POST /api/v1/notifications/read-all/` — 전체 읽음 처리
 
 ### 분석
 - `POST /api/v1/projects/{id}/analysis/trigger/` — AI 분석 시작 (요구사항 파일 포함, ai_provider 선택)
@@ -150,8 +164,68 @@ interview_tool/
 - `POST /api/v1/projects/{id}/design-brief/stitch/generate/` — Stitch 디자인 생성
 - `POST /api/v1/projects/{id}/design-brief/stitch/{genId}/fetch/` — Stitch 결과 가져오기
 
+## 프로젝트 멤버 & 권한 시스템
+
+### 멤버 역할
+| 역할 | 프로젝트/데이터 조회 | 콘텐츠 편집 | 멤버 관리 | 프로젝트 삭제 | 소유권 이전 |
+|------|:---:|:---:|:---:|:---:|:---:|
+| **Owner (소유자)** | O | O | O | O | O |
+| **Admin (관리자)** | O | O | O | X | X |
+| **Editor (편집자)** | O | O | X | X | X |
+| **Viewer (뷰어)** | O | X | X | X | X |
+
+### 모델: `ProjectMember`
+- `project` FK → Project (CASCADE)
+- `user` FK → User (CASCADE), `unique_together = (project, user)`
+- `role`: owner / admin / editor / viewer
+- `user_name`, `user_email`: 비정규화 (유저 삭제 후 이력 유지용)
+- `invited_by` FK → User (SET_NULL)
+- 프로젝트 생성 시 owner가 자동으로 OWNER 멤버로 추가됨
+
+### 접근 제어
+- 중앙 함수 `get_accessible_project(request, project_id)` — 멤버가 아니면 403
+- `ProjectViewSet.get_queryset` → 멤버십 기반 필터 (`members__user=request.user`)
+- 6개 앱(analysis, questionnaires, distribution, responses, aggregation, design_brief)의 `get_user_project` → `get_accessible_project` 교체 완료
+- 역할 기반 퍼미션 클래스: `IsProjectMember`, `IsProjectEditor`, `IsProjectAdmin`, `IsProjectOwner`
+
+### 유저 삭제 대비
+- `pre_delete` 시그널 (`projects/signals.py`): 소유 프로젝트의 소유권을 admin → editor → viewer 순으로 자동 이전
+- 다른 멤버가 없으면 프로젝트 삭제
+- `ProjectActivity`는 FK 없이 `user_id`(IntegerField) + `user_name`(CharField)으로 저장 → 유저 삭제 영향 없음
+
+### 프론트엔드 UI
+- **프로젝트 상세 페이지**: 멤버 목록 카드 — 아바타, 이름, 이메일, 역할 뱃지 표시
+- **멤버 추가**: 유저 검색 자동완성 (이름/이메일/회사명 검색 → 드롭다운에서 선택 → 역할 지정)
+- **역할 변경**: 드롭다운 셀렉트 (admin+ 권한)
+- **멤버 제거**: X 버튼 (owner 제거 불가)
+- **소유권 이전**: 왕관 아이콘 → 확인 모달
+
+## 알림 시스템
+
+### 모델: `Notification` (apps/notifications/)
+- `recipient` FK → User (CASCADE)
+- `project` FK → Project (CASCADE, nullable)
+- `event_type`: status_changed, member_added/removed/role_changed, analysis_completed/confirmed, questionnaire_ready/confirmed, invitations_sent, collection_closed, aggregation_completed, brief_ready, ownership_transferred
+- `title`, `message`, `detail` (JSONField)
+- `actor_id`, `actor_name`: 비정규화 (유저 삭제 대비)
+- `is_read`, `read_at`
+- 인덱스: `(recipient, is_read, -created_at)`
+
+### 알림 생성
+- `notify_project_members()` — 프로젝트 멤버에게 `bulk_create`로 인앱 알림 생성, 행위자 본인 제외
+- Celery 태스크 `create_project_notifications.delay(...)` — 비동기 생성 (요청-응답 사이클 차단 방지)
+- 트리거 위치: 분석 완료/확인, 질문지 준비/확정, 초대 발송, 수집 마감, 취합 완료, 브리프 완료, 멤버 추가/제거/역할변경, 소유권 이전
+
+### 프론트엔드 UI
+- **헤더 알림 벨**: 미읽음 뱃지(숫자) + 클릭 시 드롭다운 알림 목록
+- 30초 간격 자동 폴링 (`useUnreadCount` — `refetchInterval: 30000`)
+- 알림 클릭 시 읽음 처리 + 해당 프로젝트로 네비게이션
+- "모두 읽음" 버튼
+
 ## 보안
 - **JWT 인증**: Access Token 30분, Refresh Token 7일
+- **프로젝트 접근 제어**: 멤버십 기반 — 멤버가 아닌 유저는 프로젝트 데이터에 접근 불가 (403)
+- **역할 기반 권한**: Owner > Admin > Editor > Viewer 4단계 역할, 행동별 권한 매트릭스 적용
 - **설문 URL 보안**: UUID v4 토큰 (추측 불가), bcrypt 비밀번호 해싱
 - **설문 비밀번호**: 휴대폰 번호 뒷 4자리 → bcrypt 해시 저장 (번호 없으면 랜덤 4자리)
 - **설문 세션**: 비밀번호 확인 후 30분짜리 단기 JWT 발급
@@ -169,6 +243,17 @@ interview_tool/
 | frontend | 3000 | React + Vite dev server |
 | stitch_bridge | 3001 | Node.js Stitch SDK 브릿지 |
 | nginx | 80 | 리버스 프록시 |
+
+## 테스트 유저
+데이터 마이그레이션(`accounts/migrations/0003_add_test_users.py`)으로 자동 생성. 이미 존재하면 스킵.
+
+| 이름 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 김민지 | kim.designer@example.com | [REMOVED] |
+| 이준혁 | lee.pm@example.com | [REMOVED] |
+| 박서연 | park.dev@example.com | [REMOVED] |
+| 최유진 | choi.ux@example.com | [REMOVED] |
+| 정태호 | jung.analyst@example.com | [REMOVED] |
 
 ---
 
@@ -214,6 +299,10 @@ interview_tool/
 - [ ] 데이터 취합 도구 — CSV/외부 설문 결과 업로드 → AI 종합 분석
 
 ### 기타
+- [x] 프로젝트 멤버 관리 + 역할 기반 권한 시스템
+- [x] 인앱 알림 시스템 (프로젝트 멤버 대상)
+- [x] 유저 검색 API + 자동완성 UI
+- [x] 유저 삭제 시 소유권 자동 이전
 - [ ] SSO 인증 연동
 - [ ] 프론트엔드 코드 스플리팅 (dynamic import)
 - [ ] 프로덕션 배포 설정 (SSL, 도메인 등)

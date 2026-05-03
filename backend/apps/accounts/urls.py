@@ -11,5 +11,6 @@ urlpatterns = [
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('me/', views.MeView.as_view(), name='me'),
+    path('users/search/', views.UserSearchView.as_view(), name='user-search'),
     path('sso/token/', views.SSOTokenExchangeView.as_view(), name='sso-token'),
 ]

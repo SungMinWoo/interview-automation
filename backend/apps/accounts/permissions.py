@@ -16,3 +16,46 @@ class IsOwner(BasePermission):
         if hasattr(obj, 'owner'):
             return obj.owner == request.user
         return False
+
+
+# ── 역할 기반 프로젝트 퍼미션 ──
+
+class _ProjectRolePermission(BasePermission):
+    """프로젝트 멤버십 역할 기반 권한 베이스 클래스."""
+    allowed_roles: list[str] = []
+
+    def _get_project_id(self, view):
+        return view.kwargs.get('project_id') or view.kwargs.get('pk')
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        project_id = self._get_project_id(view)
+        if not project_id:
+            return True  # list view — get_queryset에서 필터
+        from apps.projects.models import ProjectMember
+        return ProjectMember.objects.filter(
+            project_id=project_id,
+            user=request.user,
+            role__in=self.allowed_roles,
+        ).exists()
+
+
+class IsProjectMember(_ProjectRolePermission):
+    """모든 프로젝트 멤버 (viewer 포함)."""
+    allowed_roles = ['owner', 'admin', 'editor', 'viewer']
+
+
+class IsProjectEditor(_ProjectRolePermission):
+    """편집자 이상 (editor, admin, owner)."""
+    allowed_roles = ['owner', 'admin', 'editor']
+
+
+class IsProjectAdmin(_ProjectRolePermission):
+    """관리자 이상 (admin, owner)."""
+    allowed_roles = ['owner', 'admin']
+
+
+class IsProjectOwner(_ProjectRolePermission):
+    """소유자만."""
+    allowed_roles = ['owner']
