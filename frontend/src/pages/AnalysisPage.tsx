@@ -10,6 +10,7 @@ import {
   useRegenerateSection,
 } from '@/hooks/useAnalysis';
 import { useProject } from '@/hooks/useProjects';
+import { useMyRole } from '@/hooks/useMembers';
 import { AiProviderSelect } from '@/components/common';
 import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
 import toast from 'react-hot-toast';
@@ -48,6 +49,8 @@ export default function AnalysisPage() {
   const updateAnalysis = useUpdateAnalysis();
   const confirmAnalysis = useConfirmAnalysis();
   const regenerateSection = useRegenerateSection();
+  const { canEdit } = useMyRole(id);
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
 
   useEffect(() => {
@@ -146,8 +149,9 @@ export default function AnalysisPage() {
               <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
               <button
                 onClick={handleTrigger}
-                disabled={triggerAnalysis.isPending}
-                className="inline-flex items-center gap-2 bg-danger px-6 py-2.5 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
+                disabled={triggerAnalysis.isPending || !canEdit}
+                title={editDisabledTitle}
+                className="inline-flex items-center gap-2 bg-danger px-6 py-2.5 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 다시 시도
@@ -171,13 +175,17 @@ export default function AnalysisPage() {
             <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
             <button
               onClick={handleTrigger}
-              disabled={triggerAnalysis.isPending}
-              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              disabled={triggerAnalysis.isPending || !canEdit}
+              title={editDisabledTitle}
+              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               AI 분석 시작
             </button>
           </div>
+          {!canEdit && (
+            <p className="mt-3 text-xs text-content-tertiary">뷰어는 분석을 시작할 수 없습니다.</p>
+          )}
         </div>
       )}
 
@@ -200,16 +208,18 @@ export default function AnalysisPage() {
               <>
                 <button
                   onClick={handleTrigger}
-                  disabled={triggerAnalysis.isPending}
-                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover"
+                  disabled={triggerAnalysis.isPending || !canEdit}
+                  title={editDisabledTitle}
+                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw className="h-4 w-4" />
                   전체 재분석
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={confirmAnalysis.isPending}
-                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
+                  disabled={confirmAnalysis.isPending || !canEdit}
+                  title={editDisabledTitle}
+                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {confirmAnalysis.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   <Check className="h-4 w-4" />
@@ -224,7 +234,7 @@ export default function AnalysisPage() {
             title="요구사항 요약"
             sectionKey="requirements_summary"
             projectId={id!}
-            locked={!!isConfirmed}
+            locked={!!isConfirmed || !canEdit}
             aiProvider={aiProvider}
             onRegenerate={handleRegenerateSection}
             isRegenerating={regenerateSection.isPending}
@@ -240,7 +250,7 @@ export default function AnalysisPage() {
               title="기존 사이트 분석"
               sectionKey="existing_site_analysis"
               projectId={id!}
-              locked={!!isConfirmed}
+              locked={!!isConfirmed || !canEdit}
               aiProvider={aiProvider}
               onRegenerate={handleRegenerateSection}
               isRegenerating={regenerateSection.isPending}
@@ -255,7 +265,7 @@ export default function AnalysisPage() {
               title="레퍼런스 사이트 분석"
               sectionKey="reference_sites_analysis"
               projectId={id!}
-              locked={!!isConfirmed}
+              locked={!!isConfirmed || !canEdit}
               aiProvider={aiProvider}
               onRegenerate={handleRegenerateSection}
               isRegenerating={regenerateSection.isPending}
@@ -283,7 +293,7 @@ export default function AnalysisPage() {
               title="종합 인사이트"
               sectionKey="combined_insights"
               projectId={id!}
-              locked={!!isConfirmed}
+              locked={!!isConfirmed || !canEdit}
               aiProvider={aiProvider}
               onRegenerate={handleRegenerateSection}
               isRegenerating={regenerateSection.isPending}

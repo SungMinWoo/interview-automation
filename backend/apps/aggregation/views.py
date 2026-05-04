@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectEditor, IsProjectEditorOrReadOnly
 from services.ai_client import validate_ai_provider
 from .models import Aggregation, ExtractedKeyword, ExtractedSentence
 from .serializers import (
@@ -25,7 +26,7 @@ def get_latest_aggregation(project):
 class TriggerAggregationView(APIView):
     """POST - Start AI aggregation, creates new Aggregation with incremented version."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -89,7 +90,7 @@ class AggregationStatusView(APIView):
 class RegenerateAggregationView(APIView):
     """POST - Trigger regeneration (new version)."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -118,7 +119,7 @@ class RegenerateAggregationView(APIView):
 class KeywordViewSet(viewsets.ModelViewSet):
     """CRUD for keywords on latest aggregation."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
     serializer_class = ExtractedKeywordSerializer
 
     def get_aggregation(self):
@@ -145,7 +146,7 @@ class KeywordViewSet(viewsets.ModelViewSet):
 class SentenceViewSet(viewsets.ModelViewSet):
     """CRUD for sentences on latest aggregation."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
     serializer_class = ExtractedSentenceSerializer
 
     def get_aggregation(self):

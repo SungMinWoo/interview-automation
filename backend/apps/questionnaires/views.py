@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectEditor, IsProjectEditorOrReadOnly
 from services.ai_client import validate_ai_provider
 from .models import Questionnaire, QuestionSection, Question, PositionCategory
 from .serializers import (
@@ -27,7 +28,7 @@ def get_user_questionnaire(request, project_id):
 class GenerateQuestionnaireView(APIView):
     """POST - Trigger AI generation of a questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -75,7 +76,7 @@ class GenerateQuestionnaireView(APIView):
 class QuestionnaireConfirmView(APIView):
     """POST - Confirm the questionnaire (sets status=confirmed)."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         questionnaire = get_user_questionnaire(request, project_id)
@@ -122,7 +123,7 @@ class QuestionnaireStatusView(APIView):
 class QuestionnaireDetailView(APIView):
     """GET/PATCH - Retrieve or update a questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get(self, request, project_id):
         questionnaire = get_user_questionnaire(request, project_id)
@@ -141,7 +142,7 @@ class QuestionnaireDetailView(APIView):
 class QuestionViewSet(viewsets.ModelViewSet):
     """CRUD for questions within a questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
     serializer_class = QuestionSerializer
 
     def get_questionnaire(self):
@@ -175,7 +176,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
 class QuestionReorderView(APIView):
     """POST - Bulk reorder questions. Accepts list of {id, order}."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         questionnaire = get_user_questionnaire(request, project_id)
@@ -213,7 +214,7 @@ class QuestionReorderView(APIView):
 class QuestionSectionViewSet(viewsets.ModelViewSet):
     """CRUD for sections within a questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
     serializer_class = QuestionSectionSerializer
 
     def get_questionnaire(self):
@@ -247,7 +248,7 @@ class QuestionSectionViewSet(viewsets.ModelViewSet):
 class GenerateSectionQuestionsView(APIView):
     """POST - Generate AI questions for a specific section."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id, section_id):
         project = get_user_project(request, project_id)
@@ -352,7 +353,7 @@ class QuestionnaireTemplatesView(APIView):
 class ImportQuestionnaireView(APIView):
     """POST - Copy sections and questions from another project's questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -437,7 +438,7 @@ class ImportQuestionnaireView(APIView):
 class PositionCategoryViewSet(viewsets.ModelViewSet):
     """CRUD for position categories within a questionnaire."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
     serializer_class = PositionCategorySerializer
 
     def get_questionnaire(self):

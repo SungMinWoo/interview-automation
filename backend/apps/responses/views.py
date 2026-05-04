@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectEditor
 from apps.distribution.models import Employee, SurveyInvitation
 from .models import SurveyResponse, Answer
 from .serializers import (
@@ -57,7 +58,7 @@ class ResponseDetailView(APIView):
 
 class CloseCollectionView(APIView):
     """POST - Close response collection, update project status to CLOSED."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -99,7 +100,7 @@ class CloseCollectionView(APIView):
 
 class ManualEntryStartView(APIView):
     """POST - Create a manual entry session for an employee."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -158,7 +159,7 @@ class ManualEntryStartView(APIView):
 
 class ManualEntrySubmitView(APIView):
     """POST - Submit manually entered answers."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)

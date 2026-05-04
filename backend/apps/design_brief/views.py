@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectAdmin, IsProjectEditor, IsProjectEditorOrReadOnly
 from apps.aggregation.models import Aggregation
 from services.ai_client import validate_ai_provider
 from .models import DesignBrief, StitchGeneration
@@ -25,7 +26,7 @@ def get_user_brief(request, project_id):
 class CompileDesignBriefView(APIView):
     """POST - Compile brief from latest aggregation."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -70,7 +71,7 @@ class CompileDesignBriefView(APIView):
 class DesignBriefDetailView(APIView):
     """GET/PATCH - Get or update brief."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get(self, request, project_id):
         brief = get_user_brief(request, project_id)
@@ -89,7 +90,7 @@ class DesignBriefDetailView(APIView):
 class TriggerStitchView(APIView):
     """POST - Trigger Stitch generation."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         brief = get_user_brief(request, project_id)
@@ -162,7 +163,7 @@ class StitchDetailView(APIView):
 class StitchRegenerateView(APIView):
     """POST - Regenerate with modified prompt."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id, generation_id):
         brief = get_user_brief(request, project_id)
@@ -199,7 +200,7 @@ class StitchRegenerateView(APIView):
 class StitchFetchScreensView(APIView):
     """POST - Phase 2: Fetch screens from Stitch for an existing generation."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id, generation_id):
         brief = get_user_brief(request, project_id)
@@ -254,7 +255,7 @@ class ExportBriefView(APIView):
 class GenerateDesignMdView(APIView):
     """POST - Generate DESIGN.md content from brief using AI."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         from services.ai_client import get_ai_client
@@ -308,9 +309,9 @@ class DownloadDesignMdView(APIView):
 
 
 class CompleteProjectView(APIView):
-    """POST - Mark project as completed."""
+    """POST - Mark project as completed (admin 이상만 가능)."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectAdmin]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)

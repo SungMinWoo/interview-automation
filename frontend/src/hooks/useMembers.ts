@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/api/client';
 import { API_PATHS } from '@/utils/constants';
-import type { ProjectMember, AddMemberRequest, UpdateMemberRoleRequest, TransferOwnershipRequest } from '@/types/member';
+import { useAuthStore } from '@/store/authStore';
+import type { ProjectMember, MemberRole, AddMemberRequest, UpdateMemberRoleRequest, TransferOwnershipRequest } from '@/types/member';
 import type { UserSearchResult } from '@/types/auth';
 
 const MEMBERS_KEY = (projectId: number) => ['project-members', projectId];
@@ -84,6 +85,47 @@ export function useTransferOwnership() {
       queryClient.invalidateQueries({ queryKey: ['projects', variables.projectId] });
     },
   });
+}
+
+export interface MyProjectRole {
+  myRole: MemberRole | null;
+  isViewer: boolean;
+  isEditorOrAbove: boolean;
+  isAdminOrAbove: boolean;
+  isOwner: boolean;
+  isSiteAdmin: boolean;
+  /** 사이트 관리자도 포함하여 편집 권한 보유 여부 */
+  canEdit: boolean;
+  canManageMembers: boolean;
+  canDeleteProject: boolean;
+  canCompleteProject: boolean;
+}
+
+export function useMyRole(projectId: number | undefined): MyProjectRole {
+  const { data: members = [] } = useMembers(projectId);
+  const user = useAuthStore((s) => s.user);
+
+  const myMembership = members.find((m) => m.user === user?.id);
+  const myRole = (myMembership?.role ?? null) as MemberRole | null;
+  const isSiteAdmin = !!(user?.is_staff || user?.is_superuser);
+
+  const isOwner = myRole === 'owner';
+  const isAdminOrAbove = myRole === 'owner' || myRole === 'admin';
+  const isEditorOrAbove = isAdminOrAbove || myRole === 'editor';
+  const isViewer = myRole === 'viewer';
+
+  return {
+    myRole,
+    isViewer,
+    isEditorOrAbove,
+    isAdminOrAbove,
+    isOwner,
+    isSiteAdmin,
+    canEdit: isEditorOrAbove || isSiteAdmin,
+    canManageMembers: isAdminOrAbove || isSiteAdmin,
+    canDeleteProject: isOwner || isSiteAdmin,
+    canCompleteProject: isAdminOrAbove || isSiteAdmin,
+  };
 }
 
 export function useSearchUsers(query: string) {

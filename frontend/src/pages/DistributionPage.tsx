@@ -20,6 +20,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useProject } from '@/hooks/useProjects';
+import { useMyRole } from '@/hooks/useMembers';
 import { useQuestionnaire } from '@/hooks/useQuestionnaire';
 import { useDepartments, usePositions } from '@/hooks/useProjectStructure';
 import {
@@ -80,6 +81,8 @@ export default function DistributionPage() {
 }
 
 function EmployeeSection({ projectId }: { projectId: number }) {
+  const { canEdit } = useMyRole(projectId);
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
   const { data: employees = [], isLoading: empLoading } = useEmployees(projectId);
   const { data: invitations = [], isLoading: invLoading } = useInvitations(projectId);
   const { data: questionnaire } = useQuestionnaire(projectId);
@@ -186,8 +189,9 @@ function EmployeeSection({ projectId }: { projectId: number }) {
             isQuestionnaireConfirmed ? (
               <button
                 onClick={handleGenerateAll}
-                disabled={generateInvitations.isPending}
-                className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
+                disabled={generateInvitations.isPending || !canEdit}
+                title={editDisabledTitle}
+                className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {generateInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
                 전체 초대 링크 생성 ({employeesWithoutInvitation.length})
@@ -202,8 +206,9 @@ function EmployeeSection({ projectId }: { projectId: number }) {
           {invitations.some((inv) => inv.status === 'pending') && (
             <button
               onClick={handleSendAll}
-              disabled={sendInvitations.isPending}
-              className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              disabled={sendInvitations.isPending || !canEdit}
+              title={editDisabledTitle}
+              className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sendInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
               대기 중 이메일 일괄 발송
@@ -211,7 +216,9 @@ function EmployeeSection({ projectId }: { projectId: number }) {
           )}
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
+            disabled={!canEdit}
+            title={editDisabledTitle}
+            className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             직원 추가
@@ -234,7 +241,7 @@ function EmployeeSection({ projectId }: { projectId: number }) {
         <div className="space-y-3">
           {employees.map((emp) => {
             const inv = invByEmployee[emp.id];
-            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} isQuestionnaireConfirmed={isQuestionnaireConfirmed} />;
+            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} isQuestionnaireConfirmed={isQuestionnaireConfirmed} canEdit={canEdit} editDisabledTitle={editDisabledTitle} />;
           })}
         </div>
       )}
@@ -334,6 +341,8 @@ function EmployeeCard({
   onRegenerate,
   projectId,
   isQuestionnaireConfirmed = false,
+  canEdit,
+  editDisabledTitle,
 }: {
   employee: Employee;
   invitation?: Invitation;
@@ -342,6 +351,8 @@ function EmployeeCard({
   onRegenerate: (empId: number) => void;
   projectId: number;
   isQuestionnaireConfirmed?: boolean;
+  canEdit: boolean;
+  editDisabledTitle: string;
 }) {
   const generateInvitations = useGenerateInvitations();
   const statusCfg = invitation ? STATUS_CONFIG[invitation.is_expired && invitation.status !== 'completed' ? 'expired' : invitation.status] || STATUS_CONFIG.pending : null;
@@ -387,9 +398,11 @@ function EmployeeCard({
               {statusCfg.label}
             </span>
           )}
-          <button onClick={() => onDelete(employee.id)} className="text-content-tertiary hover:text-danger" title="직원 삭제">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {canEdit && (
+            <button onClick={() => onDelete(employee.id)} className="text-content-tertiary hover:text-danger" title="직원 삭제">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -430,7 +443,7 @@ function EmployeeCard({
             </div>
 
             <div className="flex flex-shrink-0 gap-1">
-              {invitation.status !== 'completed' && (
+              {invitation.status !== 'completed' && canEdit && (
                 <>
                   <button
                     onClick={() => onResend(invitation.id)}
@@ -455,8 +468,9 @@ function EmployeeCard({
         <div className="mt-3">
           <button
             onClick={handleGenerateForOne}
-            disabled={generateInvitations.isPending}
-            className="inline-flex items-center gap-1.5 border border-dashed border-line px-3 py-1.5 text-xs font-medium text-content-tertiary transition-colors hover:border-line-hover hover:text-accent disabled:opacity-50"
+            disabled={generateInvitations.isPending || !canEdit}
+            title={editDisabledTitle}
+            className="inline-flex items-center gap-1.5 border border-dashed border-line px-3 py-1.5 text-xs font-medium text-content-tertiary transition-colors hover:border-line-hover hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {generateInvitations.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <LinkIcon className="h-3 w-3" />}
             초대 링크 생성

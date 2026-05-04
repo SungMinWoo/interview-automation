@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsOwner(BasePermission):
@@ -64,3 +64,34 @@ class IsProjectAdmin(_ProjectRolePermission):
 class IsProjectOwner(_ProjectRolePermission):
     """소유자만."""
     allowed_roles = ['owner']
+
+
+class _ProjectRolePermissionOrReadOnly(_ProjectRolePermission):
+    """읽기는 모든 멤버, 쓰기는 allowed_roles만 허용."""
+    write_roles: list[str] = []
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+        project_id = self._get_project_id(view)
+        if not project_id:
+            return True
+        from apps.projects.models import ProjectMember
+        roles = ['owner', 'admin', 'editor', 'viewer'] if request.method in SAFE_METHODS else self.write_roles
+        return ProjectMember.objects.filter(
+            project_id=project_id,
+            user=request.user,
+            role__in=roles,
+        ).exists()
+
+
+class IsProjectEditorOrReadOnly(_ProjectRolePermissionOrReadOnly):
+    """읽기는 모든 멤버, 쓰기는 editor 이상."""
+    write_roles = ['owner', 'admin', 'editor']
+
+
+class IsProjectAdminOrReadOnly(_ProjectRolePermissionOrReadOnly):
+    """읽기는 모든 멤버, 쓰기는 admin 이상."""
+    write_roles = ['owner', 'admin']

@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 import os
 
 from .models import Project, ProjectMember, ReferenceSite, ProjectDepartment, ProjectPosition, ProjectFile, ProjectActivity
+from apps.accounts.permissions import IsProjectEditorOrReadOnly, IsProjectEditor
 from .serializers import (
     ProjectListSerializer,
     ProjectDetailSerializer,
@@ -25,6 +26,16 @@ from .serializers import (
 class ProjectViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
+
+    def get_permissions(self):
+        from apps.accounts.permissions import IsProjectAdmin, IsProjectMember, IsProjectOwner
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsProjectOwner()]
+        if self.action in ('update', 'partial_update'):
+            return [permissions.IsAuthenticated(), IsProjectAdmin()]
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsProjectMember()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         from .access import is_site_admin
@@ -56,7 +67,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 class ReferenceSiteViewSet(viewsets.ModelViewSet):
     serializer_class = ReferenceSiteSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get_project(self):
         from .access import get_accessible_project
@@ -69,12 +80,24 @@ class ReferenceSiteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project = self.get_project()
-        serializer.save(project=project)
+        instance = serializer.save(project=project)
+        from .models import log_activity
+        log_activity(project, self.request.user, 'reference_site_added', {
+            'url': instance.url,
+            'title': instance.title or instance.url,
+        })
+
+    def perform_destroy(self, instance):
+        from .models import log_activity
+        project = instance.project
+        title = instance.title or instance.url
+        instance.delete()
+        log_activity(project, self.request.user, 'reference_site_removed', {'title': title})
 
 
 class ProjectDepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectDepartmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get_project(self):
         from .access import get_accessible_project
@@ -87,12 +110,21 @@ class ProjectDepartmentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project = self.get_project()
-        serializer.save(project=project)
+        instance = serializer.save(project=project)
+        from .models import log_activity
+        log_activity(project, self.request.user, 'department_added', {'name': instance.name})
+
+    def perform_destroy(self, instance):
+        from .models import log_activity
+        project = instance.project
+        name = instance.name
+        instance.delete()
+        log_activity(project, self.request.user, 'department_removed', {'name': name})
 
 
 class ProjectPositionViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectPositionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get_project(self):
         from .access import get_accessible_project
@@ -105,13 +137,22 @@ class ProjectPositionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project = self.get_project()
-        serializer.save(project=project)
+        instance = serializer.save(project=project)
+        from .models import log_activity
+        log_activity(project, self.request.user, 'position_added', {'name': instance.name})
+
+    def perform_destroy(self, instance):
+        from .models import log_activity
+        project = instance.project
+        name = instance.name
+        instance.delete()
+        log_activity(project, self.request.user, 'position_removed', {'name': name})
 
 
 class ProjectFileViewSet(viewsets.ModelViewSet):
     """Upload and manage project files."""
     serializer_class = ProjectFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get_project(self):
         from .access import get_accessible_project
@@ -144,6 +185,19 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
             instance.extracted_text = extracted
             instance.save(update_fields=['extracted_text'])
 
+        from .models import log_activity
+        log_activity(project, self.request.user, 'file_uploaded', {
+            'file_name': uploaded_file.name,
+            'file_type': ext,
+        })
+
+    def perform_destroy(self, instance):
+        from .models import log_activity
+        file_name = instance.original_name
+        project = instance.project
+        instance.delete()
+        log_activity(project, self.request.user, 'file_deleted', {'file_name': file_name})
+
 
 from rest_framework.decorators import api_view, permission_classes as perm_classes
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -151,7 +205,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 class FileAnalyzeView(viewsets.ViewSet):
     """POST /{file_id}/analyze/ - Analyze a file with AI."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def create(self, request, project_id, pk=None):
         from services.ai_client import get_ai_client, validate_ai_provider
@@ -179,6 +233,12 @@ class FileAnalyzeView(viewsets.ViewSet):
 
         project_file.ai_summary = result.get('summary', '')
         project_file.save(update_fields=['ai_summary'])
+
+        from .models import log_activity
+        log_activity(project, request.user, 'file_analyzed', {
+            'file_name': project_file.original_name,
+            'ai_provider': ai_provider,
+        })
 
         return Response({
             'file_id': project_file.id,
@@ -248,7 +308,9 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         from .models import log_activity
         log_activity(project, request.user, 'member_added', {
             'member_email': member.user_email,
+            'member_name': member.user_name or member.user_email,
             'role': member.role,
+            'role_label': ProjectMember.Role(member.role).label,
         })
 
         from apps.notifications.tasks import create_project_notifications
@@ -282,8 +344,11 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         from .models import log_activity
         log_activity(project, request.user, 'member_role_changed', {
             'member_email': target.user_email,
+            'member_name': target.user_name or target.user_email,
             'old_role': old_role,
+            'old_role_label': ProjectMember.Role(old_role).label,
             'new_role': target.role,
+            'new_role_label': ProjectMember.Role(target.role).label,
         })
 
         from apps.notifications.tasks import create_project_notifications
@@ -311,7 +376,10 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         target.delete()
 
         from .models import log_activity
-        log_activity(project, request.user, 'member_removed', {'member_email': member_email})
+        log_activity(project, request.user, 'member_removed', {
+            'member_email': member_email,
+            'member_name': member_name,
+        })
 
         from apps.notifications.tasks import create_project_notifications
         create_project_notifications.delay(
@@ -362,8 +430,10 @@ class TransferOwnershipView(viewsets.ViewSet):
 
         from .models import log_activity
         log_activity(project, request.user, 'ownership_transferred', {
-            'from_user': request.user.email,
-            'to_user': new_owner_membership.user_email,
+            'from_email': request.user.email,
+            'from_name': getattr(request.user, 'first_name', '') or getattr(request.user, 'username', '') or request.user.email,
+            'to_email': new_owner_membership.user_email,
+            'to_name': new_owner_membership.user_name or new_owner_membership.user_email,
         })
 
         from apps.notifications.tasks import create_project_notifications

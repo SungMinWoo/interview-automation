@@ -86,6 +86,49 @@
 | `design_brief/views.py` | brief_ready |
 | `projects/views.py` | member_added, member_removed, member_role_changed, ownership_transferred |
 
+### 알림 발송 시점 상세 (언제 누구에게 가는가)
+
+**공통 규칙**
+- 수신자: 해당 프로젝트의 모든 멤버 (owner/admin/editor/viewer 전원)
+- **행위자(actor) 본인은 항상 제외** (`exclude_user_id`로 필터)
+- AI 비동기 완료 알림은 행위자 ID 없이 모든 멤버에게 발송
+- 알림 본문(title)에 표시되는 사람 이름은 `user_name` 우선, 없으면 `user_email`
+
+**프로젝트 플로우 단계별**
+
+| 시점 | 이벤트 타입 | title 예시 | 트리거 위치 |
+|------|------------|-----------|------------|
+| AI 분석 작업이 비동기로 끝났을 때 | `analysis_completed` | "{프로젝트} — 분석이 완료되었습니다" | `analysis/tasks.py:103` (Celery) |
+| 사용자가 분석 결과를 확정했을 때 | `analysis_confirmed` | "{프로젝트} — 분석이 확인되었습니다" | `analysis/views.py:115` (AnalysisConfirmView) |
+| AI 질문지 생성이 비동기로 끝났을 때 | `questionnaire_ready` | "{프로젝트} — 질문지가 준비되었습니다" | `questionnaires/tasks.py:139` (Celery) |
+| 사용자가 질문지를 확정했을 때 | `questionnaire_confirmed` | "{프로젝트} — 질문지가 확정되었습니다" | `questionnaires/views.py:102` (QuestionnaireConfirmView) |
+| 설문 초대 링크가 일괄 생성됐을 때 | `invitations_sent` | "{프로젝트} — 설문 초대가 생성되었습니다 (N명)" | `distribution/views.py:130` (GenerateInvitationsView) |
+| 응답 수집이 마감됐을 때 | `collection_closed` | "{프로젝트} — 응답 수집이 마감되었습니다" | `responses/views.py:86` (CloseCollectionView) |
+| AI 취합 작업이 비동기로 끝났을 때 | `aggregation_completed` | "{프로젝트} — 취합이 완료되었습니다" | `aggregation/tasks.py:119` (Celery) |
+| 프로젝트가 완료 처리됐을 때 | `brief_ready` | "{프로젝트} — 프로젝트가 완료되었습니다" | `design_brief/views.py:329` (CompleteProjectView) |
+
+> 참고: 질문지 1차 AI 생성과 분석 1차 AI 생성은 트리거 시점이 아니라 **백그라운드 작업이 끝났을 때** 알림이 발송됩니다 (Celery `tasks.py`). 즉, 사용자가 "AI 분석 시작"을 누른 직후에는 알림이 가지 않고, AI가 실제로 결과를 만들어내고 나서 발송됩니다.
+
+**멤버 관리 이벤트** (`projects/views.py`)
+
+| 시점 | 이벤트 타입 | title 예시 | 라인 |
+|------|------------|-----------|------|
+| 새 멤버가 추가됐을 때 | `member_added` | "{프로젝트} — {이름}님이 멤버로 추가되었습니다" | `projects/views.py:266` |
+| 기존 멤버의 역할이 변경됐을 때 | `member_role_changed` | "{프로젝트} — {이름}님의 역할이 변경되었습니다" | `projects/views.py:301` |
+| 멤버가 프로젝트에서 제거됐을 때 | `member_removed` | "{프로젝트} — {이름}님이 프로젝트에서 제거되었습니다" | `projects/views.py:328` |
+| 소유권이 다른 사람에게 이전됐을 때 | `ownership_transferred` | "{프로젝트} — 소유권이 {이름}님에게 이전되었습니다" | `projects/views.py:381` |
+
+> `member_*` 이벤트는 행위자(보통 admin)를 제외하고 발송되므로, **작업을 한 본인은 자기 알림을 받지 않습니다**. `ownership_transferred`만 예외적으로 `exclude_user_id`가 빠져 있어 새 owner가 자기 알림도 받게 됩니다 (의도된 동작).
+
+**알림이 가지 않는 액션 (의도적)**
+- 분석/질문지 트리거 시점 (작업 시작만으로는 알림 X — 완료 시점에 발송)
+- AI 섹션 재생성, 키워드/문장 추가·삭제, 직원 추가, 단건 초대 재발송, 수동 입력 제출 등 **국지적 편집 작업**
+- Stitch 디자인 생성/재생성/screenshot fetch
+
+**프론트 표시 위치**
+- `components/layout/NotificationBell.tsx` — 헤더 벨 아이콘 (미읽음 뱃지, 30초 폴링)
+- `actor_name` (사람 이름)이 본문 아래 한 줄로 표시됨 (이메일 아님)
+
 ### 알림 API
 - `GET /api/v1/notifications/` — 목록 (is_read, project 필터)
 - `GET /api/v1/notifications/unread-count/` — 미읽음 수

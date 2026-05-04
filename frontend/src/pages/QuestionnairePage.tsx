@@ -35,6 +35,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProject } from '@/hooks/useProjects';
+import { useMyRole } from '@/hooks/useMembers';
 import { useDepartments, usePositions } from '@/hooks/useProjectStructure';
 import {
   useQuestionnaire,
@@ -624,6 +625,10 @@ export default function QuestionnairePage() {
   const isFailed = questionnaire?.status === 'failed';
   const isConfirmed = questionnaire?.status === 'confirmed';
 
+  const { canEdit } = useMyRole(id);
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const lockEdit = !!isConfirmed || !canEdit;
+
   const handleConfirm = async () => {
     if (!id) return;
     try {
@@ -787,7 +792,7 @@ export default function QuestionnairePage() {
               {AI_PROVIDER_LABELS[questionnaire.ai_provider as AiProvider] || questionnaire.ai_provider}
             </span>
           )}
-          {!isConfirmed && (
+          {!lockEdit && (
             <>
               <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
               {/* 이전 질문지 불러오기 */}
@@ -804,8 +809,9 @@ export default function QuestionnairePage() {
               {totalQuestions === 0 && sections.length === 0 && (
                 <button
                   onClick={handleGenerate}
-                  disabled={generateQuestionnaire.isPending || isProcessing}
-                  className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                  disabled={generateQuestionnaire.isPending || isProcessing || !canEdit}
+                  title={editDisabledTitle}
+                  className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {generateQuestionnaire.isPending || isProcessing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -818,8 +824,9 @@ export default function QuestionnairePage() {
               {totalQuestions > 0 && (
                 <button
                   onClick={handleConfirm}
-                  disabled={confirmQuestionnaire.isPending}
-                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:opacity-50"
+                  disabled={confirmQuestionnaire.isPending || !canEdit}
+                  title={editDisabledTitle}
+                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {confirmQuestionnaire.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   질문지 확정
@@ -903,7 +910,7 @@ export default function QuestionnairePage() {
       )}
 
       {/* Add Section */}
-      {!isConfirmed && (
+      {!lockEdit && (
         <div>
           {!showAddSection ? (
             <button
@@ -967,7 +974,7 @@ export default function QuestionnairePage() {
       )}
 
       {/* Manual Question Add */}
-      {!isConfirmed && !showAddForm ? (
+      {!lockEdit && !showAddForm ? (
         <button
           onClick={() => setShowAddForm(true)}
           className="flex w-full items-center justify-center gap-2 border-2 border-dashed border-line py-4 text-sm font-medium text-content-tertiary transition-colors hover:border-line-hover hover:text-accent"
@@ -1177,7 +1184,7 @@ export default function QuestionnairePage() {
             질문이 없습니다. AI 생성 또는 직접 추가해주세요.
           </p>
           {/* 이전 질문지 참고 옵션 */}
-          {templates.length > 0 && !isConfirmed && (
+          {templates.length > 0 && !lockEdit && (
             <div className="w-full max-w-md space-y-2 px-6">
               <button
                 onClick={() => setShowRefOptions(!showRefOptions)}
@@ -1233,7 +1240,7 @@ export default function QuestionnairePage() {
                   key={section.id}
                   section={section}
                   projectId={id!}
-                  locked={!!isConfirmed}
+                  locked={lockEdit}
                   aiProvider={aiProvider}
                   sensors={sensors}
                   onDragEnd={handleDragEnd}
@@ -1262,7 +1269,7 @@ export default function QuestionnairePage() {
                         question={question}
                         projectId={id!}
                         onDelete={(qId) => setConfirmDeleteId(qId)}
-                        locked={!!isConfirmed}
+                        locked={lockEdit}
                         departments={departments}
                         positions={positions}
                       />
@@ -1288,7 +1295,7 @@ export default function QuestionnairePage() {
                     question={question}
                     projectId={id!}
                     onDelete={(qId) => setConfirmDeleteId(qId)}
-                    locked={!!isConfirmed}
+                    locked={lockEdit}
                     departments={departments}
                     positions={positions}
                   />

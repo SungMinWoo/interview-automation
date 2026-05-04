@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectEditor, IsProjectEditorOrReadOnly
 from apps.questionnaires.models import Question
 from apps.responses.models import SurveyResponse, Answer
 from .models import Employee, SurveyInvitation
@@ -35,7 +36,7 @@ import uuid
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     serializer_class = EmployeeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get_project(self):
         return get_user_project(self.request, self.kwargs['project_id'])
@@ -47,12 +48,25 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project = self.get_project()
-        serializer.save(project=project)
+        instance = serializer.save(project=project)
+        from apps.projects.models import log_activity
+        log_activity(project, self.request.user, 'employee_added', {
+            'employee_name': instance.name,
+            'employee_email': instance.email,
+        })
+
+    def perform_destroy(self, instance):
+        from apps.projects.models import log_activity
+        project = instance.project
+        log_activity(project, self.request.user, 'employee_removed', {
+            'employee_name': instance.name,
+        })
+        instance.delete()
 
 
 class BulkEmployeeCreateView(APIView):
     """POST - Accept a list of employees and create them in bulk."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -79,7 +93,7 @@ class BulkEmployeeCreateView(APIView):
 
 class GenerateInvitationsView(APIView):
     """POST - Create invitations for all employees that don't have one yet."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -145,7 +159,7 @@ class GenerateInvitationsView(APIView):
 
 class RegenerateInvitationView(APIView):
     """POST - Regenerate invitation for a specific employee."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id, employee_id):
         project = get_user_project(request, project_id)
@@ -169,6 +183,11 @@ class RegenerateInvitationView(APIView):
             expires_at=expires_at,
         )
 
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'invitation_regenerated', {
+            'employee_name': employee.name,
+        })
+
         return Response(
             SurveyInvitationSerializer(invitation).data,
             status=status.HTTP_201_CREATED,
@@ -177,7 +196,7 @@ class RegenerateInvitationView(APIView):
 
 class SendInvitationsView(APIView):
     """POST - Trigger email sending via Celery for pending invitations."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -202,6 +221,9 @@ class SendInvitationsView(APIView):
             project.status = Project.Status.COLLECTING
             project.save(update_fields=['status', 'updated_at'])
 
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'invitations_sent', {'count': count})
+
         return Response(
             {'detail': f'Sending {count} invitation(s).', 'count': count},
             status=status.HTTP_202_ACCEPTED,
@@ -223,7 +245,7 @@ class InvitationListView(APIView):
 
 class ResendInvitationView(APIView):
     """POST - Resend a single invitation email."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id, invitation_pk):
         project = get_user_project(request, project_id)
@@ -233,6 +255,11 @@ class ResendInvitationView(APIView):
 
         from .tasks import send_invitation_emails
         send_invitation_emails.delay([invitation.id])
+
+        from apps.projects.models import log_activity
+        log_activity(project, request.user, 'invitation_resent', {
+            'employee_name': invitation.employee.name,
+        })
 
         return Response(
             {'detail': 'Invitation resend triggered.'},

@@ -41,23 +41,107 @@ import AiProviderSelect from '@/components/common/AiProviderSelect';
 import toast from 'react-hot-toast';
 import { useState, useRef, useEffect } from 'react';
 
-const ACTION_LABELS: Record<string, string> = {
-  project_created: '프로젝트를 생성했습니다',
-  analysis_triggered: 'AI 분석을 시작했습니다',
-  analysis_confirmed: '분석을 확인했습니다',
-  analysis_section_regenerated: '분석 섹션을 재생성했습니다',
-  questionnaire_generate_triggered: 'AI 질문지 생성을 시작했습니다',
-  questionnaire_confirmed: '질문지를 확정했습니다',
-  questionnaire_imported: '이전 질문지를 불러왔습니다',
-  invitations_generated: '초대 링크를 생성했습니다',
-  collection_closed: '응답 수집을 마감했습니다',
-  aggregation_triggered: 'AI 취합을 시작했습니다',
-  member_added: '멤버를 추가했습니다',
-  member_removed: '멤버를 제거했습니다',
-  member_role_changed: '멤버 역할을 변경했습니다',
-  ownership_transferred: '소유권을 이전했습니다',
-  project_completed: '프로젝트를 완료했습니다',
-};
+// 활동 로그 메시지 템플릿 — detail의 필드를 사용해 풍부한 문장을 생성
+function formatActivityMessage(action: string, detail: Record<string, unknown> | undefined): string {
+  const d = detail || {};
+  const get = (k: string): string => (typeof d[k] === 'string' ? (d[k] as string) : '');
+  const num = (k: string): number | null => (typeof d[k] === 'number' ? (d[k] as number) : null);
+
+  switch (action) {
+    case 'project_created':
+      return `"${get('title') || '프로젝트'}" 프로젝트를 생성했습니다`;
+    // 분석
+    case 'analysis_triggered':
+      return get('ai_provider')
+        ? `${get('ai_provider')}로 AI 분석을 시작했습니다`
+        : 'AI 분석을 시작했습니다';
+    case 'analysis_confirmed':
+      return '분석 결과를 확정했습니다';
+    case 'analysis_section_regenerated':
+      return `분석 섹션 "${get('section_label') || get('section')}"을(를) ${get('ai_provider') || 'AI'}로 재생성했습니다`;
+    // 질문지
+    case 'questionnaire_generate_triggered': {
+      const refCount = num('reference_count');
+      const ref = refCount && refCount > 0 ? ` (${refCount}개 참고 프로젝트)` : '';
+      return `${get('ai_provider') || 'AI'}로 질문지 생성을 시작했습니다${ref}`;
+    }
+    case 'questionnaire_confirmed':
+      return '질문지를 확정했습니다';
+    case 'questionnaire_imported': {
+      const sections = num('sections');
+      const questions = num('questions');
+      const src = get('source_project');
+      return `"${src}" 프로젝트의 질문지를 불러왔습니다 (섹션 ${sections ?? 0}개, 질문 ${questions ?? 0}개)`;
+    }
+    // 배포 / 초대
+    case 'invitations_generated':
+      return `${num('count') ?? 0}건의 설문 초대 링크를 생성했습니다`;
+    case 'invitations_sent':
+      return `${num('count') ?? 0}건의 설문 초대 메일을 발송했습니다`;
+    case 'invitation_resent':
+      return `${get('employee_name')}님에게 설문 초대를 재발송했습니다`;
+    case 'invitation_regenerated':
+      return `${get('employee_name')}님의 설문 초대 링크를 재생성했습니다`;
+    case 'employee_added':
+      return `직원 ${get('employee_name')}님을 추가했습니다`;
+    case 'employee_removed':
+      return `직원 ${get('employee_name')}님을 삭제했습니다`;
+    // 응답
+    case 'collection_closed':
+      return '응답 수집을 마감했습니다';
+    // 취합
+    case 'aggregation_triggered':
+      return `${get('ai_provider') || 'AI'}로 취합을 시작했습니다`;
+    // 멤버 관리
+    case 'member_added': {
+      const name = get('member_name') || get('member_email');
+      const role = get('role_label') || get('role');
+      return `${name}님을 ${role}(으)로 멤버에 추가했습니다`;
+    }
+    case 'member_role_changed': {
+      const name = get('member_name') || get('member_email');
+      const oldRole = get('old_role_label') || get('old_role');
+      const newRole = get('new_role_label') || get('new_role');
+      return `${name}님의 권한을 ${oldRole}에서 ${newRole}(으)로 변경했습니다`;
+    }
+    case 'member_removed': {
+      const name = get('member_name') || get('member_email');
+      return `${name}님을 멤버에서 제거했습니다`;
+    }
+    case 'ownership_transferred': {
+      const toName = get('to_name') || get('to_email') || get('to_user');
+      return `소유권을 ${toName}님에게 이전했습니다`;
+    }
+    case 'ownership_auto_transferred': {
+      const toName = get('to_user');
+      return `(자동) 탈퇴한 소유자의 권한이 ${toName}님에게 이전되었습니다`;
+    }
+    // 파일 / 메타
+    case 'file_uploaded':
+      return `파일 "${get('file_name')}"을(를) 업로드했습니다`;
+    case 'file_deleted':
+      return `파일 "${get('file_name')}"을(를) 삭제했습니다`;
+    case 'file_analyzed':
+      return `파일 "${get('file_name')}"을(를) ${get('ai_provider') || 'AI'}로 분석했습니다`;
+    case 'reference_site_added':
+      return `참고 사이트 "${get('title')}"을(를) 추가했습니다`;
+    case 'reference_site_removed':
+      return `참고 사이트 "${get('title')}"을(를) 삭제했습니다`;
+    case 'department_added':
+      return `부서 "${get('name')}"을(를) 추가했습니다`;
+    case 'department_removed':
+      return `부서 "${get('name')}"을(를) 삭제했습니다`;
+    case 'position_added':
+      return `직급 "${get('name')}"을(를) 추가했습니다`;
+    case 'position_removed':
+      return `직급 "${get('name')}"을(를) 삭제했습니다`;
+    // 완료
+    case 'project_completed':
+      return '프로젝트를 완료 처리했습니다';
+    default:
+      return action;
+  }
+}
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -213,7 +297,12 @@ export default function ProjectDetailPage() {
   const { user } = useAuth();
   const myMembership = members.find((m) => m.user === user?.id);
   const myRole = myMembership?.role;
-  const isAdminOrAbove = myRole === 'owner' || myRole === 'admin';
+  const isSiteAdmin = !!(user?.is_staff || user?.is_superuser);
+  const isOwner = myRole === 'owner';
+  const isAdminOrAbove = myRole === 'owner' || myRole === 'admin' || isSiteAdmin;
+  const canEdit = isAdminOrAbove || myRole === 'editor';
+  const canDeleteProject = isOwner || isSiteAdmin;
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
 
   const [newDeptName, setNewDeptName] = useState('');
   const [newPosName, setNewPosName] = useState('');
@@ -495,13 +584,15 @@ export default function ProjectDetailPage() {
             )}
           </div>
 
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="ml-4 flex-shrink-0 p-2 text-content-muted transition-colors hover:bg-danger-bg hover:text-danger"
-            title="프로젝트 삭제"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {canDeleteProject && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="ml-4 flex-shrink-0 p-2 text-content-muted transition-colors hover:bg-danger-bg hover:text-danger"
+              title="프로젝트 삭제 (소유자만 가능)"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -710,8 +801,9 @@ export default function ProjectDetailPage() {
                       />
                       <button
                         onClick={() => handleAnalyzeFile(f.id)}
-                        disabled={analyzeFile.isPending}
-                        className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+                        disabled={analyzeFile.isPending || !canEdit}
+                        title={editDisabledTitle}
+                        className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {analyzeFile.isPending ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -722,13 +814,16 @@ export default function ProjectDetailPage() {
                       </button>
                     </div>
                   )}
-                  <button
-                    onClick={() => handleDeleteFile(f.id)}
-                    disabled={deleteFile.isPending}
-                    className="text-content-muted hover:text-danger"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleDeleteFile(f.id)}
+                      disabled={deleteFile.isPending}
+                      className="text-content-muted hover:text-danger"
+                      title="파일 삭제"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -737,12 +832,14 @@ export default function ProjectDetailPage() {
 
         {/* Upload area */}
         <div
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragOver={(e) => { if (!canEdit) return; e.preventDefault(); setIsDragging(true); }}
           onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed p-8 text-center cursor-pointer transition-colors ${
-            isDragging ? 'border-accent bg-surface-hover' : 'border-line hover:border-line-hover'
+          onDrop={canEdit ? handleDrop : (e) => e.preventDefault()}
+          onClick={() => canEdit && fileInputRef.current?.click()}
+          title={editDisabledTitle}
+          className={`border-2 border-dashed p-8 text-center transition-colors ${
+            !canEdit ? 'cursor-not-allowed opacity-50 border-line' :
+            isDragging ? 'cursor-pointer border-accent bg-surface-hover' : 'cursor-pointer border-line hover:border-line-hover'
           }`}
         >
           <input
@@ -783,36 +880,41 @@ export default function ProjectDetailPage() {
                   className="inline-flex items-center gap-1.5 bg-surface-hover px-3 py-1.5 text-sm text-content-primary"
                 >
                   {dept.name}
-                  <button
-                    onClick={() => handleRemoveDepartment(dept.id)}
-                    className="text-content-muted hover:text-danger"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleRemoveDepartment(dept.id)}
+                      className="text-content-muted hover:text-danger"
+                      title="부서 삭제"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </span>
               ))}
               {departments.length === 0 && (
                 <span className="text-xs text-content-tertiary">등록된 부서가 없습니다.</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newDeptName}
-                onChange={(e) => setNewDeptName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddDepartment(); } }}
-                placeholder="부서명"
-                className="border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
-              />
-              <button
-                onClick={handleAddDepartment}
-                disabled={!newDeptName.trim() || isAddingDept}
-                className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
-              >
-                {isAddingDept ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                추가
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newDeptName}
+                  onChange={(e) => setNewDeptName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddDepartment(); } }}
+                  placeholder="부서명"
+                  className="border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
+                />
+                <button
+                  onClick={handleAddDepartment}
+                  disabled={!newDeptName.trim() || isAddingDept}
+                  className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+                >
+                  {isAddingDept ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  추가
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 직급 */}
@@ -829,36 +931,41 @@ export default function ProjectDetailPage() {
                     <span className="w-6 text-center text-xs font-semibold text-content-muted">{idx + 1}</span>
                     <span className="text-sm text-content-primary">{pos.name}</span>
                   </div>
-                  <button
-                    onClick={() => handleRemovePosition(pos.id)}
-                    className="text-content-muted hover:text-danger"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleRemovePosition(pos.id)}
+                      className="text-content-muted hover:text-danger"
+                      title="직급 삭제"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
               {positions.length === 0 && (
                 <p className="py-4 text-center text-xs text-content-tertiary">등록된 직급이 없습니다.</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newPosName}
-                onChange={(e) => setNewPosName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPosition(); } }}
-                placeholder="직급명 (예: 임원, 팀장, 실무자)"
-                className="flex-1 border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
-              />
-              <button
-                onClick={handleAddPosition}
-                disabled={!newPosName.trim() || isAddingPos}
-                className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
-              >
-                {isAddingPos ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                추가
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newPosName}
+                  onChange={(e) => setNewPosName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPosition(); } }}
+                  placeholder="직급명 (예: 임원, 팀장, 실무자)"
+                  className="flex-1 border border-line bg-surface-input px-3 py-1.5 text-sm text-content-primary"
+                />
+                <button
+                  onClick={handleAddPosition}
+                  disabled={!newPosName.trim() || isAddingPos}
+                  className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:opacity-50"
+                >
+                  {isAddingPos ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  추가
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1010,23 +1117,25 @@ export default function ProjectDetailPage() {
         <div className="border border-line bg-surface-secondary p-6">
           <h2 className="mb-4 text-lg font-semibold text-content-primary">최근 활동</h2>
           <div className="space-y-3">
-            {activities.slice(0, 20).map((a) => (
-              <div key={a.id} className="flex items-start gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-hover text-xs font-medium text-accent">
-                  {a.user_name?.charAt(0) || '?'}
+            {activities.slice(0, 20).map((a) => {
+              const detail = (a.detail || {}) as Record<string, unknown>;
+              const message = formatActivityMessage(a.action, detail);
+              const actorName = a.user_name || '알 수 없음';
+              return (
+                <div key={a.id} className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-hover text-xs font-medium text-accent">
+                    {a.user_name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-content-primary">
+                      <span className="font-medium">{actorName}</span>
+                      <span className="text-content-secondary">님이 {message}</span>
+                    </p>
+                    <p className="text-xs text-content-muted">{formatRelativeTime(a.created_at)}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-content-primary">
-                    <span className="font-medium">{a.user_name || '알 수 없음'}</span>
-                    <span className="text-content-secondary">{' '}{ACTION_LABELS[a.action] || a.action}</span>
-                    {a.detail?.ai_provider && (
-                      <span className="ml-1 text-xs text-content-muted">({a.detail.ai_provider as string})</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-content-muted">{formatRelativeTime(a.created_at)}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

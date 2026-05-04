@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from apps.projects.models import Project
 from apps.projects.access import get_accessible_project as get_user_project
+from apps.accounts.permissions import IsProjectEditor, IsProjectEditorOrReadOnly, IsProjectMember
 from .models import ProjectAnalysis
 from .serializers import (
     ProjectAnalysisSerializer,
@@ -18,7 +19,7 @@ from services.ai_client import validate_ai_provider
 class TriggerAnalysisView(APIView):
     """POST - Start async analysis for a project."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -59,7 +60,7 @@ class TriggerAnalysisView(APIView):
 class AnalysisDetailUpdateView(APIView):
     """GET - Return analysis result. PATCH - User edits the analysis."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditorOrReadOnly]
 
     def get(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -82,7 +83,7 @@ class AnalysisDetailUpdateView(APIView):
 class AnalysisConfirmView(APIView):
     """POST - Confirm the analysis (sets status=confirmed, confirmed_at)."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     def post(self, request, project_id):
         project = get_user_project(request, project_id)
@@ -126,7 +127,7 @@ class AnalysisConfirmView(APIView):
 class RegenerateAnalysisSectionView(APIView):
     """POST - Regenerate a specific section of the analysis with AI."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
 
     VALID_SECTIONS = {'requirements_summary', 'existing_site_analysis', 'reference_sites_analysis', 'combined_insights'}
 
@@ -189,8 +190,18 @@ class RegenerateAnalysisSectionView(APIView):
             setattr(analysis, section, new_value)
             analysis.save(update_fields=[section, 'updated_at'])
 
+        SECTION_LABELS = {
+            'requirements_summary': '요구사항 요약',
+            'existing_site_analysis': '기존 사이트 분석',
+            'reference_sites_analysis': '레퍼런스 사이트 분석',
+            'combined_insights': '종합 인사이트',
+        }
         from apps.projects.models import log_activity
-        log_activity(project, request.user, 'analysis_section_regenerated', {'section': section, 'ai_provider': ai_provider})
+        log_activity(project, request.user, 'analysis_section_regenerated', {
+            'section': section,
+            'section_label': SECTION_LABELS.get(section, section),
+            'ai_provider': ai_provider,
+        })
 
         return Response(ProjectAnalysisSerializer(analysis).data)
 

@@ -12,6 +12,7 @@ import {
   Save,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
+import { useMyRole } from '@/hooks/useMembers';
 import {
   useDesignBrief,
   useCompileBrief,
@@ -49,6 +50,11 @@ export default function DesignBriefPage() {
   const regenerateStitch = useRegenerateStitch();
   const fetchScreens = useFetchStitchScreens();
   const exportBrief = useExportBrief();
+  const { canEdit, canCompleteProject } = useMyRole(id);
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const completeDisabledTitle = canCompleteProject
+    ? ''
+    : '프로젝트 완료는 관리자 이상만 진행할 수 있습니다.';
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -197,21 +203,30 @@ export default function DesignBriefPage() {
             </button>
           )}
           {briefData && project?.status === 'brief_ready' && (
-            <button
-              onClick={async () => {
-                if (!id) return;
-                try {
-                  await apiClient.post(API_PATHS.PROJECT_COMPLETE(id));
-                  refetchProject();
-                  toast.success('프로젝트가 완료되었습니다.');
-                } catch {
-                  toast.error('프로젝트 완료 처리에 실패했습니다.');
-                }
-              }}
-              className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
-            >
-              프로젝트 완료
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={async () => {
+                  if (!id) return;
+                  try {
+                    await apiClient.post(API_PATHS.PROJECT_COMPLETE(id));
+                    refetchProject();
+                    toast.success('프로젝트가 완료되었습니다.');
+                  } catch {
+                    toast.error('프로젝트 완료 처리에 실패했습니다.');
+                  }
+                }}
+                disabled={!canCompleteProject}
+                title={completeDisabledTitle}
+                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                프로젝트 완료
+              </button>
+              <p className="text-xs text-content-tertiary">
+                {canCompleteProject
+                  ? '완료 시 모든 단계가 잠기며 프로젝트가 종료됩니다.'
+                  : '프로젝트 완료는 관리자 이상만 진행할 수 있습니다.'}
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -224,15 +239,18 @@ export default function DesignBriefPage() {
             {briefData && !isEditing && (
               <button
                 onClick={startEdit}
-                className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+                disabled={!canEdit}
+                title={editDisabledTitle}
+                className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 수정
               </button>
             )}
             <button
               onClick={handleCompile}
-              disabled={compileBrief.isPending}
-              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              disabled={compileBrief.isPending || !canEdit}
+              title={editDisabledTitle}
+              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {compileBrief.isPending ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -346,8 +364,9 @@ export default function DesignBriefPage() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={updateBrief.isPending}
-                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                disabled={updateBrief.isPending || !canEdit}
+                title={editDisabledTitle}
+                className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {updateBrief.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 저장
@@ -479,8 +498,9 @@ export default function DesignBriefPage() {
               ) : (
                 <button
                   onClick={handleStitch}
-                  disabled={triggerStitch.isPending}
-                  className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+                  disabled={triggerStitch.isPending || !canEdit}
+                  title={editDisabledTitle}
+                  className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {triggerStitch.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -560,8 +580,9 @@ export default function DesignBriefPage() {
                         {gen.stitch_project_id && (
                           <button
                             onClick={() => handleFetchScreens(gen.id)}
-                            disabled={isFetching}
-                            className="inline-flex items-center gap-1 bg-success-bg px-2.5 py-1 text-xs font-medium text-success hover:bg-success-bg disabled:opacity-50"
+                            disabled={isFetching || !canEdit}
+                            title={editDisabledTitle}
+                            className="inline-flex items-center gap-1 bg-success-bg px-2.5 py-1 text-xs font-medium text-success hover:bg-success-bg disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isFetching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                             결과 가져오기
@@ -579,8 +600,9 @@ export default function DesignBriefPage() {
                         )}
                         <button
                           onClick={() => handleRegenerateStitch(gen.id)}
-                          disabled={isFetching}
-                          className="inline-flex items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
+                          disabled={isFetching || !canEdit}
+                          title={editDisabledTitle}
+                          className="inline-flex items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <RefreshCw className="h-3 w-3" />
                           재생성

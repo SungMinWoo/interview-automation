@@ -13,6 +13,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
+import { useMyRole } from '@/hooks/useMembers';
 import {
   useAggregation,
   useAggregationStatus,
@@ -46,6 +47,9 @@ export default function AggregationPage() {
   const { data: sentences, refetch: refetchSentences } = useSentences(id);
   const createSentence = useCreateSentence();
   const deleteSentence = useDeleteSentence();
+
+  const { canEdit } = useMyRole(id);
+  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
 
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [newKeyword, setNewKeyword] = useState('');
@@ -322,8 +326,9 @@ export default function AggregationPage() {
               <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
               <button
                 onClick={handleRegenerate}
-                disabled={regenerateAggregation.isPending}
-                className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:opacity-50"
+                disabled={regenerateAggregation.isPending || !canEdit}
+                title={editDisabledTitle}
+                className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {regenerateAggregation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -351,13 +356,17 @@ export default function AggregationPage() {
             <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
             <button
               onClick={handleTrigger}
-              disabled={triggerAggregation.isPending}
-              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+              disabled={triggerAggregation.isPending || !canEdit}
+              title={editDisabledTitle}
+              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               AI 취합 시작
             </button>
           </div>
+          {!canEdit && (
+            <p className="mt-3 text-xs text-content-tertiary">뷰어는 취합을 시작할 수 없습니다.</p>
+          )}
         </div>
       )}
 
