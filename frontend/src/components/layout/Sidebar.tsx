@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, Wrench, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Wrench, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -7,13 +8,20 @@ interface SidebarProps {
   className?: string;
 }
 
-const navItems = [
+const baseNavItems = [
   { to: '/dashboard', label: '대시보드', icon: LayoutDashboard },
   { to: '/projects', label: '프로젝트', icon: FolderOpen },
   { to: '/tools', label: '도구', icon: Wrench },
 ];
 
+const adminNavItems = [
+  { to: '/admin/users', label: '사용자 관리', icon: Users },
+];
+
 export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {
+  const user = useAuthStore((s) => s.user);
+  const isSiteAdmin = !!(user?.is_staff || user?.is_superuser);
+  const navItems = isSiteAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
   return (
     <aside
       className={`

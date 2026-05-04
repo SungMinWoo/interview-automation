@@ -1,9 +1,13 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import views
 
 app_name = 'accounts'
+
+router = DefaultRouter()
+router.register(r'admin/users', views.AdminUserManageViewSet, basename='admin-user')
 
 urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
@@ -13,4 +17,4 @@ urlpatterns = [
     path('me/', views.MeView.as_view(), name='me'),
     path('users/search/', views.UserSearchView.as_view(), name='user-search'),
     path('sso/token/', views.SSOTokenExchangeView.as_view(), name='sso-token'),
-]
+] + router.urls

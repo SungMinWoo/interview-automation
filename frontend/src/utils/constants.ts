@@ -295,6 +295,9 @@ export const API_PATHS = {
   MEMBERS: (projectId: number) => `/projects/${projectId}/members/`,
   MEMBER: (projectId: number, memberId: number) => `/projects/${projectId}/members/${memberId}/`,
   TRANSFER_OWNERSHIP: (projectId: number) => `/projects/${projectId}/transfer-ownership/`,
+  // Admin (site-wide user management)
+  ADMIN_USERS: '/auth/admin/users/',
+  ADMIN_USER: (id: number) => `/auth/admin/users/${id}/`,
   // Notifications
   NOTIFICATIONS: '/notifications/',
   NOTIFICATIONS_UNREAD_COUNT: '/notifications/unread-count/',

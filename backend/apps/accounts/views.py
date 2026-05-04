@@ -9,7 +9,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginResponseSerializer, RegisterSerializer, UserProfileSerializer, UserSearchSerializer
+from .serializers import (
+    AdminUserSerializer,
+    LoginResponseSerializer,
+    RegisterSerializer,
+    UserProfileSerializer,
+    UserSearchSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +51,22 @@ class LoginView(APIView):
 
         user = authenticate(request, username=email, password=password)
         if user is None:
+            # ModelBackend는 비활성 유저도 None 반환 — 사유를 분리해서 안내
+            existing = User.objects.filter(email=email).first()
+            if existing and not existing.is_active and existing.check_password(password):
+                return Response(
+                    {'detail': '비활성화된 계정입니다. 관리자에게 문의해주세요.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             return Response(
                 {'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
                 status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not user.is_active:
+            return Response(
+                {'detail': '비활성화된 계정입니다. 관리자에게 문의해주세요.'},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         return Response(_build_login_response(user))
@@ -195,5 +214,47 @@ class SSOTokenExchangeView(APIView):
             if updated:
                 user.save()
 
+        if not user.is_active:
+            return Response(
+                {'detail': '비활성화된 계정입니다. 관리자에게 문의해주세요.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         update_last_login(None, user)
         return Response(_build_login_response(user))
+
+
+class IsSiteAdmin(permissions.BasePermission):
+    """is_superuser 또는 is_staff만 접근 허용."""
+    message = '사이트 관리자만 접근할 수 있습니다.'
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and (u.is_superuser or u.is_staff))
+
+
+from rest_framework import viewsets, filters
+
+
+class AdminUserManageViewSet(viewsets.ModelViewSet):
+    """사이트 관리자 전용 — 유저 목록/조회/비활성화 토글."""
+    permission_classes = [IsSiteAdmin]
+    serializer_class = AdminUserSerializer
+    queryset = User.objects.all().order_by('-created_at')
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['email', 'username', 'first_name', 'company_name']
+    http_method_names = ['get', 'patch', 'head', 'options']
+
+    def perform_update(self, serializer):
+        target = serializer.instance
+        # 마지막 superuser 자기자신을 비활성화하지 못하도록 안전장치
+        new_is_active = serializer.validated_data.get('is_active', target.is_active)
+        if (
+            target.is_superuser
+            and target.is_active
+            and not new_is_active
+            and target.id == self.request.user.id
+        ):
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'is_active': '본인 superuser 계정은 비활성화할 수 없습니다.'})
+        serializer.save()

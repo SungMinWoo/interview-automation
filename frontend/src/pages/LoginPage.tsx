@@ -55,12 +55,16 @@ export default function LoginPage() {
     }
   };
 
-  const apiErrorMessage =
-    loginError instanceof Error
-      ? loginError.message
-      : loginError
-        ? '요청 처리 중 오류가 발생했습니다.'
+  const apiErrorMessage = (() => {
+    if (!loginError) return null;
+    const detail =
+      loginError && typeof loginError === 'object' && 'response' in loginError
+        ? (loginError as { response?: { data?: { detail?: string } } }).response?.data?.detail
         : null;
+    if (detail) return detail;
+    if (loginError instanceof Error) return loginError.message;
+    return '요청 처리 중 오류가 발생했습니다.';
+  })();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-primary px-4">

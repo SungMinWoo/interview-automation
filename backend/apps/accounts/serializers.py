@@ -43,7 +43,10 @@ class LoginResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'company_name', 'sso_id']
+        fields = [
+            'id', 'email', 'username', 'first_name', 'company_name', 'sso_id',
+            'is_active', 'is_staff', 'is_superuser',
+        ]
         read_only_fields = fields
 
 
@@ -51,10 +54,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'company_name',
+            'id', 'email', 'username', 'first_name', 'company_name',
+            'is_active', 'is_staff', 'is_superuser',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'email', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'email', 'is_active', 'is_staff', 'is_superuser',
+            'created_at', 'updated_at',
+        ]
 
 
 class UserSearchSerializer(serializers.ModelSerializer):
@@ -63,3 +70,20 @@ class UserSearchSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'username', 'first_name', 'company_name']
         read_only_fields = fields
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """사이트 관리자(is_superuser/is_staff)가 유저를 관리할 때 사용."""
+    last_login = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'username', 'first_name', 'company_name',
+            'is_active', 'is_staff', 'is_superuser',
+            'last_login', 'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'email', 'username', 'first_name', 'company_name',
+            'last_login', 'created_at', 'updated_at',
+        ]

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicRoute } from './PublicRoute';
+import { AdminRoute } from './AdminRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 // Pages
@@ -19,6 +20,7 @@ import DesignBriefPage from '@/pages/DesignBriefPage';
 import SurveyPage from '@/pages/SurveyPage';
 import OAuthCallbackPage from '@/pages/OAuthCallbackPage';
 import ToolsPage from '@/pages/ToolsPage';
+import AdminUsersPage from '@/pages/AdminUsersPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -60,6 +62,12 @@ export const router = createBrowserRouter([
           { path: '/projects/:projectId/aggregation', element: <AggregationPage /> },
           { path: '/projects/:projectId/design-brief', element: <DesignBriefPage /> },
           { path: '/tools', element: <ToolsPage /> },
+          {
+            element: <AdminRoute />,
+            children: [
+              { path: '/admin/users', element: <AdminUsersPage /> },
+            ],
+          },
         ],
       },
     ],

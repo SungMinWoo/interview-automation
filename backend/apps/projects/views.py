@@ -27,6 +27,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
+        from .access import is_site_admin
+        if is_site_admin(self.request.user):
+            return Project.objects.all()
         return Project.objects.filter(
             members__user=self.request.user
         ).distinct()
@@ -208,17 +211,21 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         return ProjectMember.objects.filter(project=project, user=user).first()
 
     def _require_admin(self, project, user):
+        from .access import is_site_admin
         membership = self._get_membership(project, user)
+        if is_site_admin(user):
+            return membership  # 사이트 관리자는 멤버 아니어도 통과
         if not membership or membership.role not in ('owner', 'admin'):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('관리자 이상 권한이 필요합니다.')
         return membership
 
     def list(self, request, project_id):
-        """GET - 멤버 목록 (멤버만 조회 가능)."""
+        """GET - 멤버 목록 (멤버 또는 사이트 관리자)."""
+        from .access import is_site_admin
         project = self._get_project(project_id)
         membership = self._get_membership(project, request.user)
-        if not membership:
+        if not membership and not is_site_admin(request.user):
             return Response({'detail': '접근 권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
         members = ProjectMember.objects.filter(project=project).select_related('user')
         return Response(ProjectMemberSerializer(members, many=True).data)
@@ -248,7 +255,7 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         create_project_notifications.delay(
             project_id=project.id,
             event_type='member_added',
-            title=f'{project.title} — {member.user_email}님이 멤버로 추가되었습니다',
+            title=f'{project.title} — {member.user_name or member.user_email}님이 멤버로 추가되었습니다',
             exclude_user_id=request.user.id,
             actor_id=request.user.id,
         )
@@ -283,7 +290,7 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         create_project_notifications.delay(
             project_id=project.id,
             event_type='member_role_changed',
-            title=f'{project.title} — {target.user_email}님의 역할이 변경되었습니다',
+            title=f'{project.title} — {target.user_name or target.user_email}님의 역할이 변경되었습니다',
             exclude_user_id=request.user.id,
             actor_id=request.user.id,
         )
@@ -300,6 +307,7 @@ class ProjectMemberViewSet(viewsets.ViewSet):
             return Response({'detail': '소유자는 제거할 수 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
         member_email = target.user_email
+        member_name = target.user_name or target.user_email
         target.delete()
 
         from .models import log_activity
@@ -309,7 +317,7 @@ class ProjectMemberViewSet(viewsets.ViewSet):
         create_project_notifications.delay(
             project_id=project.id,
             event_type='member_removed',
-            title=f'{project.title} — {member_email}님이 프로젝트에서 제거되었습니다',
+            title=f'{project.title} — {member_name}님이 프로젝트에서 제거되었습니다',
             exclude_user_id=request.user.id,
             actor_id=request.user.id,
         )
@@ -322,12 +330,12 @@ class TransferOwnershipView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, project_id):
-        from .access import get_accessible_project
+        from .access import get_accessible_project, is_site_admin
         project = get_accessible_project(request, project_id)
         my_membership = ProjectMember.objects.filter(
             project=project, user=request.user, role=ProjectMember.Role.OWNER
         ).first()
-        if not my_membership:
+        if not my_membership and not is_site_admin(request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('소유자만 소유권을 이전할 수 있습니다.')
 
@@ -337,9 +345,13 @@ class TransferOwnershipView(viewsets.ViewSet):
         new_owner_id = serializer.validated_data['new_owner_id']
         new_owner_membership = ProjectMember.objects.get(project=project, user_id=new_owner_id)
 
-        # 역할 교환
-        my_membership.role = ProjectMember.Role.ADMIN
-        my_membership.save(update_fields=['role', 'updated_at'])
+        # 기존 소유자 강등 (사이트 관리자가 이전하는 경우 my_membership이 None일 수 있음)
+        current_owner_membership = my_membership or ProjectMember.objects.filter(
+            project=project, role=ProjectMember.Role.OWNER
+        ).exclude(pk=new_owner_membership.pk).first()
+        if current_owner_membership:
+            current_owner_membership.role = ProjectMember.Role.ADMIN
+            current_owner_membership.save(update_fields=['role', 'updated_at'])
 
         new_owner_membership.role = ProjectMember.Role.OWNER
         new_owner_membership.save(update_fields=['role', 'updated_at'])
@@ -358,7 +370,7 @@ class TransferOwnershipView(viewsets.ViewSet):
         create_project_notifications.delay(
             project_id=project.id,
             event_type='ownership_transferred',
-            title=f'{project.title} — 소유권이 {new_owner_membership.user_email}님에게 이전되었습니다',
+            title=f'{project.title} — 소유권이 {new_owner_membership.user_name or new_owner_membership.user_email}님에게 이전되었습니다',
             actor_id=request.user.id,
         )
 

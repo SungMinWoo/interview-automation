@@ -10,6 +10,8 @@ class IsOwner(BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser or request.user.is_staff:
+            return True
         # Check common owner attribute names
         if hasattr(obj, 'user'):
             return obj.user == request.user
@@ -30,6 +32,9 @@ class _ProjectRolePermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
+        # 사이트 관리자(is_superuser/is_staff)는 모든 프로젝트 권한 우회
+        if request.user.is_superuser or request.user.is_staff:
+            return True
         project_id = self._get_project_id(view)
         if not project_id:
             return True  # list view — get_queryset에서 필터
