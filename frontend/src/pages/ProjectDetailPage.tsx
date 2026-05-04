@@ -618,9 +618,6 @@ export default function ProjectDetailPage() {
                               </p>
                               <p className="truncate text-xs text-content-tertiary">{u.email}</p>
                             </div>
-                            {u.company_name && (
-                              <span className="text-xs text-content-muted">{u.company_name}</span>
-                            )}
                           </button>
                         ))
                       )}
