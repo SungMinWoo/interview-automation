@@ -7,7 +7,7 @@ from . import views
 app_name = 'accounts'
 
 router = DefaultRouter()
-router.register(r'admin/users', views.AdminUserManageViewSet, basename='admin-user')
+router.register(r'users/manage', views.AdminUserManageViewSet, basename='manage-user')
 
 urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),

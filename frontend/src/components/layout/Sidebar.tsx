@@ -15,7 +15,7 @@ const baseNavItems = [
 ];
 
 const adminNavItems = [
-  { to: '/admin/users', label: '사용자 관리', icon: Users },
+  { to: '/users', label: '사용자 관리', icon: Users },
 ];
 
 export function Sidebar({ collapsed, onToggle, className = '' }: SidebarProps) {

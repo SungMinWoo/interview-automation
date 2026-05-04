@@ -237,24 +237,53 @@ from rest_framework import viewsets, filters
 
 
 class AdminUserManageViewSet(viewsets.ModelViewSet):
-    """사이트 관리자 전용 — 유저 목록/조회/비활성화 토글."""
+    """사이트 관리자 전용 — 유저 목록/조회/비활성화·권한 토글.
+
+    규칙:
+    - is_staff/is_superuser는 staff/superuser만 접근 가능
+    - 다른 superuser는 본인이 아니면 어떤 변경도 불가
+    - is_staff 변경은 superuser만 가능
+    - is_superuser 권한 부여는 이 UI로 불가 (보안). 데모트는 가능하지만 본인 제외
+    - 본인 superuser 계정의 is_active/is_staff 해제 불가
+    """
     permission_classes = [IsSiteAdmin]
     serializer_class = AdminUserSerializer
     queryset = User.objects.all().order_by('-created_at')
     filter_backends = [filters.SearchFilter]
-    search_fields = ['email', 'username', 'first_name', 'company_name']
+    search_fields = ['email', 'username', 'first_name']
     http_method_names = ['get', 'patch', 'head', 'options']
 
     def perform_update(self, serializer):
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+
         target = serializer.instance
-        # 마지막 superuser 자기자신을 비활성화하지 못하도록 안전장치
-        new_is_active = serializer.validated_data.get('is_active', target.is_active)
-        if (
-            target.is_superuser
-            and target.is_active
-            and not new_is_active
-            and target.id == self.request.user.id
-        ):
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError({'is_active': '본인 superuser 계정은 비활성화할 수 없습니다.'})
+        actor = self.request.user
+        validated = serializer.validated_data
+
+        new_is_active = validated.get('is_active', target.is_active)
+        new_is_staff = validated.get('is_staff', target.is_staff)
+        new_is_superuser = validated.get('is_superuser', target.is_superuser)
+
+        is_self = target.id == actor.id
+
+        # 1. 다른 superuser는 본인이 아니면 수정 불가
+        if target.is_superuser and not is_self:
+            raise PermissionDenied('다른 슈퍼유저 계정은 수정할 수 없습니다.')
+
+        # 2. is_superuser 부여는 UI로 불가 (False → True 차단)
+        if new_is_superuser and not target.is_superuser:
+            raise ValidationError({'is_superuser': '슈퍼유저 권한은 이 UI로 부여할 수 없습니다.'})
+
+        # 3. is_staff/is_superuser 변경은 superuser만 가능
+        is_perm_change = (new_is_staff != target.is_staff) or (new_is_superuser != target.is_superuser)
+        if is_perm_change and not actor.is_superuser:
+            raise PermissionDenied('권한 변경은 슈퍼유저만 가능합니다.')
+
+        # 4. 본인 superuser는 자기 강등/비활성화 불가
+        if is_self and target.is_superuser:
+            if not new_is_active:
+                raise ValidationError({'is_active': '본인 슈퍼유저 계정은 비활성화할 수 없습니다.'})
+            if not new_is_staff:
+                raise ValidationError({'is_staff': '본인 슈퍼유저 계정의 staff 권한은 해제할 수 없습니다.'})
+
         serializer.save()
