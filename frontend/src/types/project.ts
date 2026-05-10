@@ -63,6 +63,9 @@ export interface Project {
   files?: ProjectFile[];
   departments?: ProjectDepartment[];
   positions?: ProjectPosition[];
+  my_role?: 'owner' | 'admin' | 'editor' | 'viewer' | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
   created_at: string;
   updated_at: string;
 }

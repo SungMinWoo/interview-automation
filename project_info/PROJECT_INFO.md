@@ -68,7 +68,7 @@ interview_tool/
 │   ├── Dockerfile
 │   ├── src/
 │   │   ├── api/             # Axios API 클라이언트
-│   │   ├── components/      # layout/ + common/ (AiProviderSelect 포함)
+│   │   ├── components/      # layout/ + common/ (AiProviderSelect, RoleBanner 포함)
 │   │   ├── hooks/           # TanStack Query 커스텀 훅 (useProjectFiles, useProjectStructure, useMembers, useNotifications 포함)
 │   │   ├── pages/           # 14개 페이지 컴포넌트
 │   │   ├── routes/          # React Router 설정
@@ -96,7 +96,7 @@ interview_tool/
 - `POST /api/v1/tools/analyze-file/` — 파일 업로드 → 텍스트 추출 + AI 분석 (프로젝트 없이)
 
 ### 프로젝트
-- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**멤버십 기반 접근 제어** — 자신이 멤버인 프로젝트만 조회)
+- `GET/POST /api/v1/projects/` — 프로젝트 목록/생성 (**멤버십 기반 접근 제어** — 자신이 멤버인 프로젝트만 조회). 목록 응답에 `my_role`, `owner_name`, `owner_email` 포함
 - `GET /api/v1/projects/{id}/activities/` — 작업 히스토리 목록 (최근 50건)
 - `GET/POST /api/v1/projects/{id}/departments/` — 부서 목록/생성
 - `DELETE /api/v1/projects/{id}/departments/{deptId}/` — 부서 삭제
@@ -199,6 +199,16 @@ interview_tool/
 - **역할 변경**: 드롭다운 셀렉트 (admin+ 권한)
 - **멤버 제거**: X 버튼 (owner 제거 불가)
 - **소유권 이전**: 왕관 아이콘 → 확인 모달
+- **프로젝트 리스트 카드**: 상태 뱃지 + 내 역할 뱃지 + Crown 아이콘 + 소유자 이름 표시
+- **대시보드**: 환영 영역에 역할별 카운트 배지, 빠른 작업 메인 CTA = "내 프로젝트" (뷰어 전용 사용자에겐 "참여 중인 프로젝트"), "새 프로젝트"는 보조 CTA로 약화
+
+### 역할별 UX 차별화 패턴 (RoleBanner)
+공통 컴포넌트 `components/common/RoleBanner.tsx` — 모든 프로젝트 페이지 상단에 자동 표시:
+- **viewer**: 큰 배너 ("읽기 전용 모드 (뷰어)" + View only 라벨 + 설명) — 권한 한계 즉시 인지
+- **owner/admin/editor**: 작은 인라인 칩 (역할 + 가능한 작업 한 줄 요약)
+- **사이트 관리자(멤버 아님)**: warning 색 배너
+
+편집 액션 버튼은 `disabled+tooltip` 대신 `{canEdit && (...)}` 로 **완전 숨김**. 빈 상태 메시지도 권한별 분기 — 편집자+에겐 트리거 CTA, 뷰어에겐 "편집자 이상 권한이 있는 멤버가 시작하면 여기에 표시됩니다" 안내.
 
 ## 알림 시스템
 
@@ -217,10 +227,23 @@ interview_tool/
 - 트리거 위치: 분석 완료/확인, 질문지 준비/확정, 초대 발송, 수집 마감, 취합 완료, 브리프 완료, 멤버 추가/제거/역할변경, 소유권 이전
 
 ### 프론트엔드 UI
-- **헤더 알림 벨**: 미읽음 뱃지(숫자) + 클릭 시 드롭다운 알림 목록
+- **헤더 알림 벨**: 미읽음 뱃지(숫자) + 클릭 시 드롭다운 알림 목록 (Headless UI Popover 기반)
 - 30초 간격 자동 폴링 (`useUnreadCount` — `refetchInterval: 30000`)
 - 알림 클릭 시 읽음 처리 + 해당 프로젝트로 네비게이션
 - "모두 읽음" 버튼
+
+## 헤더 / 사이드바
+
+### 헤더 (`components/layout/Header.tsx`)
+- **유저 아바타**: 실제 사용자의 이름 첫 글자 (first_name → username → email fallback)
+- **사이트 관리자 표시**: 아바타 우하단 Shield 배지 + 드롭다운 본문 "사이트 관리자" 칩
+- **유저 드롭다운**: 사용자 정보 헤더 (큰 아바타 + 이름 + 이메일) + 로그아웃만 (작동 안 하던 프로필/설정 메뉴 제거됨)
+- **Breadcrumbs**: 한국어 라벨 매핑 (analysis, questionnaire, distribution, aggregation, design-brief 등). **프로젝트 ID 세그먼트는 실제 프로젝트 제목으로 자동 치환** (TanStack Query 캐시 공유로 추가 요청 없음)
+
+### 사이드바 (`components/layout/Sidebar.tsx`)
+- 기본 메뉴: 대시보드 / 프로젝트 / 도구
+- 사이트 관리자(`is_staff` 또는 `is_superuser`)에게만 "사용자 관리" 메뉴 추가 노출
+- 접힘/펼침 토글 (현재는 새로고침 시 초기화 — localStorage 영구화는 향후 작업)
 
 ## 보안
 - **JWT 인증**: Access Token 30분, Refresh Token 7일
@@ -303,6 +326,12 @@ interview_tool/
 - [x] 인앱 알림 시스템 (프로젝트 멤버 대상)
 - [x] 유저 검색 API + 자동완성 UI
 - [x] 유저 삭제 시 소유권 자동 이전
+- [x] 역할별 UX 차별화 (RoleBanner, 뷰어용 빈 상태, 대시보드 CTA 재배치)
+- [x] 헤더 유저 메뉴 정리 + Breadcrumbs에 프로젝트 제목 자동 치환
+- [ ] 사이드바 접힘 상태 localStorage 영구화
+- [ ] 사이드바에 사용자 정보 미니 영역 추가 (하단 푸터)
+- [ ] 사이트 관리자 메뉴 시각적 구분 (구분선 + 소제목)
+- [ ] 모바일 반응형 처리 (햄버거 + 드로어)
 - [ ] SSO 인증 연동
 - [ ] 프론트엔드 코드 스플리팅 (dynamic import)
 - [ ] 프로덕션 배포 설정 (SSL, 도메인 등)

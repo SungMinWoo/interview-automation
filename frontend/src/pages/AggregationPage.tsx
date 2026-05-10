@@ -11,6 +11,7 @@ import {
   X,
   Copy,
   FileText,
+  Eye,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
@@ -27,7 +28,7 @@ import {
   useCreateSentence,
   useDeleteSentence,
 } from '@/hooks/useAggregation';
-import { AiProviderSelect } from '@/components/common';
+import { AiProviderSelect, RoleBanner } from '@/components/common';
 import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
 import toast from 'react-hot-toast';
 
@@ -48,8 +49,7 @@ export default function AggregationPage() {
   const createSentence = useCreateSentence();
   const deleteSentence = useDeleteSentence();
 
-  const { canEdit } = useMyRole(id);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const { canEdit, myRole, isSiteAdmin } = useMyRole(id);
 
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [newKeyword, setNewKeyword] = useState('');
@@ -321,13 +321,12 @@ export default function AggregationPage() {
               {AI_PROVIDER_LABELS[aggregation.ai_provider as AiProvider] || aggregation.ai_provider}
             </span>
           )}
-          {isCompleted && (
+          {isCompleted && canEdit && (
             <>
               <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
               <button
                 onClick={handleRegenerate}
-                disabled={regenerateAggregation.isPending || !canEdit}
-                title={editDisabledTitle}
+                disabled={regenerateAggregation.isPending}
                 className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {regenerateAggregation.isPending ? (
@@ -342,32 +341,44 @@ export default function AggregationPage() {
         </div>
       </div>
 
-      {/* Trigger */}
+      {/* Role indicator */}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
+
+      {/* Trigger (editors+) / Empty state (viewers) */}
       {(!aggregation || aggregation.status === 'pending' || aggregation.status === 'failed') && !isProcessing && (
-        <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
-            <Play className="h-8 w-8 text-accent" />
+        canEdit ? (
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
+              <Play className="h-8 w-8 text-accent" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-content-primary">AI 취합 시작</h3>
+            <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
+              수집된 응답을 AI가 분석하여 키워드, 핵심 문장, 인사이트를 추출합니다.
+            </p>
+            <div className="flex items-center gap-3">
+              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              <button
+                onClick={handleTrigger}
+                disabled={triggerAggregation.isPending}
+                className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                AI 취합 시작
+              </button>
+            </div>
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-content-primary">AI 취합 시작</h3>
-          <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
-            수집된 응답을 AI가 분석하여 키워드, 핵심 문장, 인사이트를 추출합니다.
-          </p>
-          <div className="flex items-center gap-3">
-            <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
-            <button
-              onClick={handleTrigger}
-              disabled={triggerAggregation.isPending || !canEdit}
-              title={editDisabledTitle}
-              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {triggerAggregation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              AI 취합 시작
-            </button>
+        ) : (
+          <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-16">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-secondary">
+              <Eye className="h-8 w-8 text-content-tertiary" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-content-primary">아직 취합이 시작되지 않았습니다</h3>
+            <p className="max-w-md text-center text-sm text-content-tertiary">
+              편집자 이상 권한이 있는 멤버가 AI 취합을 시작하면 여기에 결과가 표시됩니다.
+            </p>
           </div>
-          {!canEdit && (
-            <p className="mt-3 text-xs text-content-tertiary">뷰어는 취합을 시작할 수 없습니다.</p>
-          )}
-        </div>
+        )
       )}
 
       {/* Processing */}

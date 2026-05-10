@@ -38,6 +38,7 @@ import type { UserSearchResult } from '@/types/auth';
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus } from '@/types/project';
 import AiProviderSelect from '@/components/common/AiProviderSelect';
+import { RoleBanner } from '@/components/common';
 import toast from 'react-hot-toast';
 import { useState, useRef, useEffect } from 'react';
 
@@ -302,7 +303,6 @@ export default function ProjectDetailPage() {
   const isAdminOrAbove = myRole === 'owner' || myRole === 'admin' || isSiteAdmin;
   const canEdit = isAdminOrAbove || myRole === 'editor';
   const canDeleteProject = isOwner || isSiteAdmin;
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
 
   const [newDeptName, setNewDeptName] = useState('');
   const [newPosName, setNewPosName] = useState('');
@@ -505,15 +505,26 @@ export default function ProjectDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate('/projects')}
-          className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="text-2xl font-bold text-content-primary">{project.title}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => navigate('/projects')}
+            className="p-2 text-content-tertiary transition-colors hover:bg-surface-hover"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="truncate text-2xl font-bold text-content-primary">{project.title}</h1>
+        </div>
+        {myRole && myRole !== 'viewer' && (
+          <RoleBanner role={myRole} />
+        )}
+        {!myRole && isSiteAdmin && (
+          <RoleBanner role={null} isSiteAdmin />
+        )}
       </div>
+
+      {/* Viewer banner (prominent — only for viewers) */}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
 
       {/* Project Info Card */}
       <div className="border border-line bg-surface-secondary p-6">
@@ -792,7 +803,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                  {f.extracted_text && !f.ai_summary && (
+                  {canEdit && f.extracted_text && !f.ai_summary && (
                     <div className="flex items-center gap-1">
                       <AiProviderSelect
                         value={aiProvider}
@@ -801,8 +812,7 @@ export default function ProjectDetailPage() {
                       />
                       <button
                         onClick={() => handleAnalyzeFile(f.id)}
-                        disabled={analyzeFile.isPending || !canEdit}
-                        title={editDisabledTitle}
+                        disabled={analyzeFile.isPending}
                         className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {analyzeFile.isPending ? (
@@ -830,40 +840,46 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* Upload area */}
-        <div
-          onDragOver={(e) => { if (!canEdit) return; e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={canEdit ? handleDrop : (e) => e.preventDefault()}
-          onClick={() => canEdit && fileInputRef.current?.click()}
-          title={editDisabledTitle}
-          className={`border-2 border-dashed p-8 text-center transition-colors ${
-            !canEdit ? 'cursor-not-allowed opacity-50 border-line' :
-            isDragging ? 'cursor-pointer border-accent bg-surface-hover' : 'cursor-pointer border-line hover:border-line-hover'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={ACCEPTED_FILE_TYPES}
-            onChange={(e) => handleFileUpload(e.target.files)}
-            className="hidden"
-          />
-          <Upload className="mx-auto h-8 w-8 text-content-tertiary" />
-          <p className="mt-2 text-sm text-content-secondary">
-            파일을 드래그하거나 클릭하여 업로드
-          </p>
-          <p className="mt-1 text-xs text-content-tertiary">
-            PDF, DOCX, TXT, 이미지 파일 지원
-          </p>
-          {uploadFile.isPending && (
-            <div className="mt-2 flex items-center justify-center gap-2 text-xs text-content-tertiary">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              업로드 중...
-            </div>
-          )}
-        </div>
+        {/* Upload area / read-only state */}
+        {canEdit ? (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed p-8 text-center transition-colors ${
+              isDragging ? 'cursor-pointer border-accent bg-surface-hover' : 'cursor-pointer border-line hover:border-line-hover'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_FILE_TYPES}
+              onChange={(e) => handleFileUpload(e.target.files)}
+              className="hidden"
+            />
+            <Upload className="mx-auto h-8 w-8 text-content-tertiary" />
+            <p className="mt-2 text-sm text-content-secondary">
+              파일을 드래그하거나 클릭하여 업로드
+            </p>
+            <p className="mt-1 text-xs text-content-tertiary">
+              PDF, DOCX, TXT, 이미지 파일 지원
+            </p>
+            {uploadFile.isPending && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-xs text-content-tertiary">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                업로드 중...
+              </div>
+            )}
+          </div>
+        ) : files.length === 0 ? (
+          <div className="border border-line bg-surface-hover p-6 text-center">
+            <FileText className="mx-auto h-6 w-6 text-content-muted" />
+            <p className="mt-2 text-sm text-content-secondary">업로드된 요구사항 파일이 없습니다</p>
+            <p className="mt-1 text-xs text-content-tertiary">편집자 이상 권한이 있는 멤버가 파일을 업로드할 수 있습니다.</p>
+          </div>
+        ) : null}
       </div>
 
       {/* 팀/직급 구조 */}
@@ -995,17 +1011,21 @@ export default function ProjectDetailPage() {
               let BtnIcon = ChevronRight;
 
               if (isNextAction) {
-                btnLabel = '진행하기';
-                btnClass = 'bg-accent text-accent-text hover:bg-accent-hover';
-                BtnIcon = Play;
+                btnLabel = canEdit ? '진행하기' : '보기';
+                btnClass = canEdit
+                  ? 'bg-accent text-accent-text hover:bg-accent-hover'
+                  : 'border border-line text-content-secondary hover:bg-surface-hover';
+                BtnIcon = canEdit ? Play : Eye;
               } else if (state === 'completed') {
                 btnLabel = '보기';
                 btnClass = 'bg-surface-hover text-content-secondary hover:bg-surface-hover';
                 BtnIcon = Eye;
               } else if (state === 'active') {
-                btnLabel = '진행하기';
-                btnClass = 'bg-accent text-accent-text hover:bg-accent-hover';
-                BtnIcon = Play;
+                btnLabel = canEdit ? '진행하기' : '보기';
+                btnClass = canEdit
+                  ? 'bg-accent text-accent-text hover:bg-accent-hover'
+                  : 'border border-line text-content-secondary hover:bg-surface-hover';
+                BtnIcon = canEdit ? Play : Eye;
               } else {
                 btnLabel = '대기';
                 btnClass = 'bg-surface-primary text-content-tertiary cursor-default';

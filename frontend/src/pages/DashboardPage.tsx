@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { FolderOpen, Plus, BarChart3, Clock, CheckCircle2, Users } from 'lucide-react';
+import { FolderOpen, Plus, BarChart3, Clock, CheckCircle2, Users, ArrowRight, Crown, Eye } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useProjects } from '@/hooks/useProjects';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS } from '@/utils/constants';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS, MEMBER_ROLE_LABELS, MEMBER_ROLE_COLORS } from '@/utils/constants';
 import { formatRelativeTime } from '@/utils/formatters';
 
 export default function DashboardPage() {
@@ -15,6 +15,14 @@ export default function DashboardPage() {
   const pendingSurveys = projects.filter((p) => p.status === 'distributing' || p.status === 'collecting').length;
   const completedProjects = projects.filter((p) => p.status === 'completed').length;
   const recentProjects = projects.slice(0, 5);
+
+  // 내 역할별 프로젝트 분포
+  const ownedCount = projects.filter((p) => p.my_role === 'owner').length;
+  const adminCount = projects.filter((p) => p.my_role === 'admin').length;
+  const editorCount = projects.filter((p) => p.my_role === 'editor').length;
+  const viewerCount = projects.filter((p) => p.my_role === 'viewer').length;
+  const manageableCount = ownedCount + adminCount + editorCount;
+  const isViewerHeavy = viewerCount > 0 && manageableCount === 0;
 
   const stats = [
     { label: '전체 프로젝트', value: totalProjects, icon: FolderOpen, color: 'text-content-primary', bg: 'bg-surface-hover' },
@@ -31,8 +39,38 @@ export default function DashboardPage() {
           안녕하세요, {user?.username ?? '사용자'}님
         </h1>
         <p className="mt-1 text-content-tertiary">
-          프로젝트 현황을 한눈에 확인하세요.
+          {totalProjects === 0
+            ? '아직 참여 중인 프로젝트가 없습니다.'
+            : isViewerHeavy
+              ? `참여 중인 프로젝트가 ${totalProjects}개 있습니다.`
+              : '프로젝트 현황을 한눈에 확인하세요.'}
         </p>
+        {totalProjects > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            {ownedCount > 0 && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${MEMBER_ROLE_COLORS.owner}`}>
+                <Crown className="h-3 w-3" />
+                소유 {ownedCount}
+              </span>
+            )}
+            {adminCount > 0 && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${MEMBER_ROLE_COLORS.admin}`}>
+                {MEMBER_ROLE_LABELS.admin} {adminCount}
+              </span>
+            )}
+            {editorCount > 0 && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${MEMBER_ROLE_COLORS.editor}`}>
+                {MEMBER_ROLE_LABELS.editor} {editorCount}
+              </span>
+            )}
+            {viewerCount > 0 && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${MEMBER_ROLE_COLORS.viewer}`}>
+                <Eye className="h-3 w-3" />
+                {MEMBER_ROLE_LABELS.viewer} {viewerCount}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -63,28 +101,47 @@ export default function DashboardPage() {
         <div className="border border-line bg-surface-secondary p-6">
           <h2 className="mb-4 text-lg font-semibold text-content-primary">빠른 작업</h2>
           <div className="space-y-3">
+            {/* Primary CTA: 내 프로젝트 */}
+            <Link
+              to="/projects"
+              className="group flex items-center justify-between gap-3 border border-accent/30 bg-accent/5 p-4 transition-colors hover:bg-accent/10"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center bg-accent/10">
+                  <FolderOpen className="h-5 w-5 text-accent" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-content-primary">
+                    {isViewerHeavy ? '참여 중인 프로젝트' : '내 프로젝트'}
+                    {totalProjects > 0 && (
+                      <span className="ml-1.5 text-accent">{totalProjects}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-content-tertiary">
+                    {activeProjects > 0
+                      ? `진행 중 ${activeProjects}개 · 바로 이어서 작업하기`
+                      : '전체 프로젝트 보기'}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 flex-shrink-0 text-accent transition-transform group-hover:translate-x-0.5" />
+            </Link>
+
+            {/* Secondary CTA: 새 프로젝트 (뷰어 전용 사용자에게는 더 약화) */}
             <Link
               to="/projects/new"
-              className="flex items-center gap-3 border border-line p-3 transition-colors hover:bg-surface-hover"
+              className={`flex items-center gap-3 border border-line p-3 transition-colors hover:bg-surface-hover ${
+                isViewerHeavy ? 'opacity-70' : ''
+              }`}
             >
               <div className="flex h-9 w-9 items-center justify-center bg-surface-hover">
-                <Plus className="h-5 w-5 text-accent" />
+                <Plus className="h-4 w-4 text-content-secondary" />
               </div>
               <div>
                 <p className="text-sm font-medium text-content-primary">새 프로젝트</p>
-                <p className="text-xs text-content-tertiary">새로운 인터뷰 프로젝트 시작</p>
-              </div>
-            </Link>
-            <Link
-              to="/projects"
-              className="flex items-center gap-3 border border-line p-3 transition-colors hover:bg-surface-hover"
-            >
-              <div className="flex h-9 w-9 items-center justify-center bg-surface-hover">
-                <FolderOpen className="h-5 w-5 text-content-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-content-primary">프로젝트 목록</p>
-                <p className="text-xs text-content-tertiary">전체 프로젝트 관리</p>
+                <p className="text-xs text-content-tertiary">
+                  {isViewerHeavy ? '직접 프로젝트를 만들 수도 있습니다' : '새로운 인터뷰 프로젝트 시작'}
+                </p>
               </div>
             </Link>
           </div>
@@ -110,7 +167,10 @@ export default function DashboardPage() {
           ) : recentProjects.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center text-content-tertiary">
               <FolderOpen className="mb-2 h-8 w-8" />
-              <p className="text-sm">프로젝트가 없습니다</p>
+              <p className="text-sm">아직 참여 중인 프로젝트가 없습니다</p>
+              <p className="mt-1 text-xs text-content-muted">
+                새 프로젝트를 만들거나, 다른 멤버가 추가해주길 기다려보세요.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -128,7 +188,19 @@ export default function DashboardPage() {
                       {project.client_name}
                     </p>
                   </div>
-                  <div className="ml-4 flex items-center gap-3">
+                  <div className="ml-4 flex items-center gap-2">
+                    {project.my_role && (
+                      <span
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium ${
+                          MEMBER_ROLE_COLORS[project.my_role]
+                        }`}
+                        title={`내 권한: ${MEMBER_ROLE_LABELS[project.my_role]}`}
+                      >
+                        {project.my_role === 'owner' && <Crown className="h-2.5 w-2.5" />}
+                        {project.my_role === 'viewer' && <Eye className="h-2.5 w-2.5" />}
+                        {MEMBER_ROLE_LABELS[project.my_role]}
+                      </span>
+                    )}
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         PROJECT_STATUS_COLORS[project.status]

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
+import { RoleBanner } from '@/components/common';
 import { useResponses, useResponse, useCloseCollection } from '@/hooks/useResponses';
 import { useEmployees, useInvitations } from '@/hooks/useDistribution';
 import { formatDateTime } from '@/utils/formatters';
@@ -35,8 +36,7 @@ export default function ResponsesPage() {
   const { data: employees = [] } = useEmployees(id);
   const { data: invitations = [] } = useInvitations(id);
   const closeCollection = useCloseCollection();
-  const { canEdit } = useMyRole(id);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 응답 조회는 가능합니다.';
+  const { canEdit, myRole, isSiteAdmin } = useMyRole(id);
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
@@ -84,21 +84,18 @@ export default function ResponsesPage() {
             <p className="text-sm text-content-tertiary">{project?.title}</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowCloseConfirm(true)}
-          disabled={!canEdit}
-          title={editDisabledTitle}
-          className="inline-flex items-center gap-2 bg-danger px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Lock className="h-4 w-4" />
-          수집 마감
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setShowCloseConfirm(true)}
+            className="inline-flex items-center gap-2 bg-danger px-4 py-2.5 text-sm font-medium text-accent-text transition-colors hover:opacity-85"
+          >
+            <Lock className="h-4 w-4" />
+            수집 마감
+          </button>
+        )}
       </div>
-      {!canEdit && (
-        <p className="text-xs text-content-tertiary">
-          뷰어 권한은 응답을 조회할 수 있지만, 수집 마감이나 수동 입력은 편집자 이상 권한이 필요합니다.
-        </p>
-      )}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
 
       {/* Progress */}
       <div className="border border-line bg-surface-secondary p-5">
@@ -173,7 +170,7 @@ export default function ResponsesPage() {
                       보기
                     </button>
                   )}
-                  {canEdit ? (
+                  {canEdit && (
                     <Link
                       to={`/projects/${projectId}/responses/manual/${emp.id}`}
                       className="inline-flex items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-accent hover:bg-surface-hover"
@@ -181,14 +178,6 @@ export default function ResponsesPage() {
                       <PenLine className="h-3 w-3" />
                       수동 입력
                     </Link>
-                  ) : (
-                    <span
-                      title={editDisabledTitle}
-                      className="inline-flex cursor-not-allowed items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-content-muted opacity-50"
-                    >
-                      <PenLine className="h-3 w-3" />
-                      수동 입력
-                    </span>
                   )}
                 </div>
               </div>

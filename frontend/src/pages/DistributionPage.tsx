@@ -21,6 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
+import { RoleBanner } from '@/components/common';
 import { useQuestionnaire } from '@/hooks/useQuestionnaire';
 import { useDepartments, usePositions } from '@/hooks/useProjectStructure';
 import {
@@ -58,6 +59,7 @@ export default function DistributionPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const id = projectId ? Number(projectId) : undefined;
   const { data: project } = useProject(id);
+  const { myRole, isSiteAdmin } = useMyRole(id);
 
   return (
     <div className="space-y-6">
@@ -75,6 +77,9 @@ export default function DistributionPage() {
         </div>
       </div>
 
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
+
       {id && <EmployeeSection projectId={id} />}
     </div>
   );
@@ -82,7 +87,6 @@ export default function DistributionPage() {
 
 function EmployeeSection({ projectId }: { projectId: number }) {
   const { canEdit } = useMyRole(projectId);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
   const { data: employees = [], isLoading: empLoading } = useEmployees(projectId);
   const { data: invitations = [], isLoading: invLoading } = useInvitations(projectId);
   const { data: questionnaire } = useQuestionnaire(projectId);
@@ -184,46 +188,44 @@ function EmployeeSection({ projectId }: { projectId: number }) {
           등록된 직원: {employees.length}명
           {invitations.length > 0 && ` · 초대: ${invitations.length}건`}
         </p>
-        <div className="flex flex-wrap gap-2">
-          {employeesWithoutInvitation.length > 0 && (
-            isQuestionnaireConfirmed ? (
+        {canEdit && (
+          <div className="flex flex-wrap gap-2">
+            {employeesWithoutInvitation.length > 0 && (
+              isQuestionnaireConfirmed ? (
+                <button
+                  onClick={handleGenerateAll}
+                  disabled={generateInvitations.isPending}
+                  className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {generateInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+                  전체 초대 링크 생성 ({employeesWithoutInvitation.length})
+                </button>
+              ) : (
+                <span className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm text-content-muted">
+                  <AlertCircle className="h-4 w-4" />
+                  질문지 확정 후 초대 링크를 생성할 수 있습니다
+                </span>
+              )
+            )}
+            {invitations.some((inv) => inv.status === 'pending') && (
               <button
-                onClick={handleGenerateAll}
-                disabled={generateInvitations.isPending || !canEdit}
-                title={editDisabledTitle}
-                className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleSendAll}
+                disabled={sendInvitations.isPending}
+                className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {generateInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
-                전체 초대 링크 생성 ({employeesWithoutInvitation.length})
+                {sendInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                대기 중 이메일 일괄 발송
               </button>
-            ) : (
-              <span className="inline-flex items-center gap-2 border border-line px-3 py-2 text-sm text-content-muted">
-                <AlertCircle className="h-4 w-4" />
-                질문지 확정 후 초대 링크를 생성할 수 있습니다
-              </span>
-            )
-          )}
-          {invitations.some((inv) => inv.status === 'pending') && (
+            )}
             <button
-              onClick={handleSendAll}
-              disabled={sendInvitations.isPending || !canEdit}
-              title={editDisabledTitle}
-              className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover"
             >
-              {sendInvitations.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-              대기 중 이메일 일괄 발송
+              <Plus className="h-4 w-4" />
+              직원 추가
             </button>
-          )}
-          <button
-            onClick={() => setShowAddModal(true)}
-            disabled={!canEdit}
-            title={editDisabledTitle}
-            className="inline-flex items-center gap-2 bg-accent px-3 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            직원 추가
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Employee List with Invitations */}
@@ -235,13 +237,17 @@ function EmployeeSection({ projectId }: { projectId: number }) {
       ) : employees.length === 0 ? (
         <div className="flex h-40 flex-col items-center justify-center border-2 border-dashed border-line">
           <User className="mb-2 h-8 w-8 text-content-muted" />
-          <p className="text-sm text-content-tertiary">등록된 직원이 없습니다. 직원을 추가해주세요.</p>
+          <p className="text-sm text-content-tertiary">
+            {canEdit
+              ? '등록된 직원이 없습니다. 직원을 추가해주세요.'
+              : '아직 등록된 직원이 없습니다. 편집자 이상 권한이 있는 멤버가 직원을 추가하면 여기에 표시됩니다.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {employees.map((emp) => {
             const inv = invByEmployee[emp.id];
-            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} isQuestionnaireConfirmed={isQuestionnaireConfirmed} canEdit={canEdit} editDisabledTitle={editDisabledTitle} />;
+            return <EmployeeCard key={emp.id} employee={emp} invitation={inv} onDelete={handleDelete} onResend={handleResend} onRegenerate={handleRegenerate} projectId={projectId} isQuestionnaireConfirmed={isQuestionnaireConfirmed} canEdit={canEdit} />;
           })}
         </div>
       )}
@@ -342,7 +348,6 @@ function EmployeeCard({
   projectId,
   isQuestionnaireConfirmed = false,
   canEdit,
-  editDisabledTitle,
 }: {
   employee: Employee;
   invitation?: Invitation;
@@ -352,7 +357,6 @@ function EmployeeCard({
   projectId: number;
   isQuestionnaireConfirmed?: boolean;
   canEdit: boolean;
-  editDisabledTitle: string;
 }) {
   const generateInvitations = useGenerateInvitations();
   const statusCfg = invitation ? STATUS_CONFIG[invitation.is_expired && invitation.status !== 'completed' ? 'expired' : invitation.status] || STATUS_CONFIG.pending : null;
@@ -464,21 +468,20 @@ function EmployeeCard({
             </div>
           </div>
         </div>
-      ) : isQuestionnaireConfirmed ? (
+      ) : isQuestionnaireConfirmed && canEdit ? (
         <div className="mt-3">
           <button
             onClick={handleGenerateForOne}
-            disabled={generateInvitations.isPending || !canEdit}
-            title={editDisabledTitle}
+            disabled={generateInvitations.isPending}
             className="inline-flex items-center gap-1.5 border border-dashed border-line px-3 py-1.5 text-xs font-medium text-content-tertiary transition-colors hover:border-line-hover hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {generateInvitations.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <LinkIcon className="h-3 w-3" />}
             초대 링크 생성
           </button>
         </div>
-      ) : (
+      ) : !isQuestionnaireConfirmed ? (
         <p className="mt-3 text-xs text-content-muted">질문지 확정 후 초대 링크 생성 가능</p>
-      )}
+      ) : null}
     </div>
   );
 }

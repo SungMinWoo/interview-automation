@@ -52,7 +52,7 @@ import {
   useQuestionnaireTemplates,
   useImportQuestionnaire,
 } from '@/hooks/useQuestionnaire';
-import { AiProviderSelect } from '@/components/common';
+import { AiProviderSelect, RoleBanner } from '@/components/common';
 import {
   QUESTION_TYPE_LABELS,
   IMPORTANCE_LABELS,
@@ -625,8 +625,7 @@ export default function QuestionnairePage() {
   const isFailed = questionnaire?.status === 'failed';
   const isConfirmed = questionnaire?.status === 'confirmed';
 
-  const { canEdit } = useMyRole(id);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const { canEdit, myRole, isSiteAdmin } = useMyRole(id);
   const lockEdit = !!isConfirmed || !canEdit;
 
   const handleConfirm = async () => {
@@ -809,8 +808,7 @@ export default function QuestionnairePage() {
               {totalQuestions === 0 && sections.length === 0 && (
                 <button
                   onClick={handleGenerate}
-                  disabled={generateQuestionnaire.isPending || isProcessing || !canEdit}
-                  title={editDisabledTitle}
+                  disabled={generateQuestionnaire.isPending || isProcessing}
                   className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {generateQuestionnaire.isPending || isProcessing ? (
@@ -824,8 +822,7 @@ export default function QuestionnairePage() {
               {totalQuestions > 0 && (
                 <button
                   onClick={handleConfirm}
-                  disabled={confirmQuestionnaire.isPending || !canEdit}
-                  title={editDisabledTitle}
+                  disabled={confirmQuestionnaire.isPending}
                   className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {confirmQuestionnaire.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -836,6 +833,10 @@ export default function QuestionnairePage() {
           )}
         </div>
       </div>
+
+      {/* Role indicator */}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
 
       {/* Processing State */}
       {isProcessing && (
@@ -1181,7 +1182,9 @@ export default function QuestionnairePage() {
       ) : !isProcessing && totalQuestions === 0 && !showAddForm ? (
         <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-8 space-y-4">
           <p className="text-sm text-content-tertiary">
-            질문이 없습니다. AI 생성 또는 직접 추가해주세요.
+            {canEdit
+              ? '질문이 없습니다. AI 생성 또는 직접 추가해주세요.'
+              : '아직 작성된 질문이 없습니다. 편집자 이상 권한이 있는 멤버가 질문을 추가하면 여기에 표시됩니다.'}
           </p>
           {/* 이전 질문지 참고 옵션 */}
           {templates.length > 0 && !lockEdit && (

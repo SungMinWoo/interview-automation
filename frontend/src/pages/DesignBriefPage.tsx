@@ -25,7 +25,7 @@ import {
   useGenerateDesignMd,
   downloadDesignMd,
 } from '@/hooks/useDesignBrief';
-import { AiProviderSelect } from '@/components/common';
+import { AiProviderSelect, RoleBanner } from '@/components/common';
 import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, PROJECT_TYPE_LABELS, API_PATHS, type AiProvider } from '@/utils/constants';
 import apiClient from '@/api/client';
 import { formatDateTime } from '@/utils/formatters';
@@ -50,8 +50,7 @@ export default function DesignBriefPage() {
   const regenerateStitch = useRegenerateStitch();
   const fetchScreens = useFetchStitchScreens();
   const exportBrief = useExportBrief();
-  const { canEdit, canCompleteProject } = useMyRole(id);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const { canEdit, canCompleteProject, myRole, isSiteAdmin } = useMyRole(id);
   const completeDisabledTitle = canCompleteProject
     ? ''
     : '프로젝트 완료는 관리자 이상만 진행할 수 있습니다.';
@@ -231,35 +230,38 @@ export default function DesignBriefPage() {
         </div>
       </div>
 
+      {/* Role indicator */}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
+
       {/* Brief Section */}
       <div className="border border-line bg-surface-secondary p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-content-primary">브리프</h2>
-          <div className="flex gap-2">
-            {briefData && !isEditing && (
-              <button
-                onClick={startEdit}
-                disabled={!canEdit}
-                title={editDisabledTitle}
-                className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                수정
-              </button>
-            )}
-            <button
-              onClick={handleCompile}
-              disabled={compileBrief.isPending || !canEdit}
-              title={editDisabledTitle}
-              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {compileBrief.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <FileText className="h-3 w-3" />
+          {canEdit && (
+            <div className="flex gap-2">
+              {briefData && !isEditing && (
+                <button
+                  onClick={startEdit}
+                  className="inline-flex items-center gap-1.5 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+                >
+                  수정
+                </button>
               )}
-              {briefData ? '브리프 재생성' : '취합 결과로 브리프 생성'}
-            </button>
-          </div>
+              <button
+                onClick={handleCompile}
+                disabled={compileBrief.isPending}
+                className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {compileBrief.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <FileText className="h-3 w-3" />
+                )}
+                {briefData ? '브리프 재생성' : '취합 결과로 브리프 생성'}
+              </button>
+            </div>
+          )}
         </div>
 
         {briefLoading ? (
@@ -270,7 +272,11 @@ export default function DesignBriefPage() {
         ) : !briefData ? (
           <div className="flex h-32 flex-col items-center justify-center text-content-tertiary">
             <FileText className="mb-2 h-8 w-8 opacity-30" />
-            <p className="text-sm">브리프가 없습니다. 취합 결과를 기반으로 브리프를 생성해주세요.</p>
+            <p className="text-sm">
+              {canEdit
+                ? '브리프가 없습니다. 취합 결과를 기반으로 브리프를 생성해주세요.'
+                : '아직 브리프가 생성되지 않았습니다. 편집자 이상 권한이 있는 멤버가 생성하면 여기에 표시됩니다.'}
+            </p>
           </div>
         ) : isEditing ? (
           <div className="space-y-4">
@@ -364,8 +370,7 @@ export default function DesignBriefPage() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={updateBrief.isPending || !canEdit}
-                title={editDisabledTitle}
+                disabled={updateBrief.isPending}
                 className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {updateBrief.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -495,11 +500,10 @@ export default function DesignBriefPage() {
                 <span className="bg-surface-hover px-4 py-2 text-sm font-medium text-content-tertiary">
                   DESIGN.md를 먼저 생성해주세요
                 </span>
-              ) : (
+              ) : canEdit ? (
                 <button
                   onClick={handleStitch}
-                  disabled={triggerStitch.isPending || !canEdit}
-                  title={editDisabledTitle}
+                  disabled={triggerStitch.isPending}
                   className="inline-flex items-center gap-2 bg-accent px-4 py-2 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {triggerStitch.isPending ? (
@@ -509,7 +513,7 @@ export default function DesignBriefPage() {
                   )}
                   Stitch 디자인 생성
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -577,11 +581,10 @@ export default function DesignBriefPage() {
                             Stitch에서 보기
                           </a>
                         )}
-                        {gen.stitch_project_id && (
+                        {gen.stitch_project_id && canEdit && (
                           <button
                             onClick={() => handleFetchScreens(gen.id)}
-                            disabled={isFetching || !canEdit}
-                            title={editDisabledTitle}
+                            disabled={isFetching}
                             className="inline-flex items-center gap-1 bg-success-bg px-2.5 py-1 text-xs font-medium text-success hover:bg-success-bg disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isFetching ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
@@ -598,15 +601,16 @@ export default function DesignBriefPage() {
                             {isOpen ? '접기' : '미리보기'}
                           </button>
                         )}
-                        <button
-                          onClick={() => handleRegenerateStitch(gen.id)}
-                          disabled={isFetching || !canEdit}
-                          title={editDisabledTitle}
-                          className="inline-flex items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          재생성
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => handleRegenerateStitch(gen.id)}
+                            disabled={isFetching}
+                            className="inline-flex items-center gap-1 bg-surface-hover px-2.5 py-1 text-xs font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            재생성
+                          </button>
+                        )}
                         {(gen.design_md_snapshot || gen.prompt_text) && (
                           <button
                             onClick={() => setShowPromptId(isPromptOpen ? null : gen.id)}

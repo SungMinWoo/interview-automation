@@ -49,14 +49,52 @@ class ProjectListSerializer(serializers.ModelSerializer):
     reference_sites_count = serializers.IntegerField(
         source='reference_sites.count', read_only=True,
     )
+    my_role = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
+    owner_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         fields = [
             'id', 'project_type', 'title', 'client_name', 'status',
-            'reference_sites_count', 'created_at', 'updated_at',
+            'reference_sites_count', 'my_role', 'owner_name', 'owner_email',
+            'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
+
+    def get_my_role(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        membership = next(
+            (m for m in obj.members.all() if m.user_id == request.user.id),
+            None,
+        )
+        return membership.role if membership else None
+
+    def _get_owner_membership(self, obj):
+        return next(
+            (m for m in obj.members.all() if m.role == ProjectMember.Role.OWNER),
+            None,
+        )
+
+    def get_owner_name(self, obj):
+        membership = self._get_owner_membership(obj)
+        if membership:
+            if membership.user_id and membership.user:
+                return membership.user.first_name or membership.user.username or membership.user.email
+            return membership.user_name or membership.user_email
+        if obj.owner_id:
+            return obj.owner.first_name or obj.owner.username or obj.owner.email
+        return None
+
+    def get_owner_email(self, obj):
+        membership = self._get_owner_membership(obj)
+        if membership:
+            return membership.user_email or (membership.user.email if membership.user_id else None)
+        if obj.owner_id:
+            return obj.owner.email
+        return None
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):

@@ -38,12 +38,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
+        from django.db.models import Prefetch
         from .access import is_site_admin
+        members_prefetch = Prefetch(
+            'members',
+            queryset=ProjectMember.objects.select_related('user'),
+        )
         if is_site_admin(self.request.user):
-            return Project.objects.all()
-        return Project.objects.filter(
-            members__user=self.request.user
-        ).distinct()
+            qs = Project.objects.all()
+        else:
+            qs = Project.objects.filter(members__user=self.request.user).distinct()
+        if self.action == 'list':
+            qs = qs.select_related('owner').prefetch_related(members_prefetch)
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'list':

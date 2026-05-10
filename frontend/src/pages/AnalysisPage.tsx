@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Play, Loader2, CheckCircle2, AlertCircle, Pencil, Check, RefreshCw, XCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, Loader2, CheckCircle2, AlertCircle, Pencil, Check, RefreshCw, XCircle, Sparkles, Eye } from 'lucide-react';
 import {
   useAnalysis,
   useAnalysisStatus,
@@ -11,7 +11,7 @@ import {
 } from '@/hooks/useAnalysis';
 import { useProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
-import { AiProviderSelect } from '@/components/common';
+import { AiProviderSelect, RoleBanner } from '@/components/common';
 import { DEFAULT_AI_PROVIDER, AI_PROVIDER_LABELS, type AiProvider } from '@/utils/constants';
 import toast from 'react-hot-toast';
 
@@ -49,8 +49,7 @@ export default function AnalysisPage() {
   const updateAnalysis = useUpdateAnalysis();
   const confirmAnalysis = useConfirmAnalysis();
   const regenerateSection = useRegenerateSection();
-  const { canEdit } = useMyRole(id);
-  const editDisabledTitle = canEdit ? '' : '뷰어 권한은 편집할 수 없습니다. 편집자 이상 권한이 필요합니다.';
+  const { canEdit, myRole, isSiteAdmin } = useMyRole(id);
   const [aiProvider, setAiProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
 
   useEffect(() => {
@@ -131,6 +130,10 @@ export default function AnalysisPage() {
         </div>
       </div>
 
+      {/* Role indicator */}
+      {myRole === 'viewer' && <RoleBanner role="viewer" />}
+      {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
+
       {/* Failed State */}
       {isFailed && analysis && (
         <div className="border border-danger bg-danger-bg p-6">
@@ -145,48 +148,59 @@ export default function AnalysisPage() {
                 </pre>
               </details>
             )}
-            <div className="flex items-center gap-3">
-              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
-              <button
-                onClick={handleTrigger}
-                disabled={triggerAnalysis.isPending || !canEdit}
-                title={editDisabledTitle}
-                className="inline-flex items-center gap-2 bg-danger px-6 py-2.5 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                다시 시도
-              </button>
-            </div>
+            {canEdit ? (
+              <div className="flex items-center gap-3">
+                <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+                <button
+                  onClick={handleTrigger}
+                  disabled={triggerAnalysis.isPending}
+                  className="inline-flex items-center gap-2 bg-danger px-6 py-2.5 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  다시 시도
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-content-tertiary">편집자 이상 권한이 있는 멤버가 재시도할 수 있습니다.</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Trigger Button */}
+      {/* Trigger Button (editors+) / Empty state (viewers) */}
       {(!analysis || analysis.status === 'pending') && !isProcessing && (
-        <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
-            <Play className="h-8 w-8 text-accent" />
+        canEdit ? (
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-line py-16">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-hover">
+              <Play className="h-8 w-8 text-accent" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-content-primary">AI 분석 시작</h3>
+            <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
+              프로젝트 정보, 요구사항 파일, 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행합니다.
+            </p>
+            <div className="flex items-center gap-3">
+              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              <button
+                onClick={handleTrigger}
+                disabled={triggerAnalysis.isPending}
+                className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                AI 분석 시작
+              </button>
+            </div>
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-content-primary">AI 분석 시작</h3>
-          <p className="mb-6 max-w-md text-center text-sm text-content-tertiary">
-            프로젝트 정보, 요구사항 파일, 레퍼런스 사이트를 기반으로 AI가 종합 분석을 수행합니다.
-          </p>
-          <div className="flex items-center gap-3">
-            <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
-            <button
-              onClick={handleTrigger}
-              disabled={triggerAnalysis.isPending || !canEdit}
-              title={editDisabledTitle}
-              className="inline-flex items-center gap-2 bg-accent px-6 py-2.5 text-sm font-medium text-accent-text hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {triggerAnalysis.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-              AI 분석 시작
-            </button>
+        ) : (
+          <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-16">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center bg-surface-secondary">
+              <Eye className="h-8 w-8 text-content-tertiary" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-content-primary">아직 분석이 시작되지 않았습니다</h3>
+            <p className="max-w-md text-center text-sm text-content-tertiary">
+              편집자 이상 권한이 있는 멤버가 AI 분석을 시작하면 여기에 결과가 표시됩니다.
+            </p>
           </div>
-          {!canEdit && (
-            <p className="mt-3 text-xs text-content-tertiary">뷰어는 분석을 시작할 수 없습니다.</p>
-          )}
-        </div>
+        )
       )}
 
       {/* Processing State */}
@@ -201,33 +215,33 @@ export default function AnalysisPage() {
       {/* Results */}
       {hasResults && analysis && (
         <div className="space-y-4">
-          {/* Global actions */}
-          <div className="flex justify-end gap-3">
-            <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
-            {!isConfirmed && (
-              <>
-                <button
-                  onClick={handleTrigger}
-                  disabled={triggerAnalysis.isPending || !canEdit}
-                  title={editDisabledTitle}
-                  className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  전체 재분석
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={confirmAnalysis.isPending || !canEdit}
-                  title={editDisabledTitle}
-                  className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {confirmAnalysis.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <Check className="h-4 w-4" />
-                  분석 확인
-                </button>
-              </>
-            )}
-          </div>
+          {/* Global actions (editors+) */}
+          {canEdit && (
+            <div className="flex justify-end gap-3">
+              <AiProviderSelect value={aiProvider} onChange={setAiProvider} />
+              {!isConfirmed && (
+                <>
+                  <button
+                    onClick={handleTrigger}
+                    disabled={triggerAnalysis.isPending}
+                    className="inline-flex items-center gap-2 border border-line px-4 py-2 text-sm font-medium text-content-secondary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    전체 재분석
+                  </button>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={confirmAnalysis.isPending}
+                    className="inline-flex items-center gap-2 bg-success px-4 py-2 text-sm font-medium text-accent-text hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {confirmAnalysis.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <Check className="h-4 w-4" />
+                    분석 확인
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Requirements Summary */}
           <EditableSection

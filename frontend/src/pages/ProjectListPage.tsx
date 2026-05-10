@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, FolderOpen, Calendar } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, Search, FolderOpen, Calendar, Crown } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS } from '@/utils/constants';
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_COLORS,
+  MEMBER_ROLE_LABELS,
+  MEMBER_ROLE_COLORS,
+} from '@/utils/constants';
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus, ProjectType } from '@/types/project';
 
@@ -28,7 +33,15 @@ const TABS: Array<{ value: ProjectType; label: string; desc: string }> = [
 ];
 
 export default function ProjectListPage() {
-  const [activeTab, setActiveTab] = useState<ProjectType>('uxui');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: ProjectType = tabParam === 'bx' ? 'bx' : 'uxui';
+  const setActiveTab = (tab: ProjectType) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'uxui') next.delete('tab');
+    else next.set('tab', tab);
+    setSearchParams(next, { replace: true });
+  };
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const { data: projects = [], isLoading } = useProjects();
@@ -167,13 +180,25 @@ export default function ProjectListPage() {
                     {project.client_name}
                   </p>
                 </div>
-                <span
-                  className={`ml-2 flex-shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    PROJECT_STATUS_COLORS[project.status]
-                  }`}
-                >
-                  {PROJECT_STATUS_LABELS[project.status]}
-                </span>
+                <div className="ml-2 flex flex-shrink-0 flex-col items-end gap-1">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      PROJECT_STATUS_COLORS[project.status]
+                    }`}
+                  >
+                    {PROJECT_STATUS_LABELS[project.status]}
+                  </span>
+                  {project.my_role && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium ${
+                        MEMBER_ROLE_COLORS[project.my_role]
+                      }`}
+                      title="내 권한"
+                    >
+                      {MEMBER_ROLE_LABELS[project.my_role]}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {project.requirements_text && (
@@ -182,9 +207,20 @@ export default function ProjectListPage() {
                 </p>
               )}
 
-              <div className="flex items-center gap-1.5 text-xs text-content-tertiary">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatDate(project.created_at)}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-content-tertiary">
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatDate(project.created_at)}
+                </span>
+                {project.owner_name && (
+                  <span
+                    className="inline-flex items-center gap-1 truncate"
+                    title={project.owner_email || project.owner_name}
+                  >
+                    <Crown className="h-3.5 w-3.5 text-accent" />
+                    <span className="truncate">{project.owner_name}</span>
+                  </span>
+                )}
               </div>
             </Link>
           ))}
