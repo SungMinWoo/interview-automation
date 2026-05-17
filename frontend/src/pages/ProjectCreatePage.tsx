@@ -101,7 +101,8 @@ export default function ProjectCreatePage() {
         <div className="border border-line bg-surface-secondary p-6">
           <h2 className="mb-4 text-lg font-semibold text-content-primary">기본 정보</h2>
           <div className="space-y-4">
-            <div>
+            {/* 프로젝트 타입 선택 — BX 추가 전까지 숨김. project_type 디폴트는 'uxui'. */}
+            {/* <div>
               <label className="mb-1.5 block text-sm font-medium text-content-secondary">
                 프로젝트 타입 <span className="text-danger">*</span>
               </label>
@@ -121,7 +122,7 @@ export default function ProjectCreatePage() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-content-secondary">

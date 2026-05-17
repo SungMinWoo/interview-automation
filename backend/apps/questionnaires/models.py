@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from apps.projects.models import Project
 
@@ -21,6 +22,23 @@ class Questionnaire(models.Model):
     ai_generation_prompt = models.TextField(blank=True)
     ai_provider = models.CharField(max_length=20, choices=AiProvider.choices, default=AiProvider.CLAUDE)
     error_message = models.TextField(blank=True)
+    # 협업 메타데이터 — 누가 초안을 만들고 누가 검토·확정했는지 기록 (단계 추가 없음)
+    draft_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+        help_text='최초로 의미 있는 편집을 한 멤버 (자동 기록)',
+    )
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+        help_text='검토자로 지정된 멤버 — 지정 시 알림 발송',
+    )
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+        help_text='질문지 확정 액션을 누른 멤버',
+    )
+    confirmed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

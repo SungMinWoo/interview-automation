@@ -15,6 +15,8 @@ import QuestionnairePage from '@/pages/QuestionnairePage';
 import DistributionPage from '@/pages/DistributionPage';
 import ResponsesPage from '@/pages/ResponsesPage';
 import ManualEntryPage from '@/pages/ManualEntryPage';
+import ManualDraftPage from '@/pages/ManualDraftPage';
+import ManualMergePage from '@/pages/ManualMergePage';
 import AggregationPage from '@/pages/AggregationPage';
 import DesignBriefPage from '@/pages/DesignBriefPage';
 import SurveyPage from '@/pages/SurveyPage';
@@ -59,6 +61,8 @@ export const router = createBrowserRouter([
           { path: '/projects/:projectId/distribution', element: <DistributionPage /> },
           { path: '/projects/:projectId/responses', element: <ResponsesPage /> },
           { path: '/projects/:projectId/responses/manual/:employeeId', element: <ManualEntryPage /> },
+          { path: '/projects/:projectId/responses/draft/:employeeId', element: <ManualDraftPage /> },
+          { path: '/projects/:projectId/responses/merge/:employeeId', element: <ManualMergePage /> },
           { path: '/projects/:projectId/aggregation', element: <AggregationPage /> },
           { path: '/projects/:projectId/design-brief', element: <DesignBriefPage /> },
           { path: '/tools', element: <ToolsPage /> },

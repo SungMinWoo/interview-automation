@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, CheckCircle2, AlertCircle, Clock, Send } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Clock, Send, Sun, Moon } from 'lucide-react';
 import axios from 'axios';
 import { API_PATHS } from '@/utils/constants';
 import { surveyPasswordSchema } from '@/utils/validators';
@@ -26,6 +26,7 @@ interface SurveyInfo {
   employee_name: string;
   status: string;
   is_expired: boolean;
+  interview_purpose?: string;
 }
 
 interface SurveyQuestion {
@@ -50,7 +51,29 @@ export default function SurveyPage() {
   const [answers, setAnswers] = useState<Record<number, string | string[] | number>>({});
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const draftTimerRef = useRef<ReturnType<typeof setInterval>>();
+
+  // 설문 페이지는 themeStore와 분리해서 자체 테마 관리 (기본 라이트).
+  // 페이지 이탈 시 원래 사이트 테마로 복원.
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasLight = root.classList.contains('light');
+    root.classList.add('light');
+    return () => {
+      if (!wasLight) root.classList.remove('light');
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      const root = document.documentElement;
+      if (next) root.classList.remove('light');
+      else root.classList.add('light');
+      return next;
+    });
+  };
 
   const passwordForm = useForm<SurveyPasswordFormValues>({
     resolver: zodResolver(surveyPasswordSchema),
@@ -144,6 +167,18 @@ export default function SurveyPage() {
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      {/* 우상단 테마 토글 */}
+      <div className="absolute right-4 top-4 z-10">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex h-9 w-9 items-center justify-center border border-line bg-surface-secondary text-content-secondary transition-colors hover:bg-surface-hover"
+          aria-label="테마 전환"
+          title={isDark ? '라이트 모드로' : '다크 모드로'}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      </div>
       <div className="mx-auto max-w-2xl px-4 py-8">
         {step === 'loading' && (
           <div className="flex h-64 items-center justify-center">
@@ -179,9 +214,20 @@ export default function SurveyPage() {
               </p>
             </div>
 
+            {surveyInfo.interview_purpose && (
+              <div className="border-l-4 border-accent bg-surface-secondary p-5">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
+                  이번 인터뷰의 목적
+                </p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-content-secondary">
+                  {surveyInfo.interview_purpose}
+                </p>
+              </div>
+            )}
+
             <div className="border border-line bg-surface-secondary p-8">
               <h2 className="mb-4 text-center text-base font-semibold text-content-primary">비밀번호 인증</h2>
-              <p className="mb-6 text-center text-sm text-content-tertiary">전화번호 뒷 4자리를 입력해주세요.</p>
+              <p className="mb-6 text-center text-sm text-content-tertiary">메일로 안내된 4자리 비밀번호를 입력해주세요.</p>
               <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
                 <input
                   type="text"
@@ -208,6 +254,17 @@ export default function SurveyPage() {
               <h1 className="text-xl font-bold text-content-primary">{surveyInfo?.project_title}</h1>
               <p className="mt-3 text-xs text-content-tertiary">총 {questions.length}개 질문 &middot; 응답은 자동 저장됩니다</p>
             </div>
+
+            {surveyInfo?.interview_purpose && (
+              <div className="border-l-4 border-accent bg-surface-secondary p-5">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
+                  이번 인터뷰의 목적
+                </p>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-content-secondary">
+                  {surveyInfo.interview_purpose}
+                </p>
+              </div>
+            )}
 
             {error && <div className="bg-danger-bg p-3 text-sm text-danger">{error}</div>}
 

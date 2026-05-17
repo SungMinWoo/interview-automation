@@ -56,6 +56,7 @@ export interface Project {
   client_contact_email: string;
   client_contact_phone: string;
   requirements_text: string;
+  interview_purpose?: string;
   existing_site_url: string | null;
   status: ProjectStatus;
   reference_sites: ReferenceSite[];
@@ -91,6 +92,7 @@ export interface ProjectCreateRequest {
   client_contact_email?: string;
   client_contact_phone?: string;
   requirements_text: string;
+  interview_purpose?: string;
   existing_site_url?: string;
   reference_sites?: ReferenceSiteCreateRequest[];
 }
@@ -101,6 +103,7 @@ export interface ProjectUpdateRequest {
   client_contact_email?: string;
   client_contact_phone?: string;
   requirements_text?: string;
+  interview_purpose?: string;
   existing_site_url?: string;
 }
 

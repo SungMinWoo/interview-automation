@@ -51,3 +51,42 @@ export interface CollectionStats {
   abandoned: number;
   completionRate: number;
 }
+
+// 대면 인터뷰 멤버별 draft
+export interface ManualDraftAnswer {
+  question: number;
+  text_value: string;
+  choice_values: string[];
+  rating_value: number | null;
+  updated_at: string;
+}
+
+export interface ManualDraft {
+  id: number;
+  project: number;
+  employee: number;
+  employee_name?: string;
+  author: number;
+  author_name: string | null;
+  is_submitted: boolean;
+  submitted_at: string | null;
+  answers?: ManualDraftAnswer[];
+  answer_count: number;
+  started_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeDraftsSummary {
+  employee_id: number;
+  employee_name: string;
+  drafts: ManualDraft[];
+  merged_response_id: number | null;
+  merged_at: string | null;
+}
+
+export interface MergeAnswerInput {
+  question_id: number;
+  text_value?: string;
+  choice_values?: string[];
+  rating_value?: number | null;
+}

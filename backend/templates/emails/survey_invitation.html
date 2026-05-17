@@ -1,21 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
-<body style="font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<body style="font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
     <div style="background: #f8f9fa; border-radius: 8px; padding: 32px;">
-        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">인터뷰 설문 요청</h1>
-        <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <h1 style="color: #1a1a2e; font-size: 24px; margin: 0 0 16px;">인터뷰 설문 요청</h1>
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 12px;">
             안녕하세요, <strong>{{ employee_name }}</strong>님.
         </p>
-        <p style="color: #333; font-size: 16px; line-height: 1.6;">
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
             <strong>{{ project_title }}</strong> 프로젝트와 관련하여 인터뷰 설문을 요청드립니다.
         </p>
-        <div style="background: #fff; border-radius: 8px; padding: 24px; margin: 24px 0; border: 1px solid #e0e0e0;">
-            <p style="margin: 0 0 12px; color: #666;">비밀번호: <strong>{{ password_hint }}</strong></p>
-            <p style="margin: 0 0 12px; color: #666;">마감일: <strong>{{ expires_at }}</strong></p>
-            <a href="{{ survey_url }}" style="display: inline-block; background: #3b82f6; color: #fff; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: bold;">설문 참여하기</a>
+
+        {% if interview_purpose %}
+        <div style="background: #ffffff; border-left: 3px solid #3b82f6; padding: 16px 20px; margin: 0 0 24px;">
+            <p style="margin: 0 0 6px; color: #3b82f6; font-size: 12px; font-weight: bold; letter-spacing: .5px;">
+                이번 인터뷰의 목적
+            </p>
+            <p style="margin: 0; color: #444; font-size: 14px; line-height: 1.7; white-space: pre-wrap;">{{ interview_purpose }}</p>
         </div>
-        <p style="color: #999; font-size: 13px;">본 설문 링크는 일회용이며 마감일 이후에는 접속이 불가합니다.</p>
+        {% endif %}
+
+        <div style="background: #ffffff; border-radius: 8px; padding: 24px; margin: 0 0 24px; border: 1px solid #e0e0e0;">
+            <div style="margin: 0 0 16px;">
+                <p style="margin: 0 0 4px; color: #666; font-size: 13px;">접속 비밀번호</p>
+                <p style="margin: 0; font-size: 22px; font-weight: bold; letter-spacing: 4px; font-family: 'SF Mono', Menlo, monospace; color: #1a1a2e;">
+                    {{ password }}
+                </p>
+            </div>
+            <div style="margin: 0 0 20px;">
+                <p style="margin: 0 0 4px; color: #666; font-size: 13px;">마감일</p>
+                <p style="margin: 0; color: #1a1a2e; font-size: 14px;">{{ expires_at }} 까지</p>
+            </div>
+            <a href="{{ survey_url }}"
+               style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+                설문 참여하기
+            </a>
+        </div>
+
+        <p style="color: #999; font-size: 13px; margin: 0 0 6px;">
+            • 위 링크로 접속한 뒤 비밀번호를 입력하시면 설문이 시작됩니다.
+        </p>
+        <p style="color: #999; font-size: 13px; margin: 0 0 6px;">
+            • 링크는 본인 전용 일회용 링크이며, 마감일 이후에는 접속이 불가합니다.
+        </p>
+        <p style="color: #999; font-size: 13px; margin: 0;">
+            • 답변 중 잠시 멈추어도 부분 저장이 지원됩니다.
+        </p>
     </div>
 </body>
 </html>

@@ -34,6 +34,8 @@ class SurveyInvitation(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='invitations')
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     password_hash = models.CharField(max_length=128)
+    # 평문 — 메일 본문 / 배포 페이지 노출용. 응답 완료 시 빈 문자열로 폐기되어 노출 윈도우를 최소화.
+    password_plain = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     expires_at = models.DateTimeField()
     sent_at = models.DateTimeField(null=True, blank=True)

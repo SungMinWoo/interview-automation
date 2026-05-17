@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Loader2,
@@ -10,14 +10,18 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
+  Users as UsersIcon,
+  GitMerge,
 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
 import { RoleBanner } from '@/components/common';
-import { useResponses, useResponse, useCloseCollection } from '@/hooks/useResponses';
+import { useResponses, useResponse, useCloseCollection, useEmployeeDrafts } from '@/hooks/useResponses';
 import { useEmployees, useInvitations } from '@/hooks/useDistribution';
 import { formatDateTime } from '@/utils/formatters';
 import toast from 'react-hot-toast';
+
+type ResponseTab = 'online' | 'in_person';
 
 const INV_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: '대기', color: 'bg-surface-hover text-content-secondary' },
@@ -39,6 +43,14 @@ export default function ResponsesPage() {
   const { canEdit, myRole, isSiteAdmin } = useMyRole(id);
   const [selectedResponseId, setSelectedResponseId] = useState<number | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: ResponseTab = searchParams.get('tab') === 'in_person' ? 'in_person' : 'online';
+  const setActiveTab = (tab: ResponseTab) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'online') next.delete('tab');
+    else next.set('tab', tab);
+    setSearchParams(next, { replace: true });
+  };
 
   // Map invitations and responses by employee id
   const invByEmployee: Record<number, { status: string; completed_at?: string | null }> = {};
@@ -114,8 +126,33 @@ export default function ResponsesPage() {
         <p className="mt-1 text-right text-xs text-content-tertiary">{Math.round(progressPercent)}%</p>
       </div>
 
-      {/* Employee Response Grid */}
-      {isLoading ? (
+      {/* Sub Tabs */}
+      <div className="border-b border-line">
+        <div className="flex">
+          {([
+            { value: 'online', label: '온라인 응답' },
+            { value: 'in_person', label: '대면 인터뷰' },
+          ] as const).map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setActiveTab(t.value)}
+              className={`relative px-5 py-3 text-sm font-medium transition-colors ${
+                activeTab === t.value
+                  ? 'text-content-primary'
+                  : 'text-content-muted hover:text-content-secondary'
+              }`}
+            >
+              {t.label}
+              {activeTab === t.value && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-content-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Employee Response Grid — 온라인 응답 탭 */}
+      {activeTab === 'online' && (isLoading ? (
         <div className="flex h-40 items-center justify-center text-content-tertiary">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           로딩 중...
@@ -184,6 +221,11 @@ export default function ResponsesPage() {
             );
           })}
         </div>
+      ))}
+
+      {/* 대면 인터뷰 탭 */}
+      {activeTab === 'in_person' && id && (
+        <InPersonInterviewSection projectId={id} canEdit={canEdit} />
       )}
 
       {/* Response Detail Drawer */}
@@ -271,6 +313,112 @@ function ResponseDetailDrawer({
           <p className="text-sm text-content-tertiary">응답 데이터를 불러올 수 없습니다.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── 대면 인터뷰 탭 ───
+
+function InPersonInterviewSection({ projectId, canEdit }: { projectId: number; canEdit: boolean }) {
+  const { data: employees = [] } = useEmployees(projectId);
+
+  if (employees.length === 0) {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center border-2 border-dashed border-line">
+        <UsersIcon className="mb-2 h-8 w-8 text-content-muted" />
+        <p className="text-sm text-content-tertiary">등록된 직원이 없습니다. 배포 페이지에서 직원을 먼저 추가해주세요.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="border border-line bg-surface-secondary p-4 text-xs leading-relaxed text-content-tertiary">
+        같은 인터뷰이에 대해 멤버 여러 명이 각자 메모를 작성한 뒤, "머지" 단계에서 최종 답변 하나로 합쳐 공식 응답으로 저장합니다.
+        머지된 응답이 AI 취합 입력으로 사용됩니다.
+      </div>
+
+      {employees.map((emp) => (
+        <InPersonEmployeeCard
+          key={emp.id}
+          projectId={projectId}
+          employee={emp}
+          canEdit={canEdit}
+        />
+      ))}
+    </div>
+  );
+}
+
+function InPersonEmployeeCard({
+  projectId,
+  employee,
+  canEdit,
+}: {
+  projectId: number;
+  employee: { id: number; name: string; position?: string; department?: string };
+  canEdit: boolean;
+}) {
+  const { data: summary, isLoading } = useEmployeeDrafts(projectId, employee.id);
+  const drafts = summary?.drafts ?? [];
+  const isMerged = !!summary?.merged_response_id;
+
+  return (
+    <div className="border border-line bg-surface-secondary p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-content-primary">{employee.name}</p>
+          <p className="text-xs text-content-tertiary">
+            {[employee.department, employee.position].filter(Boolean).join(' · ') || ''}
+          </p>
+        </div>
+        {isMerged && (
+          <span className="inline-flex items-center gap-1 bg-success-bg px-2 py-0.5 text-xs font-medium text-success">
+            <CheckCircle2 className="h-3 w-3" />
+            머지 완료
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <p className="text-xs text-content-tertiary">로딩 중...</p>
+      ) : drafts.length === 0 ? (
+        <p className="mb-3 text-xs text-content-tertiary">아직 작성된 메모가 없습니다.</p>
+      ) : (
+        <ul className="mb-3 space-y-1">
+          {drafts.map((d) => (
+            <li key={d.id} className="flex items-center justify-between text-xs">
+              <span className="text-content-secondary">
+                {d.author_name || `User ${d.author}`}
+              </span>
+              <span className="text-content-tertiary">
+                {d.is_submitted ? `완료 · ${formatDateTime(d.submitted_at!)}` : `작성 중 · ${d.answer_count}개 답변`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canEdit && (
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/projects/${projectId}/responses/draft/${employee.id}`}
+            className="inline-flex items-center gap-1 border border-line px-2.5 py-1 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+          >
+            <PenLine className="h-3 w-3" />
+            내 메모 작성
+          </Link>
+          {drafts.some((d) => d.is_submitted) && (
+            <Link
+              to={`/projects/${projectId}/responses/merge/${employee.id}`}
+              className="inline-flex items-center gap-1 bg-accent px-2.5 py-1 text-xs font-medium text-accent-text hover:bg-accent-hover"
+            >
+              <GitMerge className="h-3 w-3" />
+              {isMerged ? '머지 다시하기' : '머지하기'}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }

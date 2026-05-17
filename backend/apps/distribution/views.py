@@ -30,6 +30,13 @@ from .serializers import (
 import uuid
 
 
+def _generate_survey_password() -> tuple[str, str]:
+    """랜덤 4자리 숫자 비밀번호와 bcrypt 해시를 반환."""
+    plain = ''.join(str(random.randint(0, 9)) for _ in range(4))
+    hashed = bcrypt.hashpw(plain.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return plain, hashed
+
+
 # ──────────────────────────────────────────────
 # Employee views (project-nested, auth required)
 # ──────────────────────────────────────────────
@@ -117,16 +124,12 @@ class GenerateInvitationsView(APIView):
 
         with transaction.atomic():
             for employee in employees:
-                # Hash last 4 digits of phone as password (or random 4-digit if phone unavailable)
-                last4 = employee.phone[-4:] if len(employee.phone) >= 4 else str(random.randint(1000, 9999))
-                password_hash = bcrypt.hashpw(
-                    last4.encode('utf-8'), bcrypt.gensalt(),
-                ).decode('utf-8')
-
+                plain, password_hash = _generate_survey_password()
                 invitation = SurveyInvitation.objects.create(
                     employee=employee,
                     project=project,
                     password_hash=password_hash,
+                    password_plain=plain,
                     expires_at=expires_at,
                 )
                 created.append(invitation)
@@ -171,15 +174,13 @@ class RegenerateInvitationView(APIView):
         expiry_days = getattr(settings, 'SURVEY_URL_EXPIRY_DAYS', 7)
         expires_at = timezone.now() + timedelta(days=expiry_days)
 
-        last4 = employee.phone[-4:] if len(employee.phone) >= 4 else str(random.randint(1000, 9999))
-        password_hash = bcrypt.hashpw(
-            last4.encode('utf-8'), bcrypt.gensalt(),
-        ).decode('utf-8')
+        plain, password_hash = _generate_survey_password()
 
         invitation = SurveyInvitation.objects.create(
             employee=employee,
             project=project,
             password_hash=password_hash,
+            password_plain=plain,
             expires_at=expires_at,
         )
 
@@ -321,11 +322,14 @@ class SurveyInfoView(APIView):
 
     def get(self, request, token):
         invitation = _get_invitation_by_token(token)
+        # 메일과 동일한 prefix 제거 처리를 거쳐 일관된 제목을 노출
+        from services.email_service import _clean_project_title
         data = SurveyInfoSerializer({
-            'project_title': invitation.project.title,
+            'project_title': _clean_project_title(invitation.project.title),
             'employee_name': invitation.employee.name,
             'status': invitation.status,
             'is_expired': invitation.is_expired,
+            'interview_purpose': invitation.project.interview_purpose or '',
         }).data
         return Response(data)
 
@@ -487,7 +491,9 @@ class SurveySubmitView(APIView):
 
             invitation.status = SurveyInvitation.Status.COMPLETED
             invitation.completed_at = timezone.now()
-            invitation.save(update_fields=['status', 'completed_at'])
+            # 응답 완료 이후엔 평문 비밀번호가 더 이상 필요 없으므로 폐기 (해시는 유지).
+            invitation.password_plain = ''
+            invitation.save(update_fields=['status', 'completed_at', 'password_plain'])
 
         return Response({'detail': 'Survey submitted successfully.'})
 

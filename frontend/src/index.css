@@ -7,6 +7,27 @@
     overflow-wrap: break-word;
     word-break: break-word;
   }
+
+  /* ──────────────────────────────────────────────
+   * 글로벌 radius 3px — sharp edge 디자인을 살짝 부드럽게.
+   * Tailwind 유틸리티(rounded-none, rounded-full 등)는 utilities layer에서
+   * 이걸 덮어쓸 수 있으므로 명시한 곳은 그대로 동작함.
+   * ────────────────────────────────────────────── */
+  button,
+  textarea,
+  select {
+    border-radius: 3px;
+  }
+
+  /* 체크박스/라디오는 브라우저 기본을 유지 */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']) {
+    border-radius: 3px;
+  }
+
+  /* Tailwind .border (모든 사이드 1px) 가진 카드/박스 */
+  .border {
+    border-radius: 3px;
+  }
   /* ========== DARK (default) ========== */
   :root {
     --bg-primary: #1a1919;

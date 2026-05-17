@@ -55,6 +55,8 @@ export interface Invitation {
   completed_at?: string | null;
   is_manual_entry: boolean;
   is_expired: boolean;
+  /** 응답 완료 전까지 노출되는 평문 비밀번호. 완료 후엔 빈 문자열. */
+  password_plain?: string;
   created_at: string;
 }
 

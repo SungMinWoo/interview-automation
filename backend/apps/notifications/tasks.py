@@ -3,8 +3,13 @@ from celery import shared_task
 
 @shared_task
 def create_project_notifications(project_id, event_type, title, message='',
-                                  detail=None, exclude_user_id=None, actor_id=None):
-    """비동기 알림 생성 — 요청-응답 사이클 차단 방지."""
+                                  detail=None, exclude_user_id=None, actor_id=None,
+                                  recipient_user_ids=None):
+    """비동기 알림 생성 — 요청-응답 사이클 차단 방지.
+
+    recipient_user_ids 지정 시 해당 user id 리스트에 속한 멤버에게만 발송.
+    미지정 시 프로젝트 전체 멤버에게 발송 (기존 동작).
+    """
     from django.contrib.auth import get_user_model
     from apps.projects.models import Project
     from .services import notify_project_members
@@ -27,4 +32,5 @@ def create_project_notifications(project_id, event_type, title, message='',
         detail=detail,
         exclude_user=exclude_user,
         actor=actor,
+        recipient_user_ids=recipient_user_ids,
     )

@@ -35,6 +35,17 @@ export const updateQuestionnaire = async (
   return response.data;
 };
 
+export const setQuestionnaireReviewer = async (
+  projectId: number,
+  reviewerId: number | null,
+): Promise<Questionnaire> => {
+  const response = await apiClient.patch<Questionnaire>(
+    `/projects/${projectId}/questionnaire/reviewer/`,
+    { reviewer_id: reviewerId },
+  );
+  return response.data;
+};
+
 // Questions
 export const getQuestions = async (projectId: number): Promise<Question[]> => {
   const response = await apiClient.get<Question[]>(

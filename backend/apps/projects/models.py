@@ -29,6 +29,8 @@ class Project(models.Model):
     client_contact_email = models.EmailField(blank=True)
     client_contact_phone = models.CharField(max_length=20, blank=True)
     requirements_text = models.TextField()
+    # 인터뷰 참여자에게 메일·설문 페이지에서 보여줄 인사말/목적 문구. 멤버가 직접 작성.
+    interview_purpose = models.TextField(blank=True, help_text='메일 및 설문 페이지 상단에 표시될 인터뷰 안내문')
     existing_site_url = models.URLField(blank=True, null=True)
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.CREATED)
     created_at = models.DateTimeField(auto_now_add=True)

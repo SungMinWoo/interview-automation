@@ -25,6 +25,13 @@ def get_user_questionnaire(request, project_id):
     return get_object_or_404(Questionnaire, project=project)
 
 
+def mark_draft_by_if_unset(questionnaire, user):
+    """편집을 시작한 첫 멤버를 draft_by로 자동 기록 (한 번만)."""
+    if not questionnaire.draft_by_id and user and user.is_authenticated:
+        questionnaire.draft_by = user
+        questionnaire.save(update_fields=['draft_by', 'updated_at'])
+
+
 class GenerateQuestionnaireView(APIView):
     """POST - Trigger AI generation of a questionnaire."""
 
@@ -87,8 +94,11 @@ class QuestionnaireConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from django.utils import timezone
         questionnaire.status = Questionnaire.Status.CONFIRMED
-        questionnaire.save(update_fields=['status', 'updated_at'])
+        questionnaire.confirmed_by = request.user
+        questionnaire.confirmed_at = timezone.now()
+        questionnaire.save(update_fields=['status', 'confirmed_by', 'confirmed_at', 'updated_at'])
 
         # Advance project status to distributing
         project = questionnaire.project
@@ -106,6 +116,58 @@ class QuestionnaireConfirmView(APIView):
             exclude_user_id=request.user.id,
             actor_id=request.user.id,
         )
+
+        return Response(QuestionnaireSerializer(questionnaire).data)
+
+
+class SetQuestionnaireReviewerView(APIView):
+    """PATCH - 검토자 지정/해제. body: {reviewer_id: int | null}"""
+
+    permission_classes = [permissions.IsAuthenticated, IsProjectEditor]
+
+    def patch(self, request, project_id):
+        questionnaire = get_user_questionnaire(request, project_id)
+        if questionnaire.status == Questionnaire.Status.CONFIRMED:
+            return Response(
+                {'detail': '확정된 질문지의 검토자는 변경할 수 없습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reviewer_id = request.data.get('reviewer_id')
+        previous_reviewer_id = questionnaire.reviewer_id
+
+        if reviewer_id is None:
+            questionnaire.reviewer = None
+        else:
+            # 멤버인지 검증
+            from apps.projects.models import ProjectMember
+            if not ProjectMember.objects.filter(
+                project_id=project_id, user_id=reviewer_id,
+            ).exists():
+                return Response(
+                    {'detail': '프로젝트 멤버가 아닌 사용자입니다.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            questionnaire.reviewer = User.objects.get(pk=reviewer_id)
+
+        questionnaire.save(update_fields=['reviewer', 'updated_at'])
+
+        # 새로 지정된 경우 + 본인이 아닌 경우에만 알림
+        if (
+            reviewer_id is not None
+            and reviewer_id != previous_reviewer_id
+            and reviewer_id != request.user.id
+        ):
+            from apps.notifications.tasks import create_project_notifications
+            create_project_notifications.delay(
+                project_id=project_id,
+                event_type='questionnaire_ready',
+                title=f'{questionnaire.project.title} — 질문지를 검토해 주세요',
+                recipient_user_ids=[reviewer_id],
+                actor_id=request.user.id,
+            )
 
         return Response(QuestionnaireSerializer(questionnaire).data)
 
@@ -131,6 +193,8 @@ class QuestionnaireDetailView(APIView):
 
     def patch(self, request, project_id):
         questionnaire = get_user_questionnaire(request, project_id)
+        if questionnaire.status != Questionnaire.Status.CONFIRMED:
+            mark_draft_by_if_unset(questionnaire, request.user)
         serializer = QuestionnaireSerializer(
             questionnaire, data=request.data, partial=True,
         )
@@ -154,6 +218,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         if questionnaire.status == Questionnaire.Status.CONFIRMED:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('질문지가 확정되어 수정할 수 없습니다.')
+        mark_draft_by_if_unset(questionnaire, self.request.user)
         return questionnaire
 
     def get_queryset(self):
@@ -226,6 +291,7 @@ class QuestionSectionViewSet(viewsets.ModelViewSet):
         if questionnaire.status == Questionnaire.Status.CONFIRMED:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('질문지가 확정되어 수정할 수 없습니다.')
+        mark_draft_by_if_unset(questionnaire, self.request.user)
         return questionnaire
 
     def get_queryset(self):

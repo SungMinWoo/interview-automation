@@ -68,6 +68,22 @@ export function useConfirmQuestionnaire() {
   });
 }
 
+export function useSetQuestionnaireReviewer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, reviewerId }: { projectId: number; reviewerId: number | null }) => {
+      const res = await apiClient.patch<Questionnaire>(
+        `/projects/${projectId}/questionnaire/reviewer/`,
+        { reviewer_id: reviewerId },
+      );
+      return res.data;
+    },
+    onSuccess: (_data, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: questionnaireKey(projectId) });
+    },
+  });
+}
+
 export function useUpdateQuestion() {
   const queryClient = useQueryClient();
   return useMutation({

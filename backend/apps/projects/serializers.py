@@ -107,9 +107,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'project_type', 'title', 'client_name', 'client_contact_email',
-            'client_contact_phone', 'requirements_text', 'existing_site_url',
-            'status', 'reference_sites', 'departments', 'positions', 'files',
-            'created_at', 'updated_at',
+            'client_contact_phone', 'requirements_text', 'interview_purpose',
+            'existing_site_url', 'status', 'reference_sites', 'departments',
+            'positions', 'files', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
@@ -123,8 +123,8 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'project_type', 'title', 'client_name', 'client_contact_email',
-            'client_contact_phone', 'requirements_text', 'existing_site_url',
-            'reference_sites', 'departments', 'positions',
+            'client_contact_phone', 'requirements_text', 'interview_purpose',
+            'existing_site_url', 'reference_sites', 'departments', 'positions',
         ]
         read_only_fields = ['id']
 
@@ -150,7 +150,8 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'project_type', 'title', 'client_name', 'client_contact_email',
-            'client_contact_phone', 'requirements_text', 'existing_site_url',
+            'client_contact_phone', 'requirements_text', 'interview_purpose',
+            'existing_site_url',
         ]
         read_only_fields = ['id']
 

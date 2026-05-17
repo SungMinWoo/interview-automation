@@ -116,6 +116,14 @@ export interface Questionnaire {
   categories: PositionCategory[];
   questions: Question[];
   isGenerated: boolean;
+  // 협업 메타데이터
+  draft_by?: number | null;
+  draft_by_name?: string | null;
+  reviewer?: number | null;
+  reviewer_name?: string | null;
+  confirmed_by?: number | null;
+  confirmed_by_name?: string | null;
+  confirmed_at?: string | null;
   createdAt: string;
   updatedAt: string;
 }

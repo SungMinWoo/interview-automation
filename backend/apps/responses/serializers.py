@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SurveyResponse, Answer
+from .models import SurveyResponse, Answer, ManualEntryDraft, ManualEntryDraftAnswer
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -70,3 +70,63 @@ class ManualEntrySubmitSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("At least one answer is required.")
         return value
+
+
+# ── 대면 인터뷰 멤버별 draft ──
+
+class ManualEntryDraftAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ManualEntryDraftAnswer
+        fields = ['question', 'text_value', 'choice_values', 'rating_value', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
+class ManualEntryDraftSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    employee_name = serializers.CharField(source='employee.name', read_only=True)
+    answers = ManualEntryDraftAnswerSerializer(many=True, read_only=True)
+    answer_count = serializers.IntegerField(source='answers.count', read_only=True)
+
+    class Meta:
+        model = ManualEntryDraft
+        fields = [
+            'id', 'project', 'employee', 'employee_name', 'author', 'author_name',
+            'is_submitted', 'submitted_at', 'answers', 'answer_count',
+            'started_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'project', 'employee', 'author', 'author_name',
+            'submitted_at', 'answers', 'answer_count', 'started_at', 'updated_at',
+        ]
+
+    def get_author_name(self, obj):
+        u = obj.author
+        if not u:
+            return None
+        return u.first_name or u.username or u.email
+
+
+class ManualEntryDraftListSerializer(serializers.ModelSerializer):
+    """answers 인라인 X, 카운트만 — 한 인터뷰이 화면에서 draft 목록을 가볍게 보일 때 사용."""
+    author_name = serializers.SerializerMethodField()
+    answer_count = serializers.IntegerField(source='answers.count', read_only=True)
+
+    class Meta:
+        model = ManualEntryDraft
+        fields = [
+            'id', 'project', 'employee', 'author', 'author_name',
+            'is_submitted', 'submitted_at', 'answer_count',
+            'started_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+    def get_author_name(self, obj):
+        u = obj.author
+        if not u:
+            return None
+        return u.first_name or u.username or u.email
+
+
+class ManualEntryMergeSerializer(serializers.Serializer):
+    """머지 시 최종 답변 입력. 기존 ManualEntryAnswerSerializer 재사용."""
+    answers = ManualEntryAnswerSerializer(many=True)

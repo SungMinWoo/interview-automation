@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -14,12 +14,15 @@ import {
   Clock,
   AlertCircle,
   Eye,
+  EyeOff,
+  KeyRound,
+  Pencil,
   RefreshCw,
   User,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useProject } from '@/hooks/useProjects';
+import { useProject, useUpdateProject } from '@/hooks/useProjects';
 import { useMyRole } from '@/hooks/useMembers';
 import { RoleBanner } from '@/components/common';
 import { useQuestionnaire } from '@/hooks/useQuestionnaire';
@@ -80,7 +83,98 @@ export default function DistributionPage() {
       {myRole === 'viewer' && <RoleBanner role="viewer" />}
       {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
 
+      {id && <InterviewPurposeCard projectId={id} initialValue={project?.interview_purpose ?? ''} />}
+
       {id && <EmployeeSection projectId={id} />}
+    </div>
+  );
+}
+
+const PURPOSE_PLACEHOLDER = `예시) 이번 인터뷰는 프로젝트의 방향을 함께 설계해 나가기 위한 출발점입니다.
+말씀해주시는 의견을 소중히 듣고, 이번 과제를 의미 있게 이끌어가고자 합니다.
+부담 없이 편하게 생각을 나눠주시면 감사하겠습니다.`;
+
+function InterviewPurposeCard({ projectId, initialValue }: { projectId: number; initialValue: string }) {
+  const { canEdit } = useMyRole(projectId);
+  const updateProject = useUpdateProject();
+  const [value, setValue] = useState(initialValue);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // initialValue가 외부에서 늦게 들어올 때 동기화
+  useEffect(() => {
+    if (!isEditing) setValue(initialValue);
+  }, [initialValue, isEditing]);
+
+  const handleSave = async () => {
+    try {
+      await updateProject.mutateAsync({ id: projectId, data: { interview_purpose: value } });
+      setIsEditing(false);
+      toast.success('인터뷰 목적이 저장되었습니다.');
+    } catch {
+      toast.error('저장에 실패했습니다.');
+    }
+  };
+
+  const handleCancel = () => {
+    setValue(initialValue);
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="border border-line bg-surface-secondary p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-content-primary">인터뷰 목적 / 안내문</h2>
+          <p className="mt-0.5 text-xs text-content-tertiary">
+            메일과 설문 시작 페이지 상단에 노출됩니다. 참여자에게 인터뷰의 취지를 전달하세요.
+          </p>
+        </div>
+        {canEdit && !isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="inline-flex items-center gap-1 border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {initialValue ? '수정' : '작성'}
+          </button>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={5}
+            placeholder={PURPOSE_PLACEHOLDER}
+            className="w-full border border-line bg-surface-input px-3 py-2 text-sm leading-relaxed text-content-primary placeholder-content-muted focus:border-line-focus focus:outline-none focus:ring-2 focus:ring-line-focus/20"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={handleCancel}
+              className="border border-line px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-surface-hover"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={updateProject.isPending}
+              className="inline-flex items-center gap-1 bg-accent px-3 py-1.5 text-xs font-medium text-accent-text hover:bg-accent-hover disabled:opacity-50"
+            >
+              {updateProject.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+              저장
+            </button>
+          </div>
+        </div>
+      ) : initialValue ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-content-secondary">{initialValue}</p>
+      ) : (
+        <p className="text-sm text-content-tertiary">
+          {canEdit
+            ? '아직 작성된 인터뷰 목적이 없습니다. 위 "작성" 버튼을 눌러 입력해주세요.'
+            : '아직 작성된 인터뷰 목적이 없습니다.'}
+        </p>
+      )}
     </div>
   );
 }
@@ -281,9 +375,7 @@ function EmployeeSection({ projectId }: { projectId: number }) {
                 {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-content-secondary">
-                  전화번호 <span className="text-xs text-content-tertiary">(뒷4자리가 설문 비밀번호)</span>
-                </label>
+                <label className="mb-1 block text-sm font-medium text-content-secondary">전화번호</label>
                 <input type="text" className={inputClass} placeholder="010-1234-5678" {...register('phone')} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -360,6 +452,7 @@ function EmployeeCard({
 }) {
   const generateInvitations = useGenerateInvitations();
   const statusCfg = invitation ? STATUS_CONFIG[invitation.is_expired && invitation.status !== 'completed' ? 'expired' : invitation.status] || STATUS_CONFIG.pending : null;
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGenerateForOne = async () => {
     try {
@@ -388,9 +481,7 @@ function EmployeeCard({
           </div>
           <p className="mt-0.5 text-xs text-content-tertiary">{employee.email}</p>
           {employee.phone && (
-            <p className="text-xs text-content-tertiary">
-              {employee.phone} <span className="text-content-muted">· 비밀번호: 뒷4자리</span>
-            </p>
+            <p className="text-xs text-content-tertiary">{employee.phone}</p>
           )}
         </div>
 
@@ -428,6 +519,31 @@ function EmployeeCard({
                   <Copy className="h-3.5 w-3.5" />
                 </button>
               </div>
+              {invitation.password_plain && invitation.status !== 'completed' && (
+                <div className="mt-1 flex items-center gap-2">
+                  <KeyRound className="h-3.5 w-3.5 flex-shrink-0 text-content-tertiary" />
+                  <span className="text-[11px] text-content-tertiary">비밀번호</span>
+                  <code className="font-mono text-xs tracking-widest text-content-secondary select-all">
+                    {showPassword ? invitation.password_plain : '••••'}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="flex-shrink-0 text-content-tertiary hover:text-accent"
+                    title={showPassword ? '숨기기' : '보기'}
+                  >
+                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(invitation.password_plain!)}
+                    className="flex-shrink-0 text-content-tertiary hover:text-accent"
+                    title="비밀번호 복사"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-content-tertiary">
                 {invitation.expires_at && (
                   <span className={invitation.is_expired ? 'text-danger' : ''}>

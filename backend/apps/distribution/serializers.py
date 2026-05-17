@@ -35,7 +35,7 @@ class SurveyInvitationSerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'employee_email',
             'employee_position', 'token', 'status', 'expires_at',
             'sent_at', 'opened_at', 'completed_at', 'is_manual_entry',
-            'is_expired', 'survey_url', 'created_at',
+            'is_expired', 'survey_url', 'password_plain', 'created_at',
         ]
 
     def get_survey_url(self, obj):
@@ -49,6 +49,7 @@ class SurveyInfoSerializer(serializers.Serializer):
     employee_name = serializers.CharField()
     status = serializers.CharField()
     is_expired = serializers.BooleanField()
+    interview_purpose = serializers.CharField(allow_blank=True, required=False)
 
 
 class SurveyVerifySerializer(serializers.Serializer):

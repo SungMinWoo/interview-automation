@@ -29,7 +29,8 @@ const STATUS_FILTERS: Array<{ value: ProjectStatus | 'all'; label: string }> = [
 
 const TABS: Array<{ value: ProjectType; label: string; desc: string }> = [
   { value: 'uxui', label: 'UX/UI', desc: '웹사이트/앱 디자인 프로젝트' },
-  { value: 'bx', label: 'BX', desc: '브랜드 전략 프로젝트' },
+  // BX는 추후 활성화 예정 — 현재는 숨김
+  // { value: 'bx', label: 'BX', desc: '브랜드 전략 프로젝트' },
 ];
 
 export default function ProjectListPage() {

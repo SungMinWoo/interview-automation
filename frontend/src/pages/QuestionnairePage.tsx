@@ -35,7 +35,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProject } from '@/hooks/useProjects';
-import { useMyRole } from '@/hooks/useMembers';
+import { useMyRole, useMembers } from '@/hooks/useMembers';
 import { useDepartments, usePositions } from '@/hooks/useProjectStructure';
 import {
   useQuestionnaire,
@@ -51,6 +51,7 @@ import {
   useGenerateSectionQuestions,
   useQuestionnaireTemplates,
   useImportQuestionnaire,
+  useSetQuestionnaireReviewer,
 } from '@/hooks/useQuestionnaire';
 import { AiProviderSelect, RoleBanner } from '@/components/common';
 import {
@@ -838,6 +839,15 @@ export default function QuestionnairePage() {
       {myRole === 'viewer' && <RoleBanner role="viewer" />}
       {!myRole && isSiteAdmin && <RoleBanner role={null} isSiteAdmin />}
 
+      {/* 협업 메타 — 초안/검토자/확정자 표시 */}
+      {questionnaire && id && (totalQuestions > 0 || sections.length > 0) && (
+        <CollabMetaCard
+          projectId={id}
+          questionnaire={questionnaire}
+          canEdit={canEdit && !isConfirmed}
+        />
+      )}
+
       {/* Processing State */}
       {isProcessing && (
         <div className="flex flex-col items-center justify-center border border-line bg-surface-hover py-12">
@@ -1374,6 +1384,78 @@ export default function QuestionnairePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CollabMetaCard({
+  projectId,
+  questionnaire,
+  canEdit,
+}: {
+  projectId: number;
+  questionnaire: {
+    draft_by_name?: string | null;
+    reviewer?: number | null;
+    reviewer_name?: string | null;
+    confirmed_by_name?: string | null;
+    confirmed_at?: string | null;
+  };
+  canEdit: boolean;
+}) {
+  const { data: members = [] } = useMembers(projectId);
+  const setReviewer = useSetQuestionnaireReviewer();
+
+  const handleChange = async (value: string) => {
+    const reviewerId = value === '' ? null : Number(value);
+    try {
+      await setReviewer.mutateAsync({ projectId, reviewerId });
+      toast.success(reviewerId === null ? '검토자가 해제되었습니다.' : '검토자가 지정되었습니다.');
+    } catch {
+      toast.error('검토자 변경에 실패했습니다.');
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border border-line bg-surface-secondary px-4 py-3 text-xs">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-content-tertiary">초안</span>
+        <span className="font-medium text-content-secondary">
+          {questionnaire.draft_by_name || '—'}
+        </span>
+      </span>
+
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-content-tertiary">검토자</span>
+        {canEdit ? (
+          <select
+            value={questionnaire.reviewer ?? ''}
+            onChange={(e) => handleChange(e.target.value)}
+            disabled={setReviewer.isPending}
+            className="border border-line bg-surface-input px-2 py-0.5 text-xs text-content-primary disabled:opacity-50"
+          >
+            <option value="">지정 안 함</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.user}>
+                {m.user_name || m.user_email}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="font-medium text-content-secondary">
+            {questionnaire.reviewer_name || '—'}
+          </span>
+        )}
+      </span>
+
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-content-tertiary">확정</span>
+        <span className="font-medium text-content-secondary">
+          {questionnaire.confirmed_by_name
+            ? `${questionnaire.confirmed_by_name}${questionnaire.confirmed_at ? ` · ${new Date(questionnaire.confirmed_at).toLocaleDateString('ko-KR')}` : ''}`
+            : '미정'}
+        </span>
+      </span>
     </div>
   );
 }

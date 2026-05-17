@@ -6,7 +6,13 @@ const config: Config = {
   theme: {
     borderRadius: {
       none: '0',
-      DEFAULT: '0',
+      DEFAULT: '3px',
+      sm: '3px',
+      md: '3px',
+      lg: '3px',
+      xl: '3px',
+      '2xl': '3px',
+      '3xl': '3px',
       full: '9999px', // only for dots/avatars
     },
     extend: {
