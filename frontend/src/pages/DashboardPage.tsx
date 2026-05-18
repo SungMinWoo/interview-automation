@@ -36,7 +36,7 @@ export default function DashboardPage() {
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold text-content-primary">
-          안녕하세요, {user?.username ?? '사용자'}님
+          안녕하세요, {user?.first_name?.trim() || user?.username || '사용자'}님
         </h1>
         <p className="mt-1 text-content-tertiary">
           {totalProjects === 0
