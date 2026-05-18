@@ -56,7 +56,7 @@ class EmailService:
             text_content = strip_tags(html_content)
 
             send_mail(
-                subject=f'[{cleaned_title}] 인터뷰 설문 요청',
+                subject=f'[산더미 컴퍼니] [{cleaned_title}] 인터뷰 설문 요청',
                 message=text_content,
                 html_message=html_content,
                 from_email=settings.DEFAULT_FROM_EMAIL,

@@ -11,21 +11,39 @@ import {
 import { formatDate } from '@/utils/formatters';
 import type { ProjectStatus, ProjectType } from '@/types/project';
 
-const STATUS_FILTERS: Array<{ value: ProjectStatus | 'all'; label: string }> = [
-  { value: 'all', label: '전체' },
-  { value: 'created', label: '생성됨' },
-  { value: 'analyzing', label: '분석 중' },
-  { value: 'analysis_ready', label: '분석 완료' },
-  { value: 'analysis_confirmed', label: '분석 확인됨' },
-  { value: 'questionnaire_ready', label: '질문지 완료' },
-  { value: 'distributing', label: '배포 중' },
-  { value: 'collecting', label: '수집 중' },
-  { value: 'closed', label: '마감됨' },
-  { value: 'aggregating', label: '취합 중' },
-  { value: 'aggregation_ready', label: '취합 완료' },
-  { value: 'brief_ready', label: '브리프 완료' },
-  { value: 'completed', label: '완료' },
+type StatusGroupValue = 'all' | 'analysis' | 'distribution' | 'collection' | 'aggregation' | 'completed';
+
+const STATUS_GROUPS: Array<{ value: StatusGroupValue; label: string; statuses: ProjectStatus[] }> = [
+  { value: 'all', label: '전체', statuses: [] },
+  {
+    value: 'analysis',
+    label: '분석',
+    statuses: ['created', 'analyzing', 'analysis_ready', 'analysis_confirmed'],
+  },
+  {
+    value: 'distribution',
+    label: '질문지·배포',
+    statuses: ['questionnaire_ready', 'distributing'],
+  },
+  {
+    value: 'collection',
+    label: '수집',
+    statuses: ['collecting', 'closed'],
+  },
+  {
+    value: 'aggregation',
+    label: '취합',
+    statuses: ['aggregating', 'aggregation_ready', 'brief_ready'],
+  },
+  {
+    value: 'completed',
+    label: '완료',
+    statuses: ['completed'],
+  },
 ];
+
+// completed는 정렬상 맨 뒤로 — "완료 단계" 프로젝트는 활성 작업이 아니므로 후순위
+const COMPLETED_STATUSES: ProjectStatus[] = ['completed'];
 
 const TABS: Array<{ value: ProjectType; label: string; desc: string }> = [
   { value: 'uxui', label: 'UX/UI', desc: '웹사이트/앱 디자인 프로젝트' },
@@ -44,17 +62,27 @@ export default function ProjectListPage() {
     setSearchParams(next, { replace: true });
   };
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusGroupValue>('all');
   const { data: projects = [], isLoading } = useProjects();
   const tabProjects = projects.filter((p) => (p.project_type || 'uxui') === activeTab);
-  const filtered = tabProjects.filter((p) => {
-    const matchSearch =
-      !search ||
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.client_name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || p.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const activeGroup = STATUS_GROUPS.find((g) => g.value === statusFilter);
+  const filtered = tabProjects
+    .filter((p) => {
+      const matchSearch =
+        !search ||
+        p.title.toLowerCase().includes(search.toLowerCase()) ||
+        p.client_name.toLowerCase().includes(search.toLowerCase());
+      const matchStatus =
+        statusFilter === 'all' || (activeGroup?.statuses.includes(p.status) ?? false);
+      return matchSearch && matchStatus;
+    })
+    .sort((a, b) => {
+      const aDone = COMPLETED_STATUSES.includes(a.status) ? 1 : 0;
+      const bDone = COMPLETED_STATUSES.includes(b.status) ? 1 : 0;
+      if (aDone !== bDone) return aDone - bDone;
+      // 완료 그룹 내부 / 비완료 그룹 내부에서는 최신순 유지
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const uxuiCount = projects.filter((p) => (p.project_type || 'uxui') === 'uxui').length;
   const bxCount = projects.filter((p) => p.project_type === 'bx').length;
@@ -127,17 +155,17 @@ export default function ProjectListPage() {
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {STATUS_FILTERS.map((f) => (
+          {STATUS_GROUPS.map((g) => (
             <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
+              key={g.value}
+              onClick={() => setStatusFilter(g.value)}
               className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                statusFilter === f.value
+                statusFilter === g.value
                   ? 'bg-accent text-accent-text'
                   : 'bg-surface-hover text-content-secondary hover:text-content-primary'
               }`}
             >
-              {f.label}
+              {g.label}
             </button>
           ))}
         </div>
