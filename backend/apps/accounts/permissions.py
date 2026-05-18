@@ -1,3 +1,4 @@
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
@@ -39,11 +40,15 @@ class _ProjectRolePermission(BasePermission):
         if not project_id:
             return True  # list view — get_queryset에서 필터
         from apps.projects.models import ProjectMember
-        return ProjectMember.objects.filter(
+        membership = ProjectMember.objects.filter(
             project_id=project_id,
             user=request.user,
-            role__in=self.allowed_roles,
-        ).exists()
+        ).first()
+        if membership is None:
+            raise PermissionDenied('참여 중인 프로젝트가 아닙니다.')
+        if membership.role not in self.allowed_roles:
+            raise PermissionDenied('이 작업을 수행할 권한이 없습니다.')
+        return True
 
 
 class IsProjectMember(_ProjectRolePermission):
@@ -79,12 +84,16 @@ class _ProjectRolePermissionOrReadOnly(_ProjectRolePermission):
         if not project_id:
             return True
         from apps.projects.models import ProjectMember
-        roles = ['owner', 'admin', 'editor', 'viewer'] if request.method in SAFE_METHODS else self.write_roles
-        return ProjectMember.objects.filter(
+        membership = ProjectMember.objects.filter(
             project_id=project_id,
             user=request.user,
-            role__in=roles,
-        ).exists()
+        ).first()
+        if membership is None:
+            raise PermissionDenied('참여 중인 프로젝트가 아닙니다.')
+        allowed = ['owner', 'admin', 'editor', 'viewer'] if request.method in SAFE_METHODS else self.write_roles
+        if membership.role not in allowed:
+            raise PermissionDenied('이 작업을 수행할 권한이 없습니다.')
+        return True
 
 
 class IsProjectEditorOrReadOnly(_ProjectRolePermissionOrReadOnly):
