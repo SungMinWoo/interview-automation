@@ -171,13 +171,16 @@ class ProjectFileViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError
+        from services.file_extractor import validate_uploaded_file, UploadValidationError
+
         project = self.get_project()
         uploaded_file = self.request.FILES.get('file')
-        if not uploaded_file:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError({'file': 'No file uploaded.'})
+        try:
+            ext = validate_uploaded_file(uploaded_file)
+        except UploadValidationError as e:
+            raise ValidationError({'file': str(e)})
 
-        ext = os.path.splitext(uploaded_file.name)[1].lower()
         instance = serializer.save(
             project=project,
             original_name=uploaded_file.name,

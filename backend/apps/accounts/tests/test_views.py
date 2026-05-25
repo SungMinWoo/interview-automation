@@ -36,39 +36,6 @@ def create_user():
 
 
 @pytest.mark.django_db
-class TestRegisterView:
-    url = reverse('accounts:register')
-
-    def test_register_success(self, api_client, user_data):
-        response = api_client.post(self.url, user_data, format='json')
-        assert response.status_code == status.HTTP_201_CREATED
-        assert 'tokens' in response.data
-        assert 'access' in response.data['tokens']
-        assert 'refresh' in response.data['tokens']
-        assert User.objects.filter(email=user_data['email']).exists()
-
-    def test_register_password_mismatch(self, api_client, user_data):
-        user_data['password_confirm'] = 'DifferentPass123!'
-        response = api_client.post(self.url, user_data, format='json')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_register_duplicate_email(self, api_client, user_data, create_user):
-        create_user()
-        response = api_client.post(self.url, user_data, format='json')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_register_missing_fields(self, api_client):
-        response = api_client.post(self.url, {}, format='json')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_password_is_hashed(self, api_client, user_data):
-        api_client.post(self.url, user_data, format='json')
-        user = User.objects.get(email=user_data['email'])
-        assert user.check_password(user_data['password'])
-        assert user.password != user_data['password']
-
-
-@pytest.mark.django_db
 class TestLoginView:
     url = reverse('accounts:login')
 

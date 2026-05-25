@@ -6,13 +6,13 @@ from django.contrib.auth.models import update_last_login
 from django.db import transaction
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (
     AdminUserSerializer,
     LoginResponseSerializer,
-    RegisterSerializer,
     UserProfileSerializer,
     UserSearchSerializer,
 )
@@ -38,6 +38,8 @@ class LoginView(APIView):
     """Authenticate and return JWT tokens with user info."""
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request):
         email = request.data.get('email')
@@ -70,23 +72,6 @@ class LoginView(APIView):
             )
 
         return Response(_build_login_response(user))
-
-
-class RegisterView(generics.CreateAPIView):
-    """Create a new user account."""
-
-    queryset = User.objects.all()
-    permission_classes = [permissions.AllowAny]
-    serializer_class = RegisterSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(
-            _build_login_response(user),
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class LogoutView(APIView):

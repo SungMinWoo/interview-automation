@@ -221,7 +221,6 @@ export const PROJECT_PHASES = [
 export const API_PATHS = {
   AUTH: {
     LOGIN: '/auth/login/',
-    REGISTER: '/auth/register/',
     LOGOUT: '/auth/logout/',
     ME: '/auth/me/',
     REFRESH: '/auth/token/refresh/',

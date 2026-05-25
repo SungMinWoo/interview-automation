@@ -6,6 +6,52 @@ import os
 logger = logging.getLogger(__name__)
 
 
+# 업로드 허용 확장자 — 프론트엔드 화이트리스트와 동기화
+ALLOWED_UPLOAD_EXTENSIONS = {
+    '.pdf', '.docx', '.doc', '.txt',
+    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp',
+}
+
+# 파일당 최대 크기 (bytes) — 20MB. nginx client_max_body_size와 일치.
+MAX_UPLOAD_SIZE = 20 * 1024 * 1024
+
+
+class UploadValidationError(Exception):
+    """업로드 검증 실패 — 호출자가 ValidationError로 변환해서 클라이언트에 반환."""
+
+
+def validate_uploaded_file(uploaded_file) -> str:
+    """업로드된 파일의 확장자와 크기를 검증. 통과 시 정규화된 소문자 확장자를 반환.
+
+    Args:
+        uploaded_file: Django `UploadedFile` 객체 (request.FILES.get('file') 결과).
+
+    Returns:
+        '.pdf' 형태의 소문자 확장자 문자열.
+
+    Raises:
+        UploadValidationError: 확장자가 화이트리스트 밖이거나 크기 초과.
+    """
+    if not uploaded_file:
+        raise UploadValidationError('파일이 업로드되지 않았습니다.')
+
+    name = uploaded_file.name or ''
+    ext = os.path.splitext(name)[1].lower()
+    if ext not in ALLOWED_UPLOAD_EXTENSIONS:
+        allowed = ', '.join(sorted(ALLOWED_UPLOAD_EXTENSIONS))
+        raise UploadValidationError(
+            f'허용되지 않은 파일 형식입니다: "{ext or name}". 허용: {allowed}'
+        )
+
+    size = getattr(uploaded_file, 'size', 0) or 0
+    if size > MAX_UPLOAD_SIZE:
+        raise UploadValidationError(
+            f'파일 크기가 너무 큽니다. 최대 {MAX_UPLOAD_SIZE // (1024 * 1024)}MB까지 업로드 가능합니다.'
+        )
+
+    return ext
+
+
 def extract_text_from_file(file_path: str, file_type: str = '') -> str:
     """Extract text content from a file.
 

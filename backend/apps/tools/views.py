@@ -7,13 +7,21 @@ from rest_framework.views import APIView
 
 from services.ai_client import get_ai_client, validate_ai_provider
 from services.crawler_service import CrawlerService
-from services.file_extractor import extract_text_from_file
+from services.file_extractor import (
+    extract_text_from_file,
+    validate_uploaded_file,
+    UploadValidationError,
+)
 
 
 class AnalyzeSiteView(APIView):
-    """POST - Crawl a URL and analyze with AI (project-independent)."""
+    """POST - Crawl a URL and analyze with AI (project-independent).
 
-    permission_classes = [permissions.IsAuthenticated]
+    보안: 프로젝트 컨텍스트 없이 AI를 호출하므로 비용 폭주 위험 — 사이트 관리자(is_staff)만 허용.
+    일반 멤버는 프로젝트 nested 분석 엔드포인트를 사용해야 함.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
 
     def post(self, request):
         url = request.data.get('url', '').strip()
@@ -59,18 +67,22 @@ class AnalyzeSiteView(APIView):
 
 
 class AnalyzeFileView(APIView):
-    """POST - Upload a file, extract text, and analyze with AI (project-independent)."""
+    """POST - Upload a file, extract text, and analyze with AI (project-independent).
 
-    permission_classes = [permissions.IsAuthenticated]
+    보안: 임의 텍스트 → AI 입력 토큰 폭탄 위험 — 사이트 관리자(is_staff)만 허용.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
         uploaded_file = request.FILES.get('file')
-        if not uploaded_file:
-            return Response({'detail': '파일을 업로드해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            ext = validate_uploaded_file(uploaded_file)
+        except UploadValidationError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         ai_provider = validate_ai_provider(request.data.get('ai_provider'))
-        ext = os.path.splitext(uploaded_file.name)[1].lower()
 
         # Save to temp file for extraction
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:

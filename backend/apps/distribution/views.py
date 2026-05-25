@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.projects.models import Project
@@ -338,6 +339,8 @@ class SurveyVerifyView(APIView):
     """POST /api/v1/survey/<token>/verify/ - Verify password, return JWT."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'survey_verify'
 
     def post(self, request, token):
         invitation = _get_invitation_by_token(token)

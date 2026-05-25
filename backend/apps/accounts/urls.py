@@ -10,7 +10,7 @@ router = DefaultRouter()
 router.register(r'users/manage', views.AdminUserManageViewSet, basename='manage-user')
 
 urlpatterns = [
-    path('register/', views.RegisterView.as_view(), name='register'),
+    # 외부 회원가입 차단 — 사용자는 사이트 관리자(`AdminUserManageViewSet`) 또는 SSO로만 추가됨.
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),

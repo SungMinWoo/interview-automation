@@ -12,7 +12,7 @@ env = environ.Env(
 )
 environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env'))
 
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='dev-secret-key-change-in-production')
+SECRET_KEY = env('DJANGO_SECRET_KEY')  # env 미설정 시 부팅 실패 — 디폴트로 떨어지지 않도록 강제
 DEBUG = env('DJANGO_DEBUG')
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS')
 
@@ -115,6 +115,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# 업로드 크기 제한 (20MB) — nginx client_max_body_size와 일치.
+# 추가 검증은 services.file_extractor.validate_uploaded_file에서 수행.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # DRF
@@ -132,6 +137,18 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # Rate limiting (per-IP for anonymous, per-user for authenticated).
+    # Scoped views opt in via throttle_classes + throttle_scope.
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/min',          # 비인증 호출 기본 한도 (설문 페이지 등)
+        'user': '300/min',         # 인증 호출 기본 한도 — 정상 사용자 영향 X
+        'login': '10/min',         # 로그인 — brute-force 방어 (IP 기준)
+        'survey_verify': '5/min',  # 설문 비밀번호 검증 — 4자리 숫자 brute-force 방어
+    },
 }
 
 # JWT
