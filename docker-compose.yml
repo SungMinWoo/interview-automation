@@ -33,7 +33,7 @@ services:
              python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
-      - media_data:/app/media
+      - ${MEDIA_HOST_PATH:-./media}:/app/media
     env_file:
       - .env
     environment:
@@ -53,7 +53,7 @@ services:
     command: celery -A config worker -l info -c 4
     volumes:
       - ./backend:/app
-      - media_data:/app/media
+      - ${MEDIA_HOST_PATH:-./media}:/app/media
     env_file:
       - .env
     environment:
@@ -109,7 +109,7 @@ services:
       - backend
       - frontend
     volumes:
-      - media_data:/media:ro
+      - ${MEDIA_HOST_PATH:-./media}:/media:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
 
@@ -121,6 +121,5 @@ services:
 
 volumes:
   postgres_data:
-  media_data:
   certbot_conf:
   certbot_www:
