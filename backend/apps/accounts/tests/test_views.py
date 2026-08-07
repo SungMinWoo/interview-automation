@@ -36,39 +36,6 @@ def create_user():
 
 
 @pytest.mark.django_db
-class TestLoginView:
-    url = reverse('accounts:login')
-
-    def test_login_success(self, api_client, create_user):
-        create_user()
-        response = api_client.post(
-            self.url,
-            {'email': 'test@example.com', 'password': 'StrongPass123!'},
-            format='json',
-        )
-        assert response.status_code == status.HTTP_200_OK
-        assert 'access' in response.data
-        assert 'refresh' in response.data
-
-    def test_login_invalid_credentials(self, api_client, create_user):
-        create_user()
-        response = api_client.post(
-            self.url,
-            {'email': 'test@example.com', 'password': 'WrongPass'},
-            format='json',
-        )
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    def test_login_nonexistent_user(self, api_client):
-        response = api_client.post(
-            self.url,
-            {'email': 'nobody@example.com', 'password': 'SomePass123!'},
-            format='json',
-        )
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-@pytest.mark.django_db
 class TestLogoutView:
     url = reverse('accounts:logout')
 

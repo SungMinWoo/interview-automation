@@ -1,12 +1,11 @@
 import logging
 
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import update_last_login
 from django.db import transaction
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -32,46 +31,6 @@ def _build_login_response(user):
         },
         'user': LoginResponseSerializer(user).data,
     }
-
-
-class LoginView(APIView):
-    """Authenticate and return JWT tokens with user info."""
-
-    permission_classes = [permissions.AllowAny]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'login'
-
-    def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        if not email or not password:
-            return Response(
-                {'detail': '이메일과 비밀번호를 입력해주세요.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        user = authenticate(request, username=email, password=password)
-        if user is None:
-            # ModelBackend는 비활성 유저도 None 반환 — 사유를 분리해서 안내
-            existing = User.objects.filter(email=email).first()
-            if existing and not existing.is_active and existing.check_password(password):
-                return Response(
-                    {'detail': '비활성화된 계정입니다. 관리자에게 문의해주세요.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            return Response(
-                {'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if not user.is_active:
-            return Response(
-                {'detail': '비활성화된 계정입니다. 관리자에게 문의해주세요.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        return Response(_build_login_response(user))
 
 
 class LogoutView(APIView):

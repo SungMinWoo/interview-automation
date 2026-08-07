@@ -56,3 +56,4 @@ celerybeat-schedule
 celerybeat.pid
 
 .claude/
+settings.local.json

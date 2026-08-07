@@ -130,6 +130,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # JSON 전용 — Browsable API(HTML) 렌더러를 끈다.
+    # 브라우저로 API URL에 접근해도 DRF HTML 화면/로그인 UI 없이 JSON만 응답.
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
@@ -146,7 +151,6 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '30/min',          # 비인증 호출 기본 한도 (설문 페이지 등)
         'user': '300/min',         # 인증 호출 기본 한도 — 정상 사용자 영향 X
-        'login': '10/min',         # 로그인 — brute-force 방어 (IP 기준)
         'survey_verify': '5/min',  # 설문 비밀번호 검증 — 4자리 숫자 brute-force 방어
     },
 }
