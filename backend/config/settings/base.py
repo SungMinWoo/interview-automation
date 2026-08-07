@@ -90,6 +90,15 @@ DATABASES = {
         'PASSWORD': env('DB_PASSWORD', default='changeme_db_password'),
         'HOST': env('DB_HOST', default='db'),
         'PORT': env('DB_PORT', default='5432'),
+        # 커넥션 재사용 — 관리형 DB(Lightsail 등) 접속 시 매 요청 새 연결 비용을 줄인다.
+        'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
+        # CONN_MAX_AGE로 재사용되는 커넥션이 끊겼는지 요청 시작 시 확인(끊겼으면 재연결).
+        'CONN_HEALTH_CHECKS': env.bool('DB_CONN_HEALTH_CHECKS', default=True),
+        'OPTIONS': {
+            # Lightsail 등 관리형 PostgreSQL은 SSL을 요구 → 배포 환경에서 DB_SSLMODE=require.
+            # 로컬 docker의 db 컨테이너는 SSL 미지원 → 기본값 'prefer'면 자동으로 비암호화 폴백.
+            'sslmode': env('DB_SSLMODE', default='prefer'),
+        },
     }
 }
 
