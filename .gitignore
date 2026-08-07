@@ -54,3 +54,5 @@ coverage/
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+.claude/
