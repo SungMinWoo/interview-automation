@@ -160,6 +160,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '30/min',          # 비인증 호출 기본 한도 (설문 페이지 등)
         'user': '300/min',         # 인증 호출 기본 한도 — 정상 사용자 영향 X
+        'login': '10/min',         # 로그인 — brute-force 방어 (IP 기준)
+        'register': '5/min',       # 회원가입 — 대량 가입 방어 (IP 기준)
         'survey_verify': '5/min',  # 설문 비밀번호 검증 — 4자리 숫자 brute-force 방어
     },
 }
@@ -211,13 +213,3 @@ FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 # Survey
 SURVEY_URL_EXPIRY_DAYS = env.int('SURVEY_URL_EXPIRY_DAYS', default=7)
-
-# SSO / OAuth2
-OAUTH2_CLIENT_ID = env('OAUTH2_CLIENT_ID', default='')
-OAUTH2_CLIENT_SECRET = env('OAUTH2_CLIENT_SECRET', default='')
-OAUTH2_REDIRECT_CALLBACK_URI = env('OAUTH2_REDIRECT_CALLBACK_URI', default='http://localhost:3000/oauth/callback')
-OAUTH2_PROVIDER_URL = env('OAUTH2_PROVIDER_URL', default='')
-
-OAUTH2_AUTHORIZE_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/authorize' if OAUTH2_PROVIDER_URL else ''
-OAUTH2_TOKEN_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/token' if OAUTH2_PROVIDER_URL else ''
-OAUTH2_WELL_KNOWN_URL = f'{OAUTH2_PROVIDER_URL}/o/oauth2/.well-known/openid-configuration' if OAUTH2_PROVIDER_URL else ''

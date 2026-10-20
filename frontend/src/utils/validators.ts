@@ -1,5 +1,37 @@
 import { z } from 'zod';
 
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, '이메일을 입력해주세요.')
+    .email('올바른 이메일 형식을 입력해주세요.'),
+  password: z.string().min(1, '비밀번호를 입력해주세요.'),
+});
+
+export type LoginFormValues = z.infer<typeof loginSchema>;
+
+export const registerSchema = z
+  .object({
+    email: z
+      .string()
+      .min(1, '이메일을 입력해주세요.')
+      .email('올바른 이메일 형식을 입력해주세요.'),
+    username: z.string().min(1, '사용자명을 입력해주세요.'),
+    company_name: z.string().optional(),
+    password: z
+      .string()
+      .min(8, '비밀번호는 8자 이상이어야 합니다.')
+      .regex(/[a-zA-Z]/, '비밀번호에 영문자가 포함되어야 합니다.')
+      .regex(/[0-9]/, '비밀번호에 숫자가 포함되어야 합니다.'),
+    password_confirm: z.string().min(1, '비밀번호 확인을 입력해주세요.'),
+  })
+  .refine((data) => data.password === data.password_confirm, {
+    message: '비밀번호가 일치하지 않습니다.',
+    path: ['password_confirm'],
+  });
+
+export type RegisterFormValues = z.infer<typeof registerSchema>;
+
 export const projectSchema = z.object({
   project_type: z.enum(['uxui', 'bx']).default('uxui'),
   title: z.string().min(1, '프로젝트명을 입력해주세요.').max(200, '프로젝트명은 200자 이내로 입력해주세요.'),

@@ -1,7 +1,41 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 User = get_user_model()
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+    password_confirm = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'username', 'password',
+            'password_confirm', 'company_name',
+        ]
+        extra_kwargs = {
+            'email': {'required': True},
+            'username': {'required': True},
+        }
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError(
+                {'password_confirm': 'Passwords do not match.'}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
 
 class LoginResponseSerializer(serializers.ModelSerializer):
@@ -10,7 +44,7 @@ class LoginResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'first_name', 'company_name', 'sso_id',
+            'id', 'email', 'username', 'first_name', 'company_name',
             'is_active', 'is_staff', 'is_superuser',
         ]
         read_only_fields = fields
