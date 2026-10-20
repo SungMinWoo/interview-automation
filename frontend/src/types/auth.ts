@@ -4,7 +4,6 @@ export interface User {
   username: string;
   first_name?: string;
   company_name?: string;
-  sso_id?: string;
   is_active?: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
@@ -23,6 +22,19 @@ export interface AdminUser {
   last_login?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
+  password_confirm: string;
+  company_name?: string;
 }
 
 export interface AuthTokens {
