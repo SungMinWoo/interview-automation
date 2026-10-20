@@ -168,7 +168,7 @@ npx vite build
 
 ## 배포
 
-`.github/workflows/deploy.yml`은 `main` 브랜치에 push되면 SSH로 서버에 접속해 최신 코드를 받고 `docker compose up -d --build`를 실행합니다. 필요한 GitHub Secrets는 `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH`, (선택) `DEPLOY_PORT`입니다.
+서버에서 저장소를 받은 뒤 `.env`를 채우고 `docker compose up -d --build`로 실행합니다.
 
 SSL 인증서는 `init-letsencrypt.sh`로 처음 발급하고, `renew-cert.sh`를 cron에 등록해 갱신합니다. `init-letsencrypt.sh`의 `DOMAIN`, `EMAIL` 값은 배포 환경에 맞게 수정해야 합니다.
 
